@@ -158,7 +158,7 @@ export function Home({ onAccount }: { onAccount: () => void }) {
           onTab={setTab}
           onComposing={setComposing}
           onOpen={(slug: string) => {
-            run.setPicked(slug);
+            run.pull(slug);
             setTab("live");
             deck.goTo(0);
           }}
@@ -180,7 +180,7 @@ export function Home({ onAccount }: { onAccount: () => void }) {
           }))}
           onAccount={onAccount}
           onOpen={(slug) => {
-            run.setPicked(slug);
+            run.pull(slug);
             deck.goTo(0);
           }}
         />

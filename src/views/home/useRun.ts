@@ -3,10 +3,13 @@ import { useMutation, useQuery } from "convex/react";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import type { CallVerdict, Result } from "../../components/reveal/types";
+import type { CallVerdict } from "../../components/reveal/types";
+import { toResult } from "./result";
 import { useHistory } from "./useHistory";
+import { useUndo } from "./useUndo";
 import { useTally } from "./useTally";
 import { MIN_ROOM, type Side } from "../../lib/format";
+import { toSignIn } from "../../lib/nav";
 
 /**
  * A run: which question is in front of you, and what happened to the last one.
@@ -28,7 +31,6 @@ export function useRun() {
   const feed = useQuery(api.topics.feed, { limit: 40, ...session });
   const me = useQuery(api.users.me);
   const cast = useMutation(api.votes.cast);
-  const retract = useMutation(api.retract.vote);
   const skip = useMutation(api.votes.skip);
 
   const [done, setDone] = useState<Set<string>>(() => new Set());
@@ -36,9 +38,6 @@ export function useRun() {
   /* A topic pulled back out of that stack. It jumps the queue rather than
      being re-ranked to wherever the feed would now put it. */
   const [front, setFront] = useState<Card | null>(null);
-  /* The side a retraction just pulled back. It lives here because the arena
-     that plays the rewind is mounted by the swap it has to survive. */
-  const [undone, setUndone] = useState<Side | null>(null);
   const run = useTally();
   const [armed, setArmed] = useState(false);
   const [asking, setAsking] = useState<Side | null>(null);
@@ -85,27 +84,7 @@ export function useRun() {
 
   /* The aggregate a vote just unlocked, or the one a pulled topic already
      carried because this reader answered it some time ago. */
-  const stats = page?.topic.stats ?? null;
-  const result: Result | null =
-    answer && stats
-      ? {
-          stats,
-          countries: page?.countriesFull ?? [],
-          mine: answer.side,
-          staked: answer.staked,
-          verdict: answer.verdict,
-        }
-      : pulled && stats
-        ? {
-            stats,
-            countries: page?.countriesFull ?? [],
-            mine: (page?.viewer.votedPaid ??
-              page?.viewer.votedFree ??
-              null) as Side | null,
-            staked: page?.viewer.votedPaid != null,
-            verdict: null,
-          }
-        : null;
+  const result = toResult(page, answer, !!pulled);
 
   useEffect(() => {
     if (picked !== null && page === null) {
@@ -121,6 +100,23 @@ export function useRun() {
     setError("");
   }
 
+  /**
+   * The next question, chosen **now** rather than read off the list later.
+   *
+   * `feed` is a live ranked subscription and every move rewrites its own
+   * inputs: a skip writes a row the ranker reads, a vote writes taste, the
+   * counters and the velocity window. So the list re-orders about a round trip
+   * after the run moves on — and a front card read off it at that moment is
+   * shown for a beat and then silently replaced by a different question. The
+   * reader watches the thing they were about to answer turn into something
+   * else. Pinning the successor at the moment of the press ends that: the
+   * re-rank still happens and still decides what comes *after*, but it can no
+   * longer reach the card already on screen.
+   */
+  function advance() {
+    setFront(upNext[0] ?? null);
+  }
+
   /** Done with this one — bank it and move to the next in the run. */
   function next() {
     const left = answer?.topic ?? pulled;
@@ -128,7 +124,7 @@ export function useRun() {
       setDone((s) => new Set(s).add(left._id));
       history.push(left, true);
     }
-    setFront(null);
+    advance();
     clear();
   }
 
@@ -146,7 +142,7 @@ export function useRun() {
     setDone((s) => new Set(s).add(topic._id));
     history.push(topic, false);
     run.skipped(1);
-    setFront(null);
+    advance();
     clear();
   }
 
@@ -180,13 +176,38 @@ export function useRun() {
     setFront(last.card);
   }
 
+  /**
+   * A row in a rail takes the middle column, whatever is currently in it.
+   *
+   * It used to only set `picked`, which does nothing while a result is still
+   * on screen — `pulling` is false until the answer clears. The click looked
+   * ignored, and then the topic arrived a second or two later on the heels of
+   * the auto-advance. Banking the answer here means the pull registers on the
+   * press, and the column shows the loader until that topic's own card lands.
+   */
+  function pull(slug: string) {
+    if (busy) return;
+    const left = answer?.topic;
+    if (left) {
+      setDone((s) => new Set(s).add(left._id));
+      history.push(left, true);
+      advance();
+    } else if (topic) {
+      // Nothing else moves while the pulled card loads: the column holds the
+      // question it was already showing, under the loader, rather than letting
+      // the run's next one flash through and be replaced a beat later.
+      setFront(topic);
+    }
+    setAnswer(null);
+    setAsking(null);
+    setError("");
+    setPicked(slug);
+  }
+
   async function commit(side: Side, call?: Side) {
     if (!topic) return;
-    if (!me) {
-      setError("Sign in to vote — your first sparks are free.");
-      setAsking(null);
-      return;
-    }
+    // Not a refusal: the door, and `App` brings them back to this question.
+    if (!me) return toSignIn();
     setBusy(true);
     try {
       const out = await cast({
@@ -220,38 +241,16 @@ export function useRun() {
     else void commit(side);
   }
 
-  /**
-   * Take the vote back. Two shapes, one word.
-   *
-   * Before the cast it is local and costs nothing. After it, while the
-   * countdown to the next question runs, it is a real retraction: the server
-   * pulls the vote, the counters, the call and the spark back out and writes
-   * an audit row saying so. When the countdown ends, the vote is final.
-   */
-  async function undo() {
-    if (busy) return;
-    if (asking) {
-      setAsking(null);
-      return;
-    }
-    const cast = answer?.topic;
-    if (!cast) return;
-    setBusy(true);
-    try {
-      const pulled = answer!.side;
-      await retract({ topicId: cast._id as Id<"topics"> });
-      setAnswer(null);
-      setUndone(pulled);
-      window.setTimeout(() => setUndone(null), 1015);
-      // Straight back to the question, ahead of the queue, ready to be
-      // answered again — which is the whole point of taking it back.
-      setFront(cast);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusy(false);
-    }
-  }
+  const { undone, undo } = useUndo({
+    answer,
+    asking,
+    busy,
+    setAnswer,
+    setAsking,
+    setBusy,
+    setError,
+    setFront,
+  });
 
   return {
     feed,
@@ -288,7 +287,7 @@ export function useRun() {
       run.reset();
       clear();
     },
-    setPicked,
+    pull,
     next,
     release,
     pass,
