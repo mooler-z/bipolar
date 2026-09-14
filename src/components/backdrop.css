@@ -1,0 +1,165 @@
+/* ============================================================
+   The backdrop behind the question.
+
+   Four fields — two of the love red, two of the hate blue — each
+   on its own path and its own clock, blurred hard and held low.
+   The two sides of the product, drifting into each other behind
+   the thing being argued about.
+
+   Red leans left and blue leans right at rest, the way the two
+   answers under them sit, but the orbits carry them across each
+   other so the middle is always a mix rather than a seam.
+
+   **The ground takes a side before you do.** Hovering an answer
+   swells its colour and pushes it across the middle while the
+   other retreats; leaving evens them out again. The room is
+   arguing back before anything has been pressed — the same idea
+   as the seam that used to slide, without the seam.
+
+   A grain plate sits over them at `soft-light`, which is what
+   stops a field this large from banding on a dark screen.
+
+   This is the one gradient in the product, and it is deliberate:
+   it is a *ground*, never a surface, a control or a fill.
+   ============================================================ */
+
+:root {
+  --blob-1: 255, 45, 85;   /* love */
+  --blob-2: 0, 194, 255;   /* hate */
+  --blob-3: 214, 0, 60;    /* love, deeper */
+  --blob-4: 0, 144, 199;   /* hate, deeper */
+  --blob-op: 0.3;
+  --blob-blend: hard-light;
+}
+
+/*
+ * On paper the same fields need different numbers, not fewer of them: white
+ * gives a saturated blob nothing to sink into, so the dark theme's values sit
+ * on the page as a stain, while its opacity on pale tints disappears entirely.
+ * The light theme takes tints a step off white and multiplies them — present
+ * enough to read as weather, soft enough not to argue with the headline.
+ */
+:root[data-theme="light"] {
+  --blob-1: 255, 92, 124;
+  --blob-2: 66, 178, 235;
+  --blob-3: 255, 130, 158;
+  --blob-4: 110, 200, 245;
+  --blob-op: 0.34;
+  --blob-blend: multiply;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  pointer-events: none;
+  contain: strict;
+}
+
+.backdrop-field {
+  position: absolute;
+  inset: 0;
+  filter: blur(56px);
+  opacity: var(--blob-op);
+}
+
+/*
+ * Two layers per field, and they must stay two.
+ *
+ * `.blob` owns the long drift, which is an `animation` on `transform`; a lean
+ * set on the same element would be overwritten by it every frame. The wrapper
+ * carries the lean instead, so the two compose.
+ */
+.lean {
+  position: absolute;
+  inset: 0;
+  transform-origin: center center;
+  transition:
+    transform 700ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 700ms ease-out;
+}
+
+.backdrop[data-lean="love"] .lean-love { transform: scale(1.35) translateX(9%); }
+.backdrop[data-lean="hate"] .lean-hate { transform: scale(1.35) translateX(-9%); }
+.backdrop[data-lean="love"] .lean-hate,
+.backdrop[data-lean="hate"] .lean-love {
+  transform: scale(0.68);
+  opacity: 0.3;
+}
+
+.blob {
+  position: absolute;
+  width: 80%;
+  height: 80%;
+  mix-blend-mode: var(--blob-blend);
+  transform-origin: center center;
+  will-change: transform;
+}
+
+/* Four, each on its own path and its own clock, so they never line up into a
+   pattern a reader can predict. Red left, blue right, both crossing. */
+.blob-1 {
+  background: radial-gradient(circle at center, rgba(var(--blob-1), 0.85) 0, rgba(var(--blob-1), 0) 50%) no-repeat;
+  top: 4%;
+  left: -6%;
+  animation: drift-y 34s ease-in-out infinite;
+}
+.blob-2 {
+  background: radial-gradient(circle at center, rgba(var(--blob-2), 0.85) 0, rgba(var(--blob-2), 0) 50%) no-repeat;
+  top: 10%;
+  left: 26%;
+  transform-origin: calc(50% + 20vw) center;
+  animation: orbit 41s linear infinite;
+}
+.blob-3 {
+  background: radial-gradient(circle at center, rgba(var(--blob-3), 0.75) 0, rgba(var(--blob-3), 0) 50%) no-repeat;
+  width: 95%;
+  height: 95%;
+  top: -4%;
+  left: 2%;
+  transform-origin: calc(50% - 18vw) center;
+  animation: orbit 57s linear reverse infinite;
+}
+.blob-4 {
+  background: radial-gradient(circle at center, rgba(var(--blob-4), 0.8) 0, rgba(var(--blob-4), 0) 50%) no-repeat;
+  width: 90%;
+  height: 90%;
+  top: 8%;
+  left: 22%;
+  animation: drift-x 47s ease-in-out infinite;
+}
+
+/*
+ * The grain.
+ *
+ * `width`/`height` are set here on purpose. An absolutely positioned *replaced*
+ * element with `width: auto` takes its intrinsic size, and an `<svg>` with no
+ * viewBox intrinsically measures 300×150 — so `inset: 0` alone left a hard
+ * 300×150 grain rectangle sitting in the top-left corner of the column.
+ */
+.backdrop-grain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  mix-blend-mode: soft-light;
+  opacity: 0.2;
+}
+
+@keyframes drift-y {
+  0%, 100% { transform: translateY(-18%); }
+  50% { transform: translateY(18%); }
+}
+@keyframes drift-x {
+  0%, 100% { transform: translateX(-16%) translateY(-5%); }
+  50% { transform: translateX(16%) translateY(5%); }
+}
+@keyframes orbit {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blob { animation: none !important; }
+}
