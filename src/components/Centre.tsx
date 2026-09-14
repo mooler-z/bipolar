@@ -1,11 +1,14 @@
+import { forwardRef, type ReactNode } from "react";
 import { ArrowRight, Broadcast, X } from "@phosphor-icons/react";
 
 import type { Side } from "../lib/format";
-import type { CountryRow } from "../lib/insights";
+import type { ArenaHandle } from "./Arena";
 import { Decide, type DecideTopic } from "./Decide";
 import { Reveal } from "./Reveal";
-import type { Aggregate, CallVerdict } from "./result/Parts";
+import type { Result } from "./reveal/types";
 import { Button } from "../ui/Button";
+
+export type { Result };
 
 /**
  * The middle column: the question, or the answer to it.
@@ -14,85 +17,70 @@ import { Button } from "../ui/Button";
  * switch between three things — deciding, waiting, and reading — each of which
  * owns the full height of the column.
  *
- * A topic pulled out of the rails gets a band across the top saying so, with
- * the way back to the run in it. Without that, clicking something in `Live`
- * silently replaces the question somebody was mid-thought on and there is no
- * sign anything happened.
+ * A topic pulled out of the rails gets a gold band across the top saying so,
+ * with the way back to the run in it. Without that, clicking something in the
+ * room silently replaces the question somebody was mid-thought on and there
+ * is no sign anything happened.
  */
-
-export type Result = {
-  stats: Aggregate;
-  countries: CountryRow[];
-  mine: Side | null;
-  staked: boolean;
-  verdict: CallVerdict;
-};
-
-export function Centre({
-  topic,
-  pulled,
-  onRelease,
-  result,
-  loading,
-  resolving,
-  armed,
-  canSpark,
-  sparks,
-  busy,
-  onArm,
-  onPick,
-  onSkip,
-  onComments,
-  onNext,
-  onShare,
-}: {
-  topic: DecideTopic;
-  /** True when this topic came from a rail rather than from the run. */
-  pulled: boolean;
-  onRelease: () => void;
-  result: Result | null;
-  /** Answered, but the aggregate has not arrived yet. */
-  loading: boolean;
-  /** Pulled from a rail, and that topic's card has not arrived yet. */
-  resolving: boolean;
-  armed: boolean;
-  canSpark: boolean;
-  sparks?: number;
-  busy: boolean;
-  onArm: (armed: boolean) => void;
-  onPick: (side: Side) => void;
-  onSkip: () => void;
-  onComments: () => void;
-  onNext: () => void;
-  onShare: () => void;
-}) {
+export const Centre = forwardRef<
+  ArenaHandle,
+  {
+    topic: DecideTopic;
+    /** True when this topic came from a rail rather than from the run. */
+    pulled: boolean;
+    onRelease: () => void;
+    result: Result | null;
+    /** Answered, but the aggregate has not arrived yet. */
+    loading: boolean;
+    /** Pulled from a rail, and that topic's card has not arrived yet. */
+    resolving: boolean;
+    armed: boolean;
+    canSpark: boolean;
+    sparks?: number;
+    busy: boolean;
+    /** A comment is being written: the countdown must wait. */
+    composing: boolean;
+    /** The way to the next panel, on a phone. Shown in the decision's foot. */
+    hint?: ReactNode;
+    onArm: (armed: boolean) => void;
+    onPick: (side: Side) => void;
+    onSkip: () => void;
+    onComments: () => void;
+    onGetSparks: () => void;
+    onNext: () => void;
+    onShare: () => void;
+  }
+>(function Centre(
+  {
+    topic, pulled, onRelease, result, loading, resolving, armed, canSpark, sparks,
+    busy, composing, hint, onArm, onPick, onSkip, onComments, onGetSparks, onNext, onShare,
+  },
+  ref,
+) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       {pulled ? (
-        <div className="flex shrink-0 items-center gap-2 border-b border-coin/30 bg-coin/8 px-[clamp(1.25rem,3vw,3.5rem)] py-2">
-          <Broadcast weight="fill" className="size-3.5 text-coin" />
-          <span className="text-[12.5px] font-bold text-coin">
-            Pulled from the room
-          </span>
+        <div className="slide-up flex shrink-0 items-center gap-2 bg-coin-fill px-[clamp(1.25rem,3vw,3.5rem)] py-1.5 text-on-coin">
+          <Broadcast weight="fill" className="size-3.5" />
+          <span className="text-[12.5px] font-extrabold">Pulled from the room</span>
           <span className="flex-1" />
           <Button
             bare
             onClick={onRelease}
-            className="lift flex items-center gap-1.5 text-[12.5px] font-bold text-coin/80 hover:text-coin"
+            className="lift flex items-center gap-1.5 text-[12.5px] font-extrabold hover:opacity-70"
           >
             Back to the run <X weight="bold" className="size-3.5" />
+            <kbd className="key !bg-current/15 !text-current !shadow-none">esc</kbd>
           </Button>
         </div>
       ) : null}
 
       <div className="min-h-0 flex-1">
         {resolving ? (
-          /* Only this column waits. Tearing the whole console down for a
-             loading card is what made pulling a topic look like a reload. */
           <div className="flex h-full flex-col justify-center gap-4 px-[clamp(1.25rem,3vw,3.5rem)]">
             <span className="shimmer h-8 w-40 rounded-[var(--r-pill)]" />
-            <span className="shimmer h-20 w-3/4 rounded-[var(--r-btn)]" />
-            <span className="shimmer h-28 w-full rounded-[var(--r-card)]" />
+            <span className="shimmer h-24 w-3/4 rounded-[var(--r-btn)]" />
+            <span className="shimmer h-36 w-full rounded-[var(--r-card)]" />
           </div>
         ) : result ? (
           <Reveal
@@ -105,18 +93,32 @@ export function Centre({
             verdict={result.verdict}
             onNext={onNext}
             onShare={onShare}
+            // A topic pulled from the room was answered some time ago; nothing
+            // should carry the reader away from something they chose to look at.
+            autoAdvance={pulled ? null : { paused: composing }}
           />
         ) : loading ? (
-          <div className="grid h-full place-items-center gap-5 p-8">
-            <span className="shimmer h-40 w-full max-w-xl rounded-[var(--r-card)]" />
-            {/* Never a dead end: the vote is already cast and final, so
-                moving on is always safe even if the result is slow. */}
-            <Button variant="ghost" size="sm" onClick={onNext}>
-              Skip the result <ArrowRight className="size-4" />
-            </Button>
+          /* The reveal's own shape, as placeholders, so the column does not
+             collapse to a spinner between the press and the number. */
+          <div className="flex h-full flex-col px-[clamp(1.25rem,3vw,3.5rem)] py-5">
+            <span className="shimmer h-[clamp(14rem,34vh,22rem)] w-full rounded-[var(--r-card)]" />
+            <span className="mt-5 grid gap-3 sm:grid-cols-2">
+              <span className="shimmer h-24 rounded-[var(--r-card)]" />
+              <span className="shimmer h-24 rounded-[var(--r-card)]" />
+            </span>
+            <span className="shimmer mt-5 h-40 w-full rounded-[var(--r-card)]" />
+            <span className="flex-1" />
+            {/* Never a dead end: the vote is already cast and final, so moving
+                on is always safe even if the result is slow. */}
+            <span className="flex justify-center pt-4">
+              <Button variant="ghost" size="sm" onClick={onNext}>
+                Skip the result <ArrowRight className="size-4" />
+              </Button>
+            </span>
           </div>
         ) : (
           <Decide
+            ref={ref}
             topic={topic}
             armed={armed}
             canSpark={canSpark}
@@ -126,9 +128,11 @@ export function Centre({
             onPick={onPick}
             onSkip={onSkip}
             onComments={onComments}
+            onGetSparks={onGetSparks}
+            hint={hint}
           />
         )}
       </div>
     </div>
   );
-}
+});
