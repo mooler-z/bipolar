@@ -3,8 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import type { Result } from "../../components/Centre";
-import type { CallVerdict } from "../../components/result/Parts";
+import type { CallVerdict, Result } from "../../components/reveal/types";
 import { MIN_ROOM, type Side } from "../../lib/format";
 
 /**
@@ -19,6 +18,18 @@ export type Card = NonNullable<
   ReturnType<typeof useQuery<typeof api.topics.feed>>
 >[number];
 
+/** What this sitting added up to. Read back at the end of the run. */
+export type Tally = {
+  love: number;
+  hate: number;
+  staked: number;
+  right: number;
+  wrong: number;
+  skipped: number;
+};
+
+const EMPTY: Tally = { love: 0, hate: 0, staked: 0, right: 0, wrong: 0, skipped: 0 };
+
 export function useRun() {
   // One seed per visit: a reload is a different run, not the same list again.
   const [session] = useState(() => ({
@@ -31,6 +42,7 @@ export function useRun() {
   const skip = useMutation(api.votes.skip);
 
   const [done, setDone] = useState<Set<string>>(() => new Set());
+  const [tally, setTally] = useState<Tally>(EMPTY);
   const [armed, setArmed] = useState(false);
   const [asking, setAsking] = useState<Side | null>(null);
   const [busy, setBusy] = useState(false);
@@ -62,9 +74,9 @@ export function useRun() {
   const page = useQuery(api.topics.bySlug, lookup ? { slug: lookup } : "skip");
 
   /*
-   * A topic clicked in `Live` or `Boards` replaces the question in the middle
-   * rather than navigating away. The rails are a live room; leaving the console
-   * to look at one row of it ends the run.
+   * A topic clicked in the room or the queue replaces the question in the
+   * middle rather than navigating away. The rails are a live room; leaving the
+   * console to look at one row of it ends the run.
    */
   const pulling = picked !== null && !answer;
   const pulled = pulling ? (page?.topic ?? null) : null;
@@ -81,7 +93,7 @@ export function useRun() {
   const topic = answer?.topic ?? pulled ?? open[0];
 
   /** Still ahead. The run's current question is in `open` until it is asked. */
-  const upNext = answer || picked ? open : open.slice(1);
+  const upNext = answer || picked ? open.filter((t) => t._id !== topic?._id) : open.slice(1);
 
   /* Either the aggregate a vote just unlocked, or the one a pulled topic was
      already carrying because this reader answered it some time ago. */
@@ -124,6 +136,7 @@ export function useRun() {
   /** Done with this one — bank it and move to the next in the run. */
   function next() {
     if (answer) setDone((s) => new Set(s).add(answer.topic._id));
+    else if (pulled) setDone((s) => new Set(s).add(pulled._id));
     clear();
   }
 
@@ -139,6 +152,7 @@ export function useRun() {
     if (!topic) return;
     if (me) void skip({ topicId: topic._id as Id<"topics"> });
     setDone((s) => new Set(s).add(topic._id));
+    setTally((t) => ({ ...t, skipped: t.skipped + 1 }));
     clear();
   }
 
@@ -158,6 +172,13 @@ export function useRun() {
         call,
       });
       setAnswer({ topic, side, staked: armed, verdict: out.verdict });
+      setTally((t) => ({
+        ...t,
+        [side]: t[side] + 1,
+        staked: t.staked + (armed ? 1 : 0),
+        right: t.right + (out.verdict?.correct ? 1 : 0),
+        wrong: t.wrong + (out.verdict && !out.verdict.correct ? 1 : 0),
+      }));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -179,6 +200,7 @@ export function useRun() {
     topic,
     upNext,
     answeredCount: done.size + (answer ? 1 : 0),
+    tally,
     result,
     /** Answered, but the aggregate has not arrived yet. */
     loading: !!answer && !result,
@@ -196,6 +218,7 @@ export function useRun() {
     setError,
     restart: () => {
       setDone(new Set());
+      setTally(EMPTY);
       clear();
     },
     setPicked,
