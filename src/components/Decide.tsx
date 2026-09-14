@@ -1,5 +1,6 @@
 import { forwardRef, useState, type ReactNode } from "react";
 import {
+  ArrowLeft,
   ArrowRight,
   ArrowSquareOut,
   ChatCircle,
@@ -59,24 +60,34 @@ export const Decide = forwardRef<
     onArm: (armed: boolean) => void;
     onPick: (side: Side) => void;
     onSkip?: () => void;
+    /** One step back through the run. Absent when there is nothing behind. */
+    onBack?: () => void;
     onComments: () => void;
     onGetSparks: () => void;
     /** Anything that belongs under the arena — the peek, on a topic's own page. */
     extra?: ReactNode;
     /** Replaces the keyboard hints where the layout is a deck rather than a desk. */
     hint?: ReactNode;
+    /** A pressed-but-uncast vote. Takes the arena's place while it is open. */
+    pending?: ReactNode;
+    /** A side just retracted. The arena comes back holding the board. */
+    restoring?: Side | null;
   }
 >(function Decide(
-  { topic, armed, canSpark, sparks, busy, onArm, onPick, onSkip, onComments, onGetSparks, extra, hint },
+  { topic, armed, canSpark, sparks, busy, onArm, onPick, onSkip, onBack, onComments, onGetSparks, extra, hint, pending, restoring },
   ref,
 ) {
-  /* Which answer the cursor is over. It only drives the ground behind the
-     question, which is why it lives here rather than in the arena. */
-  const [lean, setLean] = useState<Side | null>(null);
+  /* Which answer the cursor is over, and whether it has been pressed. It only
+     drives the ground behind the question, which is why it lives here rather
+     than in the arena. */
+  const [lean, setLean] = useState<{ side: Side | null; pressed: boolean }>({
+    side: null,
+    pressed: false,
+  });
 
   return (
     <section className="relative isolate flex h-full min-h-0 flex-col">
-      <Backdrop lean={lean} />
+      <Backdrop lean={lean.side} flood={lean.pressed} />
       {/* Band 1 — context. One line; nothing here competes with the question. */}
       <header className={cn("flex shrink-0 flex-wrap items-center gap-x-2.5 gap-y-2 border-b border-line py-2.5", PAD)}>
         <span className="rounded-[6px] bg-ink px-2.5 py-1 text-[11.5px] font-extrabold tracking-[0.06em] text-canvas uppercase">
@@ -182,26 +193,36 @@ export const Decide = forwardRef<
 
       {/* Band 3 — the answer. Always here, whatever the question was. */}
       <footer className={cn("shrink-0 border-t border-line bg-surface/40 py-[clamp(0.75rem,1.8vh,1.25rem)]", PAD)}>
-        <SparkSwitch
-          armed={armed}
-          affordable={canSpark}
-          sparks={sparks}
-          onChange={onArm}
-          onEmpty={onGetSparks}
-        />
+        {/* One band, two states. The pending window takes the arena's place
+            rather than covering it, so the question it is about stays on
+            screen and the foot of the column never moves. */}
+        {pending ? (
+          pending
+        ) : (
+          <>
+            <SparkSwitch
+              armed={armed}
+              affordable={canSpark}
+              sparks={sparks}
+              onChange={onArm}
+              onEmpty={onGetSparks}
+            />
 
-        <Arena
-          ref={ref}
-          armed={armed}
-          busy={busy}
-          onPick={onPick}
-          onLean={setLean}
-          className="mt-2.5 h-[clamp(10rem,30vh,15rem)]"
-        />
+            <Arena
+              ref={ref}
+              armed={armed}
+              busy={busy}
+              onPick={onPick}
+              onLean={(side, pressed = false) => setLean({ side, pressed })}
+              restoring={restoring}
+              className="mt-2.5 h-[clamp(10rem,30vh,15rem)]"
+            />
 
-        {extra}
+            {extra}
+          </>
+        )}
 
-        <div className="mt-2.5 flex items-center justify-between gap-3">
+        <div className={cn("mt-2.5 flex items-center justify-between gap-3", pending && "hidden")}>
           {/* The keyboard is the desk's path through a run; the deck's is a
               swipe, and a key cap on a phone is a hint about nothing. */}
           <span className="hidden items-center gap-1.5 text-[11.5px] text-mute xl:flex">
@@ -213,12 +234,27 @@ export const Decide = forwardRef<
             <span className="ml-1">to back it</span>
           </span>
           <span className="xl:hidden">{hint}</span>
-          {onSkip ? (
-            <Button variant="ghost" size="sm" onClick={onSkip}>
-              Skip <ArrowRight className="size-4" />
-              <kbd className="key ml-1 hidden xl:inline-grid">S</kbd>
-            </Button>
-          ) : null}
+          <span className="flex items-center gap-1">
+            {/* A run that only moves forward makes one stray keystroke
+                permanent. This is the way back to it. */}
+            {onBack ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onBack}
+                title="Back one — the last question you left"
+              >
+                <ArrowLeft className="size-4" /> Back
+                <kbd className="key ml-1 hidden xl:inline-grid">&larr;</kbd>
+              </Button>
+            ) : null}
+            {onSkip ? (
+              <Button variant="ghost" size="sm" onClick={onSkip}>
+                Skip <ArrowRight className="size-4" />
+                <kbd className="key ml-1 hidden xl:inline-grid">&rarr;</kbd>
+              </Button>
+            ) : null}
+          </span>
         </div>
       </footer>
     </section>

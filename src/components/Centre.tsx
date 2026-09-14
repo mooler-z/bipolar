@@ -42,9 +42,18 @@ export const Centre = forwardRef<
     composing: boolean;
     /** The way to the next panel, on a phone. Shown in the decision's foot. */
     hint?: ReactNode;
+    /** A pressed-but-uncast vote. Takes the arena's place while it is open. */
+    pending?: ReactNode;
     onArm: (armed: boolean) => void;
     onPick: (side: Side) => void;
     onSkip: () => void;
+    /** One step back through the run. Absent when there is nothing behind. */
+    onBack?: () => void;
+    /** Take the cast vote back, while the countdown still allows it. */
+    onUndo?: () => void;
+    /** The side a retraction just pulled back. The arena comes back holding
+        the board and gives it up. */
+    undone?: Side | null;
     onComments: () => void;
     onGetSparks: () => void;
     onNext: () => void;
@@ -53,7 +62,7 @@ export const Centre = forwardRef<
 >(function Centre(
   {
     topic, pulled, onRelease, result, loading, resolving, armed, canSpark, sparks,
-    busy, composing, hint, onArm, onPick, onSkip, onComments, onGetSparks, onNext, onShare,
+    busy, composing, hint, pending, undone, onArm, onPick, onSkip, onBack, onUndo, onComments, onGetSparks, onNext, onShare,
   },
   ref,
 ) {
@@ -75,7 +84,7 @@ export const Centre = forwardRef<
         </div>
       ) : null}
 
-      <div className="min-h-0 flex-1">
+      <div className="min-h-0 flex-1 overflow-hidden">
         {resolving ? (
           <div className="flex h-full flex-col justify-center gap-4 px-[clamp(1.25rem,3vw,3.5rem)]">
             <span className="shimmer h-8 w-40 rounded-[var(--r-pill)]" />
@@ -95,6 +104,8 @@ export const Centre = forwardRef<
             onShare={onShare}
             // A topic pulled from the room was answered some time ago; nothing
             // should carry the reader away from something they chose to look at.
+            onPrevious={onBack}
+            onUndo={onUndo}
             autoAdvance={pulled ? null : { paused: composing }}
           />
         ) : loading ? (
@@ -127,9 +138,12 @@ export const Centre = forwardRef<
             onArm={onArm}
             onPick={onPick}
             onSkip={onSkip}
+            onBack={onBack}
             onComments={onComments}
             onGetSparks={onGetSparks}
             hint={hint}
+            pending={pending}
+            restoring={undone}
           />
         )}
       </div>

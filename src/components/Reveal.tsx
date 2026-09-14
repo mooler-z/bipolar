@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, ShareNetwork } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowRight, ArrowUUpLeft, ShareNetwork } from "@phosphor-icons/react";
 
 import { pct, type Side } from "../lib/format";
 import type { CountryRow } from "../lib/insights";
@@ -22,6 +22,15 @@ export type { Aggregate, CallVerdict };
  * Committed apart is the entire product; then the world, which is the half of
  * a result that actually travels.
  *
+ * It enters from the right, over the ground the press just flooded with the
+ * winning colour — the answer arriving on top of the question rather than
+ * replacing it in place.
+ *
+ * **The countdown is also the undo window.** While it runs the vote can still
+ * be pulled back; when it ends the run moves on and the vote is final. It
+ * pauses on a hover and while a comment is being written, so the window lasts
+ * exactly as long as the reader is still thinking about it.
+ *
  * Everything above scrolls, and **the foot is anchored** exactly where the
  * arena was. On a run the foot carries `Next` and the countdown that presses
  * it for you; on a topic's own page it carries the way back.
@@ -36,6 +45,8 @@ export function Reveal({
   verdict,
   onNext,
   onBack,
+  onPrevious,
+  onUndo,
   onShare,
   autoAdvance,
 }: {
@@ -48,6 +59,13 @@ export function Reveal({
   verdict: CallVerdict;
   onNext?: () => void;
   onBack?: () => void;
+  /** One step back through the run. Absent when there is nothing behind you. */
+  onPrevious?: () => void;
+  /**
+   * Take this vote back. Present only while the countdown is still running —
+   * once it ends the run has moved on and the vote is final.
+   */
+  onUndo?: () => void;
   onShare: () => void;
   /** Present when the run should carry itself forward; `paused` while a
       comment is being written. */
@@ -57,7 +75,7 @@ export function Reveal({
   const won: Side = cl >= 50 ? "love" : "hate";
 
   return (
-    <section className="rise flex h-full min-h-0 flex-col">
+    <section className="slide-in flex h-full min-h-0 flex-col">
       <div className="col-scroll flex-1 px-[clamp(1.25rem,3vw,3.5rem)] py-5">
         {verdict ? (
           <div className="mb-4">
@@ -78,11 +96,39 @@ export function Reveal({
         ) : null}
       </div>
 
-      <footer className="flex shrink-0 flex-wrap items-center gap-3 border-t border-line bg-surface/40 px-[clamp(1.25rem,3vw,3.5rem)] py-[clamp(0.75rem,1.6vh,1.1rem)]">
+      <footer className="flex shrink-0 flex-wrap items-center gap-2.5 border-t border-line bg-surface/40 px-[clamp(1.25rem,3vw,3.5rem)] py-[clamp(0.75rem,1.6vh,1.1rem)]">
+        {/* Orange against the violet: the same size and weight as Next, and
+            unmistakably not it. Undo while the vote can still be pulled, and
+            one step back through the run once it cannot. */}
+        {onUndo ? (
+          <Button
+            size="lg"
+            variant="streak"
+            onClick={onUndo}
+            title="Take this vote back — until the countdown ends"
+            className="shrink-0"
+          >
+            <ArrowUUpLeft weight="bold" className="size-4" /> Undo
+            <kbd className="key !bg-current/15 !text-current !shadow-none">U</kbd>
+          </Button>
+        ) : onPrevious ? (
+          <Button
+            size="lg"
+            variant="streak"
+            onClick={onPrevious}
+            aria-label="Back one"
+            title="Back one"
+            className="shrink-0 !px-5"
+          >
+            <ArrowLeft weight="bold" className="size-4" />
+            <kbd className="key !bg-current/15 !text-current !shadow-none">&larr;</kbd>
+          </Button>
+        ) : null}
+
         {onNext ? (
           <Button size="lg" variant="go" onClick={onNext} className="shrink-0">
             Next topic <ArrowRight weight="bold" className="size-4" />
-            <kbd className="key ml-1 !bg-current/15 !text-current !shadow-none">N</kbd>
+            <kbd className="key ml-1 !bg-current/15 !text-current !shadow-none">&rarr;</kbd>
           </Button>
         ) : onBack ? (
           <Button size="lg" variant="go" onClick={onBack} className="shrink-0">

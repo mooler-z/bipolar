@@ -16,7 +16,7 @@ import { api } from "../../../convex/_generated/api";
 import { Burst } from "../../ui/Burst";
 import { Button } from "../../ui/Button";
 import { Tile } from "../../ui/Tile";
-import type { Tally } from "./useRun";
+import type { Tally } from "./useTally";
 
 /**
  * Caught up. Not a dead end — a session wrap-up.

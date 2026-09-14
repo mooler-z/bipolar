@@ -8,7 +8,6 @@ import { DeckHint, Pager, useDeck } from "../components/mobile/Deck";
 import { RoomRail, type RoomTab } from "../components/room/RoomRail";
 import { RunRail } from "../components/run/RunRail";
 import { useRunKeys } from "../lib/keys";
-import { Button } from "../ui/Button";
 import { CaughtUp } from "./home/CaughtUp";
 import { useRun } from "./home/useRun";
 
@@ -54,6 +53,8 @@ export function Home({ onAccount }: { onAccount: () => void }) {
     onArm: () => run.setArmed(!run.armed),
     onNext: run.next,
     onRelease: run.release,
+    onUndo: run.canUndo || !!run.asking ? () => void run.undo() : undefined,
+    onBack: run.canGoBack ? run.back : undefined,
   });
 
   /* The run being empty *and* a pull still in flight is the one case with no
@@ -111,9 +112,24 @@ export function Home({ onAccount }: { onAccount: () => void }) {
           busy={run.busy}
           composing={composing}
           hint={<DeckHint label="The room" onGo={() => deck.goTo(1)} />}
+          pending={
+            asking ? (
+              <CallStep
+                mine={asking}
+                crowdSize={topic.crowdSize}
+                busy={run.busy}
+                onCall={(call) => void run.commit(asking, call)}
+                onSkip={() => void run.commit(asking)}
+                onUndo={run.undo}
+              />
+            ) : null
+          }
           onArm={run.setArmed}
           onPick={run.pick}
           onSkip={run.pass}
+          onBack={run.canGoBack ? run.back : undefined}
+          onUndo={run.canUndo ? () => void run.undo() : undefined}
+          undone={run.undone}
           onComments={() => {
             setTab("talk");
             deck.goTo(1);
@@ -171,29 +187,6 @@ export function Home({ onAccount }: { onAccount: () => void }) {
       </div>
 
       <Pager deck={deck} labels={SECTIONS} />
-
-      {/* The second question, over the console — it must not move the layout. */}
-      {asking ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 px-6 backdrop-blur-sm">
-          <div className="w-full max-w-lg">
-            <CallStep
-              mine={asking}
-              crowdSize={topic.crowdSize}
-              busy={run.busy}
-              onCall={(call) => void run.commit(asking, call)}
-            />
-            <Button
-              variant="ghost"
-              size="sm"
-              block
-              className="mt-2"
-              onClick={() => void run.commit(asking)}
-            >
-              Skip the call — just vote
-            </Button>
-          </div>
-        </div>
-      ) : null}
 
       {run.error ? (
         <p className="slide-up fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-[var(--r-sm)] border border-line-2 bg-surface-3 px-4 py-2.5 text-sm font-bold text-ink">

@@ -57,7 +57,9 @@ export function TopicPage({ slug, onBack }: { slug: string; onBack: () => void }
     canSpark: (me?.walletBalanceCents ?? 0) >= 50,
     onPick: (side) => arena.current?.press(side),
     onArm: () => setArmed((a) => !a),
+    onSkip: onBack,
     onNext: onBack,
+    onUndo: () => setAsking(null),
   });
 
   if (page === undefined) {
@@ -166,6 +168,18 @@ export function TopicPage({ slug, onBack }: { slug: string; onBack: () => void }
             }}
             onGetSparks={onBack}
             hint={<DeckHint label="The room" onGo={() => deck.goTo(1)} />}
+            pending={
+              asking ? (
+                <CallStep
+                  mine={asking}
+                  crowdSize={topic.crowdSize}
+                  busy={busy}
+                  onCall={(call) => commit(asking, call)}
+                  onSkip={() => commit(asking)}
+                  onUndo={() => setAsking(null)}
+                />
+              ) : null
+            }
             extra={
               <div className="mt-2.5 flex flex-wrap items-center justify-between gap-3 rounded-[var(--r-btn)] border border-line bg-surface-2 px-4 py-2.5">
                 <p className="flex items-center gap-2 text-[12.5px] leading-snug text-ink-3">
@@ -209,17 +223,6 @@ export function TopicPage({ slug, onBack }: { slug: string; onBack: () => void }
       </div>
 
       <Pager deck={deck} labels={SECTIONS} />
-
-      {asking ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 px-6 backdrop-blur-sm">
-          <div className="w-full max-w-lg">
-            <CallStep mine={asking} crowdSize={topic.crowdSize} busy={busy} onCall={(call) => commit(asking, call)} />
-            <Button variant="ghost" size="sm" block className="mt-2" onClick={() => commit(asking)}>
-              Skip the call — just vote
-            </Button>
-          </div>
-        </div>
-      ) : null}
 
       {error ? (
         <p className="slide-up fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-[var(--r-sm)] border border-line-2 bg-surface-3 px-4 py-2.5 text-sm font-bold text-ink">
