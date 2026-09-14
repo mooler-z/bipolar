@@ -5,6 +5,7 @@ import { api } from "../../convex/_generated/api";
 import { RecordSection } from "../components/admin/AuditRecord";
 import { Console } from "../components/admin/Console";
 import { Overview } from "../components/admin/Overview";
+import { Settings } from "../components/admin/Settings";
 import { TopicList } from "../components/admin/TopicList";
 import { sectionOf } from "../lib/admin-nav";
 import { signOut } from "../lib/auth-client";
@@ -61,6 +62,7 @@ export function Admin({
         <TopicList permissions={permissions} fixedStatus="draft" />
       ) : null}
       {section === "record" ? <RecordSection /> : null}
+      {section === "settings" ? <Settings permissions={permissions} /> : null}
     </Console>
   );
 }
