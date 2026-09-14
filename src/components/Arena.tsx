@@ -1,6 +1,7 @@
 import {
   forwardRef,
   useEffect,
+  useLayoutEffect,
   useImperativeHandle,
   useRef,
   useState,
@@ -76,6 +77,19 @@ export const Arena = forwardRef<
   const timers = useRef<number[]>([]);
 
   useEffect(() => () => timers.current.forEach((t) => window.clearTimeout(t)), []);
+
+  /* The same, for an arena that is **already on screen** when the retraction
+     lands. With the result skipped, the next question is up by the time undo
+     is pressed, so this arena never mounted held — it just learned, mid-life,
+     that it should be. A layout effect puts it into the held state before the
+     browser paints, and the release below then runs exactly as it does after a
+     mount. Without this there was nothing to let go of, and undo was a jump
+     cut where every other undo in the product is a rewind. */
+  useLayoutEffect(() => {
+    if (restoring === null) return;
+    setSlam(restoring);
+    setRewinding(true);
+  }, [restoring]);
 
   useEffect(() => {
     if (restoring === null) return;
