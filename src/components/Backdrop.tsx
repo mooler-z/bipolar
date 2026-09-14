@@ -12,7 +12,9 @@ import "./backdrop.css";
  *
  * `lean` is which answer the cursor is over. That side's fields swell and push
  * across the middle while the other retreats, and letting go evens them out —
- * the ground takes a side before the reader does.
+ * the ground takes a side before the reader does. `flood` is that same lean
+ * taken all the way: the answer has been pressed, the chosen colour comes up
+ * to full and fills the column, and the result slides in over it.
  *
  * Held at low opacity on purpose, and at a fifth of that on the light theme,
  * where white gives a saturated field nothing to sink into and it reads as a
@@ -24,9 +26,20 @@ import "./backdrop.css";
  * a frame loop, and the whole thing is `contain: strict`, so it never costs
  * the arena a frame.
  */
-export function Backdrop({ lean = null }: { lean?: Side | null }) {
+export function Backdrop({
+  lean = null,
+  flood = false,
+}: {
+  lean?: Side | null;
+  flood?: boolean;
+}) {
   return (
-    <div aria-hidden className="backdrop" data-lean={lean ?? undefined}>
+    <div
+      aria-hidden
+      className="backdrop"
+      data-lean={lean ?? undefined}
+      data-flood={flood ? "true" : undefined}
+    >
       <div className="backdrop-field">
         <span className="lean lean-love">
           <span className="blob blob-1" />

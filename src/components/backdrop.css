@@ -29,6 +29,7 @@
   --blob-3: 214, 0, 60;    /* love, deeper */
   --blob-4: 0, 144, 199;   /* hate, deeper */
   --blob-op: 0.3;
+  --blob-op-flood: 0.85;
   --blob-blend: hard-light;
 }
 
@@ -45,6 +46,7 @@
   --blob-3: 255, 130, 158;
   --blob-4: 110, 200, 245;
   --blob-op: 0.34;
+  --blob-op-flood: 0.62;
   --blob-blend: multiply;
 }
 
@@ -62,6 +64,7 @@
   inset: 0;
   filter: blur(56px);
   opacity: var(--blob-op);
+  transition: opacity 300ms ease-out;
 }
 
 /*
@@ -86,6 +89,30 @@
 .backdrop[data-lean="hate"] .lean-love {
   transform: scale(0.68);
   opacity: 0.3;
+}
+
+/*
+ * The flood.
+ *
+ * An answer has been pressed. The chosen colour comes up to full and swells
+ * until it is most of the column, the other goes out entirely, and the result
+ * slides in over the top of it about a third of a second later. It is the last
+ * thing the question does and the first thing the answer sees.
+ */
+.backdrop[data-flood] .backdrop-field {
+  opacity: var(--blob-op-flood);
+}
+.backdrop[data-flood] .lean {
+  transition-duration: 340ms;
+}
+.backdrop[data-flood][data-lean="love"] .lean-love,
+.backdrop[data-flood][data-lean="hate"] .lean-hate {
+  transform: scale(2.6);
+}
+.backdrop[data-flood][data-lean="love"] .lean-hate,
+.backdrop[data-flood][data-lean="hate"] .lean-love {
+  transform: scale(0.4);
+  opacity: 0;
 }
 
 .blob {
