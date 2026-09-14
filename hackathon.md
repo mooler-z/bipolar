@@ -19,6 +19,28 @@
 
 ## Log
 
+### 14 September 2026 — a hundred arguments with faces on them
+
+Discovery mints a trickle from the live web, which is the right long-run source and a poor
+way to fill a feed for a demo. So a written batch went in through exactly the same door: a
+hundred and four named subjects — Vegemite, the offside replay, compulsory voting, the
+Grand Ethiopian Renaissance Dam, Bhutan's tourist levy — across every category the product
+has and fifty countries. Each one names a Wikipedia article, and a lookup turns that into
+the picture the topic arrives with.
+
+**No shortcut for arriving from a file.** The batch runs through `importTopics.batch`, so
+every rule the model is held to runs against it too: length, ends in a question mark, never
+opens with a word that promises a list, never restates the buttons, and a known category.
+Nothing was rejected, and ten were skipped as slugs discovery had already minted.
+
+**Some subjects have no photograph.** A policy, a doctrine or a legal test has an article
+and no lead image, and retrying cannot conjure one. `images.retitle` points those at
+something concrete the subject is *about* — the bank rather than the rate, the singer rather
+than the genre, the court rather than the ruling. That took the illustrated share of the
+batch from three quarters to all but one.
+
+`convex/seedWorldTopics.ts`, `convex/importTopics.ts`, `convex/images.ts`.
+
 ### 13 September 2026 — the backend, and topics that write themselves
 
 The whole product except its face. A Convex deployment, a schema of 22 tables, and the
@@ -218,6 +240,42 @@ three tokens: the block, the ink, and what is written across the block. The bloc
 on both themes; only the ink darkens for the light one, because dimming a slab of colour for
 paper is what makes an interface look switched off. `src/index.css`.
 
+**A vote can be taken back, and the countdown is the window.** Pressing an answer opens the
+call, which carries an Undo that costs nothing because nothing has been sent yet. Once the
+vote is cast, the reveal's countdown to the next question doubles as the last chance to pull
+it: `convex/retract.ts` takes the vote, both sets of counters, the call and the spark back
+out in one transaction, and the moment the countdown ends the vote is final. It pauses on a
+hover and while a comment is being written, so the window lasts exactly as long as the
+reader is still thinking about it, with a five-minute server-side backstop behind it.
+
+Two things deliberately do not reverse. The ledger stays append-only — the spend row is
+never touched and a refund row is written beside it — and every retraction lands an audit
+row naming the voter, the topic and the side, in the same transaction. A vote that could
+vanish without trace would be worse than one that could not vanish at all.
+
+**Undoing is the vote, played backwards.** Casting expands the chosen card until its colour
+is the whole board. So a retracted card comes back *still holding it* and gives the width up
+while the other grows in beside it, with the undo arrow spinning counter-clockwise where its
+icon was. It takes 670ms against the takeover's 340, because going forward should feel
+decisive and coming back should feel like letting go — and should last long enough to watch. Nothing else announces it — the
+reversal is the announcement. `src/components/Arena.tsx`.
+
+Because a call is graded against a snapshot, `calls` now records the streak it overwrote: a
+streak cannot be derived backwards, since a wrong call sets it to zero and zero remembers
+nothing. `U` or the left arrow takes a vote back at either stage.
+
+**The run goes backwards as well as forwards.** The left arrow steps to whatever you last
+left: a skipped question returns to be answered, an answered one returns as its result,
+which costs nothing to re-read because its aggregate is already unlocked. On the result it
+is an orange button beside the violet Next. Neither rewrites anything — the skip stays
+recorded and the vote stays cast, because the server wrote both and the ranker has already
+learned from them. What comes back is the screen, not the history.
+
+**The keyboard split in two.** Letters answer — `L` loves, `H` hates, `space` stakes a
+spark, `U` undoes — and arrows move: right goes forward, skipping the question or taking
+the next one, left goes back. They used to vote, which put "forward" and "love" on the same
+key. `src/lib/keys.ts`.
+
 **Weather behind the question.** Five soft fields of red and paper drift under the question on
 long loops, blurred to nothing, with a grain plate over them and one field easing toward the
 cursor. It is the only gradient in the product and it never carries type or a hit area.
@@ -228,4 +286,4 @@ arena with nothing under it; the profile is a grid of the identity card, the pac
 and the ledger; onboarding is two panels rather than a column. `src/views/account/`,
 `src/views/Welcome.tsx`, `src/views/welcome/`.
 
-Nothing in `convex/` changed. **108 tests**, unchanged and passing.
+**114 tests.** The six new ones cover the retraction: the spark returned and the counters left exactly as they were found, the country counters with them, a retracted vote recast the other way, the streak restored from its snapshot, the window closing, and one voter unable to take back another's vote.
