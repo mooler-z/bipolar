@@ -30,7 +30,7 @@ export function Called({ verdict }: { verdict: NonNullable<CallVerdict> }) {
       )}
     >
       {correct ? (
-        <Burst colours={["var(--coin-fill)", "var(--love-fill)", "var(--hate-fill)", "var(--violet-fill)"]} />
+        <Burst colours={["var(--coin-fill)", "var(--love-fill)", "var(--hate-fill)", "var(--streak-fill)"]} />
       ) : null}
 
       <span className="relative grid size-12 shrink-0 place-items-center">

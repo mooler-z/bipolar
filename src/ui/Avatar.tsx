@@ -14,7 +14,6 @@ const DISCS = [
   "bg-coin-fill text-on-coin",
   "bg-go-fill text-on-go",
   "bg-streak-fill text-on-streak",
-  "bg-violet-fill text-on-violet",
 ] as const;
 
 export function discOf(name: string): string {

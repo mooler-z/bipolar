@@ -58,9 +58,6 @@
   --color-go: var(--go);
   --color-go-fill: var(--go-fill);
   --color-go-deep: var(--go-deep);
-  --color-violet: var(--violet);
-  --color-violet-fill: var(--violet-fill);
-  --color-violet-deep: var(--violet-deep);
 
   /* What sits *on* each fill. The fills are pale on the dark theme and deep on
      the light one, so the thing written across them has to flip with them —
@@ -70,7 +67,6 @@
   --color-on-coin: var(--on-coin);
   --color-on-streak: var(--on-streak);
   --color-on-go: var(--on-go);
-  --color-on-violet: var(--on-violet);
 
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 }
@@ -95,7 +91,7 @@
   --mute: #7b8996;
 
   /*
-   * The accents: six at full chroma, on a ground that is genuinely black so
+   * The accents: five at full chroma, on a ground that is genuinely black so
    * every one of them glows rather than sits.
    *
    * Two quieter sets were tried before this one — pastels, then mid-tones —
@@ -108,7 +104,7 @@
    * pressed edge and for the light theme, where a bright fill is invisible as
    * text; and `--on-*`, whatever is written across the fill. Those flip per
    * colour, not per theme — white holds on the red and the violet, near-black
-   * holds on the blue, the yellow and the green.
+   * holds on the blue, the yellow and the flame.
    */
   --love: #ff2d55;        /* hot rose */
   --love-fill: #ff2d55;
@@ -122,19 +118,18 @@
   --coin-fill: #ffd60a;
   --coin-deep: #d9a800;
   --on-coin: #1a1400;
-  --go: #00e676;          /* spring green */
-  --go-fill: #00e676;
-  --go-deep: #00b25c;
-  --on-go: #04180d;
+  /* The action, and "correct", and "live". Violet sits between the red and the
+     blue on the wheel, so it belongs to them; the spring green it replaced was
+     a fifth hue arguing with the other four. The ink runs brighter than the
+     block because it is read on black rather than carried by it. */
+  --go: #b06bf5;          /* electric violet */
+  --go-fill: #a044f0;
+  --go-deep: #7b25c9;
+  --on-go: #ffffff;
   --streak: #ff6b00;      /* flame */
   --streak-fill: #ff6b00;
   --streak-deep: #cc5200;
   --on-streak: #1a0c00;
-  --violet: #a855f7;      /* electric purple */
-  --violet-fill: #a855f7;
-  --violet-deep: #7c2bd0;
-  --on-violet: #ffffff;
-
   /* The top bar, and therefore what one deck panel has to fit in. Shorter on
      a phone, where the bar is cut down to the mark, the wallet and you. */
   --bar: 3rem;
@@ -172,9 +167,8 @@
   --love: #d6003c;
   --hate: #0077a8;
   --coin: #8a6a00;
-  --go: #00854a;
+  --go: #7b25c9;
   --streak: #b34700;
-  --violet: #7c2bd0;
 }
 
 @media (min-width: 640px) {

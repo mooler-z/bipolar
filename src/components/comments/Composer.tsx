@@ -88,7 +88,7 @@ export function Composer({
           <span
             className={cn(
               "flex min-w-0 items-center gap-1.5 text-[11.5px] font-semibold",
-              can ? "text-mute" : "text-violet",
+              can ? "text-mute" : "text-coin",
             )}
           >
             <Feather className="size-3.5 shrink-0" />
