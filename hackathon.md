@@ -15,7 +15,7 @@
 - **AI models:** OpenAI `gpt-5-mini`
 - **Installable:** no
 - **Started:** 13 September 2026
-- **Last updated:** 13 September 2026
+- **Last updated:** 14 September 2026
 
 ## Log
 
@@ -151,3 +151,81 @@ without leaving a marker, and claimed credit running out like any other. The one
 and the grant-not-purchase rule were each removed and watched going red — three failures
 and one — before being restored.
 
+### 14 September 2026 — the face, redrawn
+
+Every user-facing screen was redesigned. The shape stayed — three columns that fill the
+window, a live rail, the argument, the boards — and everything inside it was redrawn.
+
+**The arena is two cards.** LOVE and HATE side by side, alive at rest: the icons beat and
+twitch every few seconds, and the card under the cursor tilts toward it in 3D while the
+other shrinks out of the way. Pressing punches the card and its colour takes the whole
+board in a third of a second; the result opens in the same frame. The keyboard plays the
+same motion — `L`/`H` answer, `space` arms, `S` skips, `N` moves on, `esc` puts a pulled
+topic back. `src/components/Arena.tsx`, `src/lib/keys.ts`.
+
+**Money goes on the record visibly.** The stake is a physical switch whose knob nudges
+toward "on" as the cursor arrives; arming it puts a gold rim and a price sticker on both
+cards, so a vote that spends never looks like one that does not.
+`src/components/SparkSwitch.tsx`.
+
+**The result detonates.** The winning colour floods a panel the width of the column, the
+percentage rolls up past its value and settles, and the verdict stamps down a beat later.
+The two layers — the Crowd and the Committed — grow from zero as two bars that are never
+merged, then the world: the headline sentence, the map, the board. A countdown carries the
+run to the next question; it pauses on hover, while a comment is being written and when the
+tab is hidden, and it can be stopped. `src/components/reveal/`, `src/components/Reveal.tsx`,
+`src/components/AutoAdvance.tsx`.
+
+**The run has a record.** The left rail carries four tiles — streak, accuracy, sparks,
+rank — and the queue, whose rows can be pulled ahead of their turn. When the queue empties
+the run ends on a wrap-up: answered, love, hate, backed, calls read right, streak, and a
+sentence to share. `src/components/run/`, `src/views/home/CaughtUp.tsx`.
+
+**The room, redrawn.** Live votes as tickets that fill from the top down, the newest at the
+foot and lit for five seconds as it lands before the light dissolves, under a pulse strip —
+how many votes and comments landed in the last ten minutes — with the current topic marked;
+the argument as a chat with the composer at the foot; the boards as podiums, with a flag
+beside every reader and backer. `src/components/room/`, `src/components/comments/`.
+
+**A topic's own page is the same console.** The public country lean and the sources on the
+left, the decision or the result in the middle, the room on the right — a pasted link opens
+into the product rather than into a flatter page of it. `src/views/TopicPage.tsx`,
+`src/views/topic/WorldRail.tsx`.
+
+**Every control answers the hand.** The canonical `Button` lifts on hover with a band of
+light across it, cocks on press and springs back past centre with a ring of its own colour.
+`src/ui/Button.tsx`, `src/motion.css`.
+
+**Light and dark.** A theme toggle in the top bar and in Settings; the choice is remembered
+and applied before the first paint. `src/lib/theme.ts`, `src/index.css`.
+
+**The mark.** The logo — a heart, half love-red and half hate-blue — is the wordmark on every
+page and the browser-tab icon, in five sizes. `public/`, `src/ui/Wordmark.tsx`, `index.html`.
+
+**A phone gets a deck, not a stack.** Below 1280px the same three panels become one screen
+each, snapped: the question owns the viewport, a swipe lands squarely on the room, another on
+the run, and a swipe down comes back. The picture becomes a full-bleed band above the
+headline, the bar is cut to the mark, the wallet and you, and the thread says which question
+it belongs to. `src/components/mobile/Deck.tsx`, `src/components/Decide.tsx`.
+
+**Installable.** A manifest, six icons and a service worker that caches the shell and the
+build assets and touches nothing else — every query, every sign-in and every vote goes to the
+backend over its own origin, and a cached answer to any of them would be a bug rather than a
+speed-up. `public/manifest.webmanifest`, `public/sw.js`, `src/main.tsx`.
+
+**The palette is six colours at full chroma** on the black ground, and every accent carries
+three tokens: the block, the ink, and what is written across the block. The block is the same
+on both themes; only the ink darkens for the light one, because dimming a slab of colour for
+paper is what makes an interface look switched off. `src/index.css`.
+
+**Weather behind the question.** Five soft fields of red and paper drift under the question on
+long loops, blurred to nothing, with a grain plate over them and one field easing toward the
+cursor. It is the only gradient in the product and it never carries type or a hit area.
+`src/components/Backdrop.tsx`.
+
+**Sign-in, account and onboarding fill the window.** The sign-in page carries the real
+arena with nothing under it; the profile is a grid of the identity card, the packs, settings
+and the ledger; onboarding is two panels rather than a column. `src/views/account/`,
+`src/views/Welcome.tsx`, `src/views/welcome/`.
+
+Nothing in `convex/` changed. **108 tests**, unchanged and passing.
