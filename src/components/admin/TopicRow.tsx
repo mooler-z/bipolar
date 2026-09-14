@@ -1,14 +1,10 @@
-import { useState } from "react";
 import {
-  ArrowSquareOut,
+  CaretRight,
   ChatCircle,
-  CheckCircle,
   Lock,
-  LockOpen,
   Star,
   Users,
   Warning,
-  X,
 } from "@phosphor-icons/react";
 
 import { cn } from "../../lib/cn";
@@ -18,11 +14,15 @@ import { Flag } from "../../ui/Flag";
 import { Thumb } from "../../ui/Thumb";
 
 /**
- * One topic, and everything a moderator can do to it without leaving the list.
+ * One topic, as a row you scan rather than a card you read.
  *
- * The actions are inline on purpose. The job this console exists for is *"that
- * one is bad, take it down"*, and any design that makes that a two-page journey
- * has failed at the only thing it had to do.
+ * The actions used to live here — five controls per row, eighty rows deep. That
+ * makes every row a decision and the list impossible to read at a glance, which
+ * is the opposite of what a moderator opens this for. A row's whole job now is
+ * to be **scannable**: the status is a colour on the left edge before it is a
+ * word, the counts are tabular so they line up down the column, and pressing
+ * anywhere on it opens the topic in the aside, where there is room to act
+ * deliberately.
  */
 
 export type AdminTopic = {
@@ -36,209 +36,110 @@ export type AdminTopic = {
   isSensitive: boolean;
   scopeCountry?: string;
   imageUrl?: string;
+  wikipediaTitle?: string;
   votes: number;
   comments: number;
+  postedAt: number;
   mine: boolean;
 };
 
-export type Can = {
-  archive: boolean;
-  feature: boolean;
-  lock: boolean;
-  publish: boolean;
-};
-
-/* The status is the row's left edge as well as its chip — a list of forty
-   rows scans by colour long before it scans by word. */
-const STATUS: Record<string, { label: string; tone: string; edge: string }> = {
-  active: { label: "Live", tone: "bg-go-fill/15 text-go", edge: "border-l-go" },
-  draft: { label: "Draft", tone: "bg-surface-3 text-mute", edge: "border-l-line-2" },
-  archived: { label: "Archived", tone: "bg-love-fill/12 text-love", edge: "border-l-love" },
+/* Live is the product's own "go" violet; a draft is the yellow that means
+   somebody has to decide; archived is the red that means it is off the site. */
+export const STATUS: Record<
+  string,
+  { label: string; chip: string; edge: string }
+> = {
+  active: { label: "Live", chip: "bg-go-fill/15 text-go", edge: "border-l-go-fill" },
+  draft: { label: "Draft", chip: "bg-coin-fill/15 text-coin", edge: "border-l-coin-fill" },
+  archived: { label: "Archived", chip: "bg-love-fill/12 text-love", edge: "border-l-love-fill" },
 };
 
 export function TopicRow({
   topic,
-  can,
-  busy,
+  selected,
   index = 0,
-  onStatus,
-  onFeature,
-  onLock,
-  onOpen,
+  onSelect,
 }: {
   topic: AdminTopic;
-  can: Can;
-  busy: boolean;
+  selected: boolean;
   /** Position in the list, for the staggered entrance. */
   index?: number;
-  onStatus: (status: "draft" | "active" | "archived") => void;
-  onFeature: (featured: boolean) => void;
-  onLock: (locked: boolean) => void;
-  onOpen: () => void;
+  onSelect: () => void;
 }) {
-  const [confirming, setConfirming] = useState(false);
   const status = STATUS[topic.status] ?? STATUS.draft!;
-  /* Ownership is enforced on the server; hiding the controls here only spares
-     someone a refusal they were always going to get. */
-  const editable = topic.mine;
 
   return (
-    <li
-      className={cn(
-        "stagger flex items-center gap-3 rounded-[var(--r-card)] border border-line border-l-[3px] bg-surface p-3",
-        "transition-[transform,border-color] duration-150 hover:translate-x-0.5 hover:border-line-2",
-        status.edge,
-        busy && "opacity-60",
-      )}
-      style={{ animationDelay: `${Math.min(index, 14) * 28}ms` }}
-    >
-      <Thumb src={topic.imageUrl} alt="" rounded="rounded-[8px]" className="size-11 border border-line-2" />
+    <li>
+      <Button
+        bare
+        aria-current={selected ? "true" : undefined}
+        onClick={onSelect}
+        style={{ animationDelay: `${Math.min(index, 14) * 26}ms` }}
+        className={cn(
+          "stagger group flex w-full items-center gap-3 rounded-[var(--r-btn)] p-2",
+          "border border-l-[3px] text-left transition-colors duration-150",
+          status.edge,
+          selected
+            ? "border-y-line-2 border-r-line-2 bg-surface-3"
+            : "border-y-transparent border-r-transparent hover:bg-surface-2",
+        )}
+      >
+        <Thumb
+          src={topic.imageUrl}
+          alt=""
+          rounded="rounded-[7px]"
+          className="size-10 shrink-0 border border-line-2"
+        />
 
-      <span className="min-w-0 flex-1">
-        <span className="flex items-center gap-1.5">
-          <Button
-            bare
-            onClick={onOpen}
-            className="min-w-0 truncate text-left text-[13.5px] font-bold hover:underline"
-          >
-            {topic.question}
-          </Button>
-          {topic.isFeatured ? (
-            <Star weight="fill" className="size-3.5 shrink-0 text-coin" />
-          ) : null}
-          {topic.isLocked ? (
-            <Lock weight="fill" className="size-3.5 shrink-0 text-mute" />
-          ) : null}
-          {topic.isSensitive ? (
-            <Warning className="size-3.5 shrink-0 text-coin" />
-          ) : null}
-        </span>
-        <span className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-mute">
-          <span className={cn("rounded-[5px] px-1.5 py-0.5 font-extrabold tracking-[0.04em] uppercase", status.tone)}>
-            {status.label}
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-1.5">
+            <span className="truncate text-[13.5px] font-bold">{topic.question}</span>
+            {topic.isFeatured ? (
+              <Star weight="fill" className="size-3.5 shrink-0 text-coin" />
+            ) : null}
+            {topic.isLocked ? (
+              <Lock weight="fill" className="size-3.5 shrink-0 text-mute" />
+            ) : null}
+            {topic.isSensitive ? (
+              <Warning weight="fill" className="size-3.5 shrink-0 text-streak" />
+            ) : null}
           </span>
-          <span className="capitalize">{topic.categorySlug}</span>
-          {topic.scopeCountry ? <Flag code={topic.scopeCountry} /> : null}
-          <span className="flex items-center gap-1">
-            <Users className="size-3" />
-            <span className="num">{fmtInt(topic.votes)}</span>
-          </span>
-          <span className="flex items-center gap-1">
-            <ChatCircle className="size-3" />
-            <span className="num">{fmtInt(topic.comments)}</span>
-          </span>
-          <span className="num truncate opacity-60">/{topic.slug}</span>
-        </span>
-      </span>
-
-      {/* Archiving is the one action here that changes what the public sees, so
-          it is the one that asks. */}
-      {confirming ? (
-        <span className="flex shrink-0 items-center gap-2">
-          <span className="slide-up text-[11.5px] font-extrabold text-love">Take it down?</span>
-          <Button
-            variant="love"
-            size="sm"
-            disabled={busy}
-            onClick={() => {
-              onStatus("archived");
-              setConfirming(false);
-            }}
-          >
-            Archive
-          </Button>
-          <Button
-            bare
-            aria-label="Cancel"
-            onClick={() => setConfirming(false)}
-            className="grid size-8 place-items-center rounded-[var(--r-btn)] text-mute hover:text-ink"
-          >
-            <X className="size-4" />
-          </Button>
-        </span>
-      ) : (
-        <span className="flex shrink-0 items-center gap-1">
-          {can.feature && topic.status === "active" && editable ? (
-            <Button
-              bare
-              disabled={busy}
-              aria-label={topic.isFeatured ? "Un-feature" : "Feature"}
-              title={topic.isFeatured ? "Un-feature" : "Feature — only one topic at a time"}
-              onClick={() => onFeature(!topic.isFeatured)}
+          <span className="mt-0.5 flex items-center gap-2 text-[11px] text-mute">
+            <span
               className={cn(
-                "grid size-9 place-items-center rounded-[var(--r-btn)] transition-colors",
-                topic.isFeatured
-                  ? "text-coin hover:bg-surface-3"
-                  : "text-mute hover:bg-surface-3 hover:text-coin",
+                "rounded-[5px] px-1.5 py-px font-extrabold tracking-[0.04em] uppercase",
+                status.chip,
               )}
             >
-              <Star weight={topic.isFeatured ? "fill" : "regular"} className="size-4" />
-            </Button>
-          ) : null}
-
-          {can.lock && editable ? (
-            <Button
-              bare
-              disabled={busy}
-              aria-label={topic.isLocked ? "Unlock voting" : "Freeze voting"}
-              title={topic.isLocked ? "Unlock voting" : "Freeze voting"}
-              onClick={() => onLock(!topic.isLocked)}
-              className="grid size-9 place-items-center rounded-[var(--r-btn)] text-mute transition-colors hover:bg-surface-3 hover:text-ink"
-            >
-              {topic.isLocked ? (
-                <LockOpen className="size-4" />
-              ) : (
-                <Lock className="size-4" />
-              )}
-            </Button>
-          ) : null}
-
-          {/* The queue's whole purpose, one click, no confirm: approving is
-              reversible and the alternative is a moderator who does not bother. */}
-          {can.publish && topic.status === "draft" ? (
-            <Button
-              variant="go"
-              size="sm"
-              disabled={busy}
-              onClick={() => onStatus("active")}
-            >
-              <CheckCircle className="size-4" /> Approve
-            </Button>
-          ) : null}
-
-          <Button
-            bare
-            aria-label="Open on the site"
-            title="Open on the site"
-            onClick={onOpen}
-            className="grid size-9 place-items-center rounded-[var(--r-btn)] text-mute transition-colors hover:bg-surface-3 hover:text-ink"
-          >
-            <ArrowSquareOut className="size-4" />
-          </Button>
-
-          {can.archive && editable ? (
-            topic.status === "archived" ? (
-              <Button
-                variant="steel"
-                size="sm"
-                disabled={busy}
-                onClick={() => onStatus("active")}
-              >
-                Restore
-              </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={busy}
-                onClick={() => setConfirming(true)}
-              >
-                Archive
-              </Button>
-            )
-          ) : null}
+              {status.label}
+            </span>
+            <span className="capitalize">{topic.categorySlug}</span>
+            {topic.scopeCountry ? <Flag code={topic.scopeCountry} /> : null}
+            <span className="num truncate opacity-70 max-sm:hidden">/{topic.slug}</span>
+          </span>
         </span>
-      )}
+
+        {/* Tabular and fixed-width, so eighty rows read as two columns of
+            numbers rather than eighty separate little clusters. */}
+        <span className="num flex shrink-0 items-center gap-3 text-[12px] font-bold text-ink-3 max-sm:hidden">
+          <span className="flex w-14 items-center justify-end gap-1" title="Votes">
+            <Users className="size-3.5 text-mute" />
+            {fmtInt(topic.votes)}
+          </span>
+          <span className="flex w-12 items-center justify-end gap-1" title="Comments">
+            <ChatCircle className="size-3.5 text-mute" />
+            {fmtInt(topic.comments)}
+          </span>
+        </span>
+
+        <CaretRight
+          weight="bold"
+          className={cn(
+            "size-3.5 shrink-0 transition-colors",
+            selected ? "text-go" : "text-line-2 group-hover:text-mute",
+          )}
+        />
+      </Button>
     </li>
   );
 }

@@ -22,10 +22,11 @@ import { Button } from "../../ui/Button";
  */
 export function Discovery({
   permissions,
-  onShowDrafts,
+  onShowQueue,
 }: {
   permissions: string[];
-  onShowDrafts: () => void;
+  /** The queue is its own section now; the count here is the way into it. */
+  onShowQueue: () => void;
 }) {
   const state = useQuery(api.settings.discovery);
   const setMode = useMutation(api.settings.setDiscoveryMode);
@@ -51,6 +52,7 @@ export function Discovery({
 
   return (
     <section
+      style={{ animationDelay: "120ms" }}
       className={cn(
         "tile tile-in flex flex-wrap items-center gap-x-5 gap-y-3",
         review ? "!border-go-fill/50 bg-go-fill/[0.06]" : "!border-coin-fill/50 bg-coin-fill/[0.06]",
@@ -88,7 +90,7 @@ export function Discovery({
         <Button
           variant={review ? "go" : "steel"}
           size="sm"
-          onClick={onShowDrafts}
+          onClick={onShowQueue}
           className="shrink-0"
         >
           <CheckCircle className="size-4" />

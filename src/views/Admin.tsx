@@ -2,10 +2,11 @@ import { useQuery } from "convex/react";
 import { Prohibit, ShieldCheck } from "@phosphor-icons/react";
 
 import { api } from "../../convex/_generated/api";
-import { Dashboard } from "../components/admin/Dashboard";
-import { Topics } from "../components/admin/Topics";
-import { Shell } from "../components/admin/Shell";
-import { NAV, sectionOf } from "../lib/admin-nav";
+import { RecordSection } from "../components/admin/AuditRecord";
+import { Console } from "../components/admin/Console";
+import { Overview } from "../components/admin/Overview";
+import { TopicList } from "../components/admin/TopicList";
+import { sectionOf } from "../lib/admin-nav";
 import { signOut } from "../lib/auth-client";
 import { Button } from "../ui/Button";
 import { Wordmark } from "../ui/Wordmark";
@@ -20,6 +21,10 @@ import { Wordmark } from "../ui/Wordmark";
  *
  * The real gate is on the server. Every query behind this screen re-checks for
  * itself; hiding a section is manners, not a control.
+ *
+ * Sections render a `Work` and an `Aside` — the console frame supplies
+ * everything around them. Two of them are the same component: the review queue
+ * is the topic list with the status pinned to drafts.
  */
 export function Admin({
   path,
@@ -40,25 +45,23 @@ export function Admin({
 
   if (identity === null) return <Door onGo={onGo} />;
 
-  const section = sectionOf(path);
-  const title = NAV.find((n) => n.id === section)?.label ?? "Dashboard";
+  const permissions = identity.permissions;
+  const section = sectionOf(path, permissions);
 
   return (
-    <Shell
+    <Console
       identity={identity}
       section={section}
-      title={title}
       onGo={onGo}
       onSignOut={() => void signOut()}
     >
-      {section === "" ? <Dashboard onGo={onGo} /> : null}
-      {section === "topics" ? (
-        <Topics
-          permissions={identity.permissions}
-          onOpen={(slug) => onGo(`/t/${slug}`)}
-        />
+      {section === "" ? <Overview permissions={permissions} onGo={onGo} /> : null}
+      {section === "topics" ? <TopicList permissions={permissions} /> : null}
+      {section === "queue" ? (
+        <TopicList permissions={permissions} fixedStatus="draft" />
       ) : null}
-    </Shell>
+      {section === "record" ? <RecordSection /> : null}
+    </Console>
   );
 }
 
@@ -70,9 +73,7 @@ function Door({ onGo }: { onGo: (path: string) => void }) {
         <span className="mx-auto grid size-14 place-items-center rounded-full bg-surface-3 text-mute">
           <Prohibit weight="fill" className="size-6" />
         </span>
-        <h1 className="display mt-5 text-[clamp(1.5rem,3vw,2rem)]">
-          Staff only.
-        </h1>
+        <h1 className="display mt-5 text-[clamp(1.5rem,3vw,2rem)]">Staff only.</h1>
         <p className="mt-2.5 text-[14px] leading-relaxed text-mute">
           This console is for the people who run bi-polar. If that should be
           you, someone with the keys has to say so.
