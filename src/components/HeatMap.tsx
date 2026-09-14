@@ -37,13 +37,13 @@ type Bucket =
   | "hate3" | "hate2" | "hate1" | "split" | "love1" | "love2" | "love3" | "none";
 
 const FILL: Record<Bucket, string> = {
-  love3: "var(--love)",
-  love2: "color-mix(in srgb, var(--love) 66%, var(--surface))",
-  love1: "color-mix(in srgb, var(--love) 36%, var(--surface))",
+  love3: "var(--love-fill)",
+  love2: "color-mix(in srgb, var(--love-fill) 66%, var(--surface))",
+  love1: "color-mix(in srgb, var(--love-fill) 36%, var(--surface))",
   split: "color-mix(in srgb, var(--ink) 24%, var(--surface))",
-  hate1: "color-mix(in srgb, var(--hate) 36%, var(--surface))",
-  hate2: "color-mix(in srgb, var(--hate) 66%, var(--surface))",
-  hate3: "var(--hate)",
+  hate1: "color-mix(in srgb, var(--hate-fill) 36%, var(--surface))",
+  hate2: "color-mix(in srgb, var(--hate-fill) 66%, var(--surface))",
+  hate3: "var(--hate-fill)",
   // Light enough to read as land rather than as background.
   none: "color-mix(in srgb, var(--ink) 9%, var(--surface))",
 };
@@ -96,7 +96,7 @@ export function HeatMap({ countries }: { countries: CountryInsight[] }) {
   return (
     <section>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-[15px] font-bold">The world</h3>
+        <h3 className="text-[12px] font-extrabold tracking-[0.06em] text-ink-3 uppercase">The world</h3>
         <div className="flex gap-1.5">
           <Button
             size="sm"

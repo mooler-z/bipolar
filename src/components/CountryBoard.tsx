@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Heart, ThumbsDown } from "@phosphor-icons/react";
+import { Heart, HeartBreak } from "@phosphor-icons/react";
 
 import { cn } from "../lib/cn";
 import { fmtInt } from "../lib/format";
@@ -57,13 +57,13 @@ export function CountryBoard({
   return (
     <div className="mt-8">
       {line ? (
-        <p className="rise mb-5 text-[19px] leading-snug font-bold text-balance">
+        <p className="rise display mb-5 text-[clamp(1.25rem,1.7vw,1.7rem)] text-balance">
           {line}
         </p>
       ) : null}
 
       {gap ? (
-        <p className="mb-5 rounded-[var(--r-card)] border border-coin/30 bg-coin/8 px-4 py-3 text-[14px] leading-snug text-coin">
+        <p className="tile-in mb-5 rounded-[var(--r-btn)] border border-coin-fill/35 bg-coin-fill/10 px-4 py-3 text-[13.5px] leading-snug font-semibold text-coin">
           {gap}
         </p>
       ) : null}
@@ -76,7 +76,7 @@ export function CountryBoard({
       </div>
 
       <div className="mt-6 mb-3 flex items-center justify-between gap-3">
-        <h3 className="text-[15px] font-bold">Every country</h3>
+        <h3 className="text-[12px] font-extrabold tracking-[0.06em] text-ink-3 uppercase">Every country</h3>
         <div className="flex gap-1.5">
           <Button
             size="sm"
@@ -91,7 +91,7 @@ export function CountryBoard({
             variant={sortBy === "hate" ? "hate" : "steel"}
             onClick={() => setSortBy("hate")}
           >
-            <ThumbsDown weight={sortBy === "hate" ? "fill" : "regular"} className="size-3.5" />
+            <HeartBreak weight={sortBy === "hate" ? "fill" : "regular"} className="size-3.5" />
             Hating
           </Button>
         </div>
@@ -144,7 +144,7 @@ function Extreme({
 }) {
   if (!c) {
     return (
-      <div className="rounded-[var(--r-card)] border border-line bg-surface-2 p-4">
+      <div className="tile tile-in">
         <Label>{label}</Label>
         <p className="mt-1 text-[14px] text-mute">
           No country has three votes yet.
@@ -156,10 +156,8 @@ function Extreme({
   return (
     <div
       className={cn(
-        "rounded-[var(--r-card)] border p-4 transition-transform hover:-translate-y-0.5",
-        side === "love"
-          ? "border-love/35 bg-love/10"
-          : "border-hate/35 bg-hate/10",
+        "tile tile-in transition-transform hover:-translate-y-0.5",
+        side === "love" ? "!border-love-fill/50 bg-love-fill/10" : "!border-hate-fill/50 bg-hate-fill/10",
       )}
     >
       <Label tone={side}>{label}</Label>
