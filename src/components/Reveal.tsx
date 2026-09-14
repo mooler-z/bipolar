@@ -96,7 +96,11 @@ export function Reveal({
         ) : null}
       </div>
 
-      <footer className="flex shrink-0 flex-wrap items-center gap-2.5 border-t border-line bg-surface/40 px-[clamp(1.25rem,3vw,3.5rem)] py-[clamp(0.75rem,1.6vh,1.1rem)]">
+      {/* One row on a phone. Undo loses its word and keeps its colour, Next
+          takes the space that is left, and the countdown becomes a hairline
+          under the whole foot rather than a third row of its own — three
+          stacked rows of controls was most of a small screen. */}
+      <footer className="relative flex shrink-0 flex-wrap items-center gap-2 border-t border-line bg-surface/40 px-[clamp(1.25rem,3vw,3.5rem)] py-[clamp(0.75rem,1.6vh,1.1rem)] sm:gap-2.5">
         {/* Orange against the violet: the same size and weight as Next, and
             unmistakably not it. Undo while the vote can still be pulled, and
             one step back through the run once it cannot. */}
@@ -106,10 +110,13 @@ export function Reveal({
             variant="streak"
             onClick={onUndo}
             title="Take this vote back — until the countdown ends"
-            className="shrink-0"
+            className="shrink-0 max-sm:!px-4"
           >
-            <ArrowUUpLeft weight="bold" className="size-4" /> Undo
-            <kbd className="key !bg-current/15 !text-current !shadow-none">U</kbd>
+            <ArrowUUpLeft weight="bold" className="size-4" />
+            <span className="max-sm:hidden">Undo</span>
+            <kbd className="key !bg-current/15 !text-current !shadow-none max-sm:hidden">
+              U
+            </kbd>
           </Button>
         ) : onPrevious ? (
           <Button
@@ -126,9 +133,11 @@ export function Reveal({
         ) : null}
 
         {onNext ? (
-          <Button size="lg" variant="go" onClick={onNext} className="shrink-0">
+          <Button size="lg" variant="go" onClick={onNext} className="max-sm:flex-1 sm:shrink-0">
             Next topic <ArrowRight weight="bold" className="size-4" />
-            <kbd className="key ml-1 !bg-current/15 !text-current !shadow-none">&rarr;</kbd>
+            <kbd className="key ml-1 !bg-current/15 !text-current !shadow-none max-sm:hidden">
+              &rarr;
+            </kbd>
           </Button>
         ) : onBack ? (
           <Button size="lg" variant="go" onClick={onBack} className="shrink-0">
@@ -141,15 +150,27 @@ export function Reveal({
             side={won}
             paused={autoAdvance.paused}
             onDone={onNext}
-            // Its own line under the buttons on a phone, beside them on a desk.
-            className="order-last basis-full sm:order-none sm:basis-48"
+            /* A hairline across the top of the foot on a phone; a bar beside
+               the buttons on a desk, where there is room for one. */
+            className={[
+              "max-sm:absolute max-sm:inset-x-0 max-sm:top-0 max-sm:-translate-y-full",
+              "max-sm:rounded-none max-sm:border-0 max-sm:!p-0 max-sm:opacity-90",
+              "sm:basis-48",
+            ].join(" ")}
           />
         ) : (
           <span className="flex-1" />
         )}
 
-        <Button variant="ghost" size="sm" onClick={onShare} className="ml-auto shrink-0 sm:ml-0">
-          <ShareNetwork weight="fill" className="size-4" /> Share
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onShare}
+          aria-label="Share"
+          className="shrink-0 max-sm:!px-3 sm:ml-0"
+        >
+          <ShareNetwork weight="fill" className="size-4" />
+          <span className="max-sm:hidden">Share</span>
         </Button>
       </footer>
     </section>

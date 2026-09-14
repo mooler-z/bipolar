@@ -48,7 +48,7 @@ export function BigNumber({
     <div>
       <div
         className={cn(
-          "relative isolate min-h-[clamp(13rem,30vh,22rem)] overflow-hidden rounded-[var(--r-card)] px-4 pt-4 pb-5 sm:px-6 sm:pt-5 sm:pb-6",
+          "relative isolate min-h-[clamp(10rem,26vh,22rem)] overflow-hidden rounded-[var(--r-card)] px-4 pt-3.5 pb-4 sm:px-6 sm:pt-5 sm:pb-6",
           love ? "bg-love-fill text-on-love" : "bg-hate-fill text-on-hate",
         )}
       >
@@ -72,7 +72,7 @@ export function BigNumber({
         </div>
 
         <div className="relative mt-3">
-          <span className="display num block text-[clamp(5.5rem,11vw,11rem)] leading-[0.82]">
+          <span className="display num block text-[clamp(4.25rem,11vw,11rem)] leading-[0.82]">
             {Math.min(100, big)}
             <span className="text-[0.38em]">%</span>
           </span>
