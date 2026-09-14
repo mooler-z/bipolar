@@ -167,6 +167,40 @@ export const resolve = internalAction({
 });
 
 /**
+ * Point a topic at a different article.
+ *
+ * Some subjects have no photograph of their own. An abstract — a policy, a
+ * doctrine, a legal test — has an article and no lead image, and no number of
+ * retries will conjure one. What works is naming something concrete the
+ * subject is *about*: the bank rather than the rate, the singer rather than
+ * the genre, the court rather than the ruling.
+ *
+ * Clears the stamp as it goes, so the next `resolve` picks the topic back up.
+ */
+export const retitle = internalMutation({
+  args: {
+    pairs: v.array(v.object({ from: v.string(), to: v.string() })),
+  },
+  returns: v.object({ retitled: v.number() }),
+  handler: async (ctx, args) => {
+    const rows = await ctx.db.query("topics").take(1000);
+    let retitled = 0;
+    for (const { from, to } of args.pairs) {
+      for (const topic of rows) {
+        if (topic.wikipediaTitle !== from) continue;
+        if (topic.externalImageUrl || topic.imageId) continue;
+        await ctx.db.patch("topics", topic._id, {
+          wikipediaTitle: to,
+          imageCheckedAt: undefined,
+        });
+        retitled += 1;
+      }
+    }
+    return { retitled };
+  },
+});
+
+/**
  * Let previously-checked topics be asked about again.
  *
  * Clears the stamp on topics that name an article but carry no picture. Use it

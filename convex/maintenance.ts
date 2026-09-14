@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 
+import { SIGNUP_GRANT_CENTS, SIGNUP_GRANT_QUILLS } from "./config";
 import { internalMutation } from "./_generated/server";
 
 /**
@@ -71,6 +72,98 @@ export const wipe = internalMutation({
     let remaining = 0;
     for (const table of TABLES) {
       remaining += (await ctx.db.query(table).take(1)).length;
+    }
+
+    return { deleted, remaining, done: remaining === 0 };
+  },
+});
+
+/**
+ * Back to a fresh table, without losing the table.
+ *
+ * `wipe` clears the deployment. This clears the *play* — every vote, call,
+ * comment, peek, skip and ledger row — and leaves the accounts and the
+ * questions exactly where they were. It is what "let me test that again"
+ * actually means: the same hundred topics, the same sign-in, none of the
+ * history.
+ *
+ * `topicStats` is zeroed rather than deleted, because a topic without one is a
+ * topic the importer would have given one. `userInterests` survives, so nobody
+ * is marched back through onboarding to test something else. Wallets are
+ * refilled to the signup grant and the ledger is given the matching `grant`
+ * row, because a balance the ledger cannot explain is the one thing worse than
+ * no balance at all.
+ */
+const PLAY = [
+  "votes",
+  "calls",
+  "topicPeeks",
+  "topicSkips",
+  "comments",
+  "countryTopicStats",
+  "callerStats",
+  "creditTransactions",
+  "userTaste",
+  "userCategoryStats",
+  "countryChanges",
+  "auditLog",
+] as const;
+
+export const reset = internalMutation({
+  args: {
+    confirm: v.literal("yes-reset-the-play"),
+    batch: v.optional(v.number()),
+  },
+  returns: v.object({
+    deleted: v.number(),
+    remaining: v.number(),
+    done: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const batch = Math.min(args.batch ?? 500, 800);
+    let deleted = 0;
+
+    for (const table of PLAY) {
+      if (deleted >= batch) break;
+      const rows = await ctx.db.query(table).take(batch - deleted);
+      for (const row of rows) {
+        await ctx.db.delete(table, row._id);
+        deleted += 1;
+      }
+    }
+
+    let remaining = 0;
+    for (const table of PLAY) {
+      remaining += (await ctx.db.query(table).take(1)).length;
+    }
+
+    // Only once the deletions are done, so a refilled wallet is never left
+    // sitting beside a ledger that is still being emptied.
+    if (remaining === 0) {
+      for (const stats of await ctx.db.query("topicStats").take(1000)) {
+        await ctx.db.patch("topicStats", stats._id, {
+          freeLove: 0,
+          freeHate: 0,
+          paidLove: 0,
+          paidHate: 0,
+          stakedCents: 0,
+          skips: 0,
+          comments: 0,
+        });
+      }
+      for (const user of await ctx.db.query("users").take(1000)) {
+        if (user.authId.startsWith("system:")) continue;
+        await ctx.db.patch("users", user._id, {
+          walletBalanceCents: SIGNUP_GRANT_CENTS,
+          quillBalance: SIGNUP_GRANT_QUILLS,
+          topicsBacked: 0,
+        });
+        await ctx.db.insert("creditTransactions", {
+          userId: user._id,
+          type: "grant",
+          amountCents: SIGNUP_GRANT_CENTS,
+        });
+      }
     }
 
     return { deleted, remaining, done: remaining === 0 };
