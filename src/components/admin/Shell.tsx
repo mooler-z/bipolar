@@ -1,7 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { MagnifyingGlass, Warning } from "@phosphor-icons/react";
+import { MagnifyingGlass, Moon, Sun, Warning } from "@phosphor-icons/react";
 
 import { cn } from "../../lib/cn";
+import { useTheme } from "../../lib/theme";
 import { useIdle } from "../../lib/useIdle";
 import { Button } from "../../ui/Button";
 import { Palette } from "./Palette";
@@ -44,6 +45,7 @@ export function Shell({
   const [collapsed, setCollapsed] = useState(false);
   const [palette, setPalette] = useState(false);
   const { warning, stay } = useIdle(onSignOut);
+  const [theme, toggleTheme] = useTheme();
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -68,27 +70,37 @@ export function Shell({
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 shrink-0 items-center gap-4 border-b border-line px-5">
+        <header className="flex h-14 shrink-0 items-center gap-4 border-b border-line px-5">
           <h1 className="display shrink-0 text-[18px]">{title}</h1>
 
           <Button
             bare
             onClick={() => setPalette(true)}
             className={cn(
-              "lift flex min-h-9 max-w-md flex-1 items-center gap-2.5 rounded-[var(--r-pill)]",
-              "border border-line bg-surface-2 px-3.5 text-[13px] font-medium text-mute",
+              "lift flex min-h-9 max-w-md flex-1 items-center gap-2.5 rounded-[var(--r-btn)]",
+              "border border-line-2 bg-surface-2 px-3.5 text-[13px] font-medium text-mute",
               "hover:border-mute hover:text-ink-3",
             )}
           >
             <MagnifyingGlass className="size-4 shrink-0" />
             <span className="flex-1 truncate text-left">Jump to a section…</span>
-            <kbd className="rounded-[5px] bg-surface-3 px-1.5 py-0.5 text-[10px] font-bold">
-              &#8984;K
-            </kbd>
+            <kbd className="key">&#8984;K</kbd>
           </Button>
 
           <span className="flex-1" />
 
+          <Button
+            bare
+            aria-label={theme === "light" ? "Switch to dark" : "Switch to light"}
+            onClick={toggleTheme}
+            className="grid size-9 place-items-center rounded-[var(--r-sm)] text-mute transition-colors hover:bg-surface-2 hover:text-ink"
+          >
+            {theme === "light" ? (
+              <Moon key="m" weight="fill" className="pop-in size-4" />
+            ) : (
+              <Sun key="s" weight="fill" className="pop-in size-4" />
+            )}
+          </Button>
           <Button variant="ghost" size="sm" onClick={() => onGo("/")}>
             Back to the app
           </Button>
@@ -97,13 +109,13 @@ export function Shell({
         {/* An idle warning is a banner, not a toast: it must not be dismissable
             by looking away, which is exactly what being idle is. */}
         {warning ? (
-          <div className="flex shrink-0 items-center gap-3 border-b border-coin/40 bg-coin/12 px-5 py-2.5">
-            <Warning weight="fill" className="size-4 shrink-0 text-coin" />
-            <span className="text-[13px] font-bold text-coin">
+          <div className="slide-up flex shrink-0 items-center gap-3 bg-coin-fill px-5 py-2.5 text-on-coin">
+            <Warning weight="fill" className="size-4 shrink-0" />
+            <span className="text-[13px] font-extrabold">
               Signing you out in two minutes — this console idles out.
             </span>
             <span className="flex-1" />
-            <Button variant="coin" size="sm" onClick={stay}>
+            <Button variant="steel" size="sm" onClick={stay}>
               Stay signed in
             </Button>
           </div>

@@ -80,7 +80,7 @@ export function Topics({
       />
 
       <div className="flex flex-wrap items-center gap-3">
-        <span className="flex min-h-10 min-w-[16rem] flex-1 items-center gap-2.5 rounded-[var(--r-pill)] border border-line bg-surface-2 px-3.5">
+        <span className="flex min-h-11 min-w-[16rem] flex-1 items-center gap-2.5 rounded-[var(--r-btn)] border-2 border-line-2 bg-surface-2 px-3.5 transition-colors focus-within:border-hate-fill">
           <MagnifyingGlass className="size-4 shrink-0 text-mute" />
           <Field
             bare
@@ -91,33 +91,43 @@ export function Topics({
           />
         </span>
 
-        <span className="flex items-center gap-1 rounded-[var(--r-pill)] border border-line bg-surface-2 p-1">
+        {/* The same segmented track as the room's tabs: a key per state,
+            the pressed one sitting up with a green edge under it. */}
+        <span role="tablist" className="flex items-center gap-1 rounded-[var(--r-btn)] bg-surface-2 p-1">
           {FILTERS.map((f) => (
             <Button
               key={f.id}
               bare
+              role="tab"
+              aria-selected={status === f.id}
               onClick={() => setStatus(f.id)}
               className={cn(
-                "min-h-8 rounded-[var(--r-pill)] px-3 text-[12.5px] font-bold transition-colors",
-                status === f.id
-                  ? "bg-surface-3 text-ink"
-                  : "text-mute hover:text-ink-3",
+                "relative min-h-9 rounded-[9px] px-3.5 text-[12.5px] font-bold transition-colors",
+                status === f.id ? "bg-surface-4 text-ink" : "text-mute hover:bg-surface-3/70 hover:text-ink-3",
               )}
             >
               {f.label}
+              <span
+                aria-hidden
+                className={cn(
+                  "absolute inset-x-2.5 bottom-0 h-[3px] rounded-full transition-colors",
+                  status === f.id ? "bg-go-fill" : "bg-transparent",
+                )}
+              />
             </Button>
           ))}
         </span>
 
         {data ? (
-          <span className="num text-[12.5px] text-mute">
-            {fmtInt(data.total)} {data.total === 1 ? "topic" : "topics"}
+          <span className="chip">
+            <span className="num font-extrabold text-ink">{fmtInt(data.total)}</span>{" "}
+            {data.total === 1 ? "topic" : "topics"}
           </span>
         ) : null}
       </div>
 
       {error ? (
-        <p className="flex items-center gap-2 rounded-[var(--r-btn)] bg-love/12 px-3.5 py-2.5 text-[13px] font-semibold text-love">
+        <p className="slide-up flex items-center gap-2 rounded-[var(--r-sm)] border border-love-fill/40 bg-love-fill/12 px-3.5 py-2.5 text-[13px] font-semibold text-love">
           <Warning weight="fill" className="size-4 shrink-0" />
           {error}
         </p>
@@ -130,16 +140,17 @@ export function Topics({
           ))}
         </ul>
       ) : data.rows.length === 0 ? (
-        <p className="card px-6 py-14 text-center text-[14px] text-mute">
+        <p className="tile px-6 py-14 text-center text-[14px] text-mute">
           {search || status
             ? "Nothing matches that."
             : "No topics yet. Discovery runs every six hours."}
         </p>
       ) : (
-        <ul className="space-y-2">
-          {data.rows.map((t) => (
+        <ul className="space-y-1.5">
+          {data.rows.map((t, i) => (
             <TopicRow
               key={t._id}
+              index={i}
               topic={t as AdminTopic}
               can={can}
               busy={busy === t._id}

@@ -1,13 +1,10 @@
-import {
-  CaretLeft,
-  CaretRight,
-  SignOut,
-  ShieldCheck,
-} from "@phosphor-icons/react";
+import { CaretLeft, CaretRight, ShieldCheck, SignOut } from "@phosphor-icons/react";
 
 import { cn } from "../../lib/cn";
 import { pathOf, reachable, type NavEntry } from "../../lib/admin-nav";
+import { Avatar } from "../../ui/Avatar";
 import { Button } from "../../ui/Button";
+import { Wordmark } from "../../ui/Wordmark";
 
 /**
  * The console's rail.
@@ -18,8 +15,8 @@ import { Button } from "../../ui/Button";
  * dimmed and marked, because a gap you can see is information and a gap you
  * cannot is a surprise later.
  *
- * Collapsing is a width change on one element and a padding change on another,
- * both transitioned together, so nothing reflows in steps.
+ * The active section carries a green edge, the way the room's tabs do; the
+ * rail is the same product as the console it administers and looks like it.
  */
 export function Sidebar({
   identity,
@@ -37,36 +34,27 @@ export function Sidebar({
   onSignOut: () => void;
 }) {
   const entries = reachable(identity.permissions);
-  const initials = identity.displayName.slice(0, 1).toUpperCase();
 
   return (
     <aside
       className={cn(
-        "flex h-full min-h-0 flex-col border-r border-line bg-surface",
+        "rail flex h-full min-h-0 flex-col border-r border-line",
         "transition-[width] duration-200 ease-out",
         collapsed ? "w-[72px]" : "w-[248px]",
       )}
     >
       <div
         className={cn(
-          "flex h-16 shrink-0 items-center border-b border-line",
-          collapsed ? "justify-center px-2" : "gap-2 px-4",
+          "flex h-14 shrink-0 items-center border-b border-line",
+          collapsed ? "justify-center px-2" : "gap-2 px-3",
         )}
       >
-        <Button
-          bare
-          onClick={() => onGo("/")}
-          aria-label="Back to bi-polar"
-          className="flex items-baseline gap-0.5"
-        >
-          <span className="display text-[18px] text-love">bi</span>
-          {collapsed ? null : (
-            <span className="display text-[18px] text-hate">polar</span>
-          )}
+        <Button bare onClick={() => onGo("/")} aria-label="Back to bi-polar" className="lift">
+          <Wordmark markOnly={collapsed} />
         </Button>
         {collapsed ? null : (
-          <span className="chip !gap-1 !bg-surface-3 !px-2 !py-0.5 !text-[10px]">
-            <ShieldCheck className="size-3" /> STAFF
+          <span className="ml-auto flex items-center gap-1 rounded-[6px] bg-go-fill/12 px-2 py-0.5 text-[10px] font-extrabold tracking-[0.08em] text-go uppercase">
+            <ShieldCheck weight="fill" className="size-3" /> Staff
           </span>
         )}
       </div>
@@ -79,30 +67,19 @@ export function Sidebar({
             heading={entry.group && entry.group !== entries[i - 1]?.group ? entry.group : null}
             active={entry.ready && section === entry.id}
             collapsed={collapsed}
+            index={i}
             onGo={onGo}
           />
         ))}
       </nav>
 
       <div className="shrink-0 border-t border-line p-2">
-        <div
-          className={cn(
-            "flex items-center gap-2 rounded-[var(--r-btn)] p-2",
-            collapsed && "justify-center",
-          )}
-        >
-          <span
-            title={`${identity.displayName} · ${identity.role}`}
-            className="grid size-8 shrink-0 place-items-center rounded-full bg-surface-3 text-[12px] font-bold text-ink-2"
-          >
-            {initials}
-          </span>
+        <div className={cn("flex items-center gap-2 rounded-[var(--r-btn)] p-2", collapsed && "justify-center")}>
+          <Avatar name={identity.displayName} />
           {collapsed ? null : (
             <span className="min-w-0 flex-1 leading-tight">
-              <span className="block truncate text-[12.5px] font-bold">
-                {identity.displayName}
-              </span>
-              <span className="block truncate text-[10.5px] tracking-wide text-mute uppercase">
+              <span className="block truncate text-[12.5px] font-bold">{identity.displayName}</span>
+              <span className="block truncate text-[10.5px] font-bold tracking-[0.06em] text-mute uppercase">
                 {identity.role}
               </span>
             </span>
@@ -112,7 +89,7 @@ export function Sidebar({
               bare
               aria-label="Sign out"
               onClick={onSignOut}
-              className="grid size-8 shrink-0 place-items-center rounded-[var(--r-btn)] text-mute transition-colors hover:bg-surface-3 hover:text-love"
+              className="grid size-8 shrink-0 place-items-center rounded-[var(--r-sm)] text-mute transition-colors hover:bg-surface-3 hover:text-love"
             >
               <SignOut className="size-4" />
             </Button>
@@ -124,18 +101,12 @@ export function Sidebar({
           onClick={onToggle}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           className={cn(
-            "mt-1 flex min-h-9 w-full items-center gap-2 rounded-[var(--r-btn)] px-2",
+            "mt-1 flex min-h-9 w-full items-center gap-2 rounded-[var(--r-sm)] px-2",
             "text-[12px] font-bold text-mute transition-colors hover:bg-surface-3 hover:text-ink",
             collapsed && "justify-center",
           )}
         >
-          {collapsed ? (
-            <CaretRight className="size-4" />
-          ) : (
-            <>
-              <CaretLeft className="size-4" /> Collapse
-            </>
-          )}
+          {collapsed ? <CaretRight className="size-4" /> : <><CaretLeft className="size-4" /> Collapse</>}
         </Button>
       </div>
     </aside>
@@ -147,12 +118,14 @@ function NavRow({
   heading,
   active,
   collapsed,
+  index,
   onGo,
 }: {
   entry: NavEntry;
   heading: string | null;
   active: boolean;
   collapsed: boolean;
+  index: number;
   onGo: (path: string) => void;
 }) {
   const Icon = entry.icon;
@@ -162,7 +135,7 @@ function NavRow({
         collapsed ? (
           <span aria-hidden className="my-2 block h-px bg-line" />
         ) : (
-          <p className="mt-4 mb-1 px-2 text-[10px] font-bold tracking-[1.5px] text-mute uppercase">
+          <p className="mt-4 mb-1 px-2.5 text-[10px] font-extrabold tracking-[0.1em] text-mute uppercase">
             {heading}
           </p>
         )
@@ -174,22 +147,26 @@ function NavRow({
         title={collapsed ? entry.label : undefined}
         aria-current={active ? "page" : undefined}
         onClick={() => onGo(pathOf(entry.id))}
+        style={{ animationDelay: `${index * 35}ms` }}
         className={cn(
-          "flex min-h-10 w-full items-center gap-2.5 rounded-[var(--r-btn)] px-2.5",
-          "text-[13px] font-bold transition-colors duration-150",
+          "stagger relative flex min-h-10 w-full items-center gap-2.5 rounded-[var(--r-sm)] px-2.5",
+          "text-[13px] font-bold transition-[background-color,color,transform] duration-150",
           collapsed && "justify-center px-0",
           active
-            ? "bg-surface-3 text-ink"
-            : "text-ink-3 hover:bg-surface-2 hover:text-ink",
+            ? "bg-surface-4 text-ink"
+            : "text-ink-3 hover:translate-x-0.5 hover:bg-surface-2 hover:text-ink",
           !entry.ready && "!opacity-40",
         )}
       >
+        {active ? (
+          <span aria-hidden className="absolute inset-y-2 left-0 w-[3px] rounded-full bg-go-fill" />
+        ) : null}
         <Icon weight={active ? "fill" : "regular"} className="size-[18px] shrink-0" />
         {collapsed ? null : (
           <>
             <span className="flex-1 text-left">{entry.label}</span>
             {entry.ready ? null : (
-              <span className="rounded-[4px] bg-surface-3 px-1.5 py-0.5 text-[9px] tracking-wide uppercase">
+              <span className="rounded-[4px] bg-surface-3 px-1.5 py-0.5 text-[9px] font-extrabold tracking-wide uppercase">
                 soon
               </span>
             )}

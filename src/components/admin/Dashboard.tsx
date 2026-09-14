@@ -5,18 +5,20 @@ import {
   Check,
   Globe,
   Lightning,
+  Robot,
   Star,
   Stack,
   Users,
   X,
 } from "@phosphor-icons/react";
-import type { Icon } from "@phosphor-icons/react";
 
 import { api } from "../../../convex/_generated/api";
 import { cn } from "../../lib/cn";
 import { fmtInt, fmtMoney } from "../../lib/format";
+import { useCountUp } from "../../lib/motion";
 import { Button } from "../../ui/Button";
 import { Label } from "../../ui/Label";
+import { Tile } from "../../ui/Tile";
 
 /**
  * What the house is doing, in one screen.
@@ -25,80 +27,97 @@ import { Label } from "../../ui/Label";
  * number of rows and says so. A console that needs a table scan to render is a
  * console that stops rendering exactly when the numbers get interesting, so the
  * cap is honest rather than hidden: when it bites, the tile says "at least".
+ *
+ * The tiles are the product's own stat tiles, landing one after another and
+ * counting up, because a console that looks like a different product from the
+ * one it runs is a console nobody trusts to be current.
  */
 export function Dashboard({ onGo }: { onGo: (path: string) => void }) {
   const data = useQuery(api.admin.dashboard);
 
   if (data === undefined) {
     return (
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 8 }, (_, i) => (
-          <span key={i} className="shimmer h-28 rounded-[var(--r-card)]" />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+        {Array.from({ length: 6 }, (_, i) => (
+          <span key={i} className="shimmer h-24 rounded-[var(--r-card)]" />
         ))}
       </div>
     );
   }
 
-  const live = data.topics.active;
   const votes = data.votes.free + data.votes.paid;
   const paidShare = votes === 0 ? 0 : Math.round((data.votes.paid / votes) * 100);
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="space-y-5">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         <Tile
-          icon={Stack}
-          label="Live topics"
-          value={fmtInt(live)}
-          caption={`${fmtInt(data.topics.draft)} draft · ${fmtInt(data.topics.archived)} archived`}
-          approx={data.topics.capped}
+          icon={<Stack weight="fill" className="size-3.5" />}
+          label={data.topics.capped ? "Live topics · at least" : "Live topics"}
+          value={<Count n={data.topics.active} />}
+          hint={`${fmtInt(data.topics.draft)} draft · ${fmtInt(data.topics.archived)} archived`}
+          tone="go"
+          delay={0}
         />
         <Tile
-          icon={Check}
+          icon={<Check weight="bold" className="size-3.5" />}
           label="Votes"
-          value={fmtInt(votes)}
-          caption={`${fmtInt(data.votes.free)} free · ${fmtInt(data.votes.paid)} backed (${paidShare}%)`}
+          value={<Count n={votes} />}
+          hint={`${fmtInt(data.votes.free)} free · ${fmtInt(data.votes.paid)} backed (${paidShare}%)`}
+          tone="love"
+          delay={70}
         />
         <Tile
-          icon={Lightning}
+          icon={<Lightning weight="fill" className="size-3.5" />}
           label="Staked"
-          value={fmtMoney(data.stakedCents)}
-          tone="text-coin"
-          caption="Simulated — no card is charged"
+          value={<Money cents={data.stakedCents} />}
+          hint="Simulated — no card is charged"
+          tone="coin"
+          delay={140}
         />
         <Tile
-          icon={Users}
+          icon={<Users weight="fill" className="size-3.5" />}
           label="Accounts"
-          value={fmtInt(data.users.total)}
-          caption={`${fmtInt(data.users.last7d)} in the last 7 days${
+          value={<Count n={data.users.total} />}
+          hint={`${fmtInt(data.users.last7d)} in the last 7 days${
             data.users.banned > 0 ? ` · ${fmtInt(data.users.banned)} banned` : ""
           }`}
+          tone="hate"
+          delay={210}
         />
-        <Tile icon={ChatCircle} label="Comments" value={fmtInt(data.comments)} />
-        <Tile icon={Globe} label="Countries voting" value={fmtInt(data.countries)} />
+        <Tile
+          icon={<ChatCircle weight="fill" className="size-3.5" />}
+          label="Comments"
+          value={<Count n={data.comments} />}
+          delay={280}
+        />
+        <Tile
+          icon={<Globe weight="fill" className="size-3.5" />}
+          label="Countries voting"
+          value={<Count n={data.countries} />}
+          delay={350}
+        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="card p-5">
-          <h2 className="mb-3 flex items-center gap-2 text-[13px] font-bold">
-            <Star weight="fill" className="size-4 text-coin" /> Featured topic
+        <section className="tile tile-in" style={{ animationDelay: "420ms" }}>
+          <h2 className="mb-3 flex items-center gap-1.5 text-[11px] font-extrabold tracking-[0.06em] text-coin uppercase">
+            <Star weight="fill" className="size-3.5" /> Featured topic
           </h2>
           {data.featured ? (
             <>
               <Button
                 bare
                 onClick={() => onGo(`/t/${data.featured!.slug}`)}
-                className="block text-left text-[17px] leading-snug font-bold hover:underline"
+                className="display block text-left text-[clamp(1.1rem,1.5vw,1.5rem)] leading-snug hover:underline"
               >
                 {data.featured.question}
               </Button>
-              <p className="mt-2 flex flex-wrap items-center gap-2">
-                <span className="chip !bg-surface-3 capitalize">
+              <p className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="rounded-[6px] bg-ink px-2 py-0.5 text-[10.5px] font-extrabold tracking-[0.06em] text-canvas uppercase">
                   {data.featured.categorySlug}
                 </span>
-                <span className="num text-[12px] text-mute">
-                  /{data.featured.slug}
-                </span>
+                <span className="num text-[12px] text-mute">/{data.featured.slug}</span>
                 <Button
                   bare
                   onClick={() =>
@@ -106,64 +125,59 @@ export function Dashboard({ onGo }: { onGo: (path: string) => void }) {
                       `${window.location.origin}/t/${data.featured!.slug}`,
                     )
                   }
-                  className="flex items-center gap-1 text-[12px] text-mute hover:text-ink"
+                  className="flex items-center gap-1 text-[12px] font-semibold text-mute hover:text-ink"
                 >
                   Copy link <ArrowSquareOut className="size-3" />
                 </Button>
               </p>
             </>
           ) : (
-            <p className="text-[14px] text-mute">
-              Nothing is featured. The ranker still weights `isFeatured` — a
-              topic set here rides the top of every feed.
+            <p className="text-[14px] leading-relaxed text-mute">
+              Nothing is featured. The ranker still weights it — a topic set here rides the
+              top of every feed.
             </p>
           )}
         </section>
 
-        <section className="card p-5">
-          <h2 className="mb-3 text-[13px] font-bold">Last discovery run</h2>
+        <section className="tile tile-in" style={{ animationDelay: "490ms" }}>
+          <h2 className="mb-3 flex items-center gap-1.5 text-[11px] font-extrabold tracking-[0.06em] text-ink-3 uppercase">
+            <Robot weight="fill" className="size-3.5" /> Last discovery run
+          </h2>
           {data.lastIngest ? (
             <>
               <p className="flex items-center gap-2">
-                {data.lastIngest.error ? (
-                  <X weight="bold" className="size-4 shrink-0 text-love" />
-                ) : (
-                  <Check weight="bold" className="size-4 shrink-0 text-go" />
-                )}
-                <span className="truncate text-[14px] font-bold">
-                  {data.lastIngest.query}
+                <span
+                  className={cn(
+                    "grid size-6 shrink-0 place-items-center rounded-full",
+                    data.lastIngest.error ? "bg-love-fill text-on-love" : "bg-go-fill text-on-go",
+                  )}
+                >
+                  {data.lastIngest.error ? (
+                    <X weight="bold" className="size-3.5" />
+                  ) : (
+                    <Check weight="bold" className="size-3.5" />
+                  )}
                 </span>
+                <span className="truncate text-[14px] font-bold">{data.lastIngest.query}</span>
               </p>
-              <div className="mt-4 flex flex-wrap gap-x-8 gap-y-3">
-                <Figure value={fmtInt(data.lastIngest.found)} label="Found" />
-                <Figure
-                  value={fmtInt(data.lastIngest.minted)}
-                  label="Minted"
-                  tone="text-go"
-                />
-                <Figure
-                  value={fmtInt(data.lastIngest.rejected)}
-                  label="Rejected"
-                  tone="text-mute"
-                />
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                <Figure value={data.lastIngest.found} label="Found" />
+                <Figure value={data.lastIngest.minted} label="Minted" tone="text-go" />
+                <Figure value={data.lastIngest.rejected} label="Rejected" tone="text-mute" />
               </div>
               {data.lastIngest.error ? (
-                <p className="mt-4 rounded-[var(--r-btn)] bg-love/12 px-3 py-2 text-[12.5px] font-semibold text-love">
+                <p className="mt-4 rounded-[var(--r-sm)] border border-love-fill/40 bg-love-fill/12 px-3 py-2 text-[12.5px] font-semibold text-love">
                   {data.lastIngest.error}
                 </p>
               ) : null}
               {data.lastIngest.finishedAt ? (
                 <p className="mt-3">
-                  <Label>
-                    {new Date(data.lastIngest.finishedAt).toLocaleString()}
-                  </Label>
+                  <Label>{new Date(data.lastIngest.finishedAt).toLocaleString()}</Label>
                 </p>
               ) : null}
             </>
           ) : (
-            <p className="text-[14px] text-mute">
-              Discovery has not run on this deployment yet.
-            </p>
+            <p className="text-[14px] text-mute">Discovery has not run on this deployment yet.</p>
           )}
         </section>
       </div>
@@ -171,56 +185,21 @@ export function Dashboard({ onGo }: { onGo: (path: string) => void }) {
   );
 }
 
-function Tile({
-  icon: Icon,
-  label,
-  value,
-  caption,
-  tone,
-  approx = false,
-}: {
-  icon: Icon;
-  label: string;
-  value: string;
-  caption?: string;
-  tone?: string;
-  approx?: boolean;
-}) {
-  return (
-    <div className="card p-4">
-      <div className="flex items-center justify-between">
-        <Label>{label}</Label>
-        <span className="grid size-7 place-items-center rounded-[8px] bg-surface-3 text-mute">
-          <Icon className="size-4" />
-        </span>
-      </div>
-      <p className="mt-2 flex items-baseline gap-1.5">
-        {approx ? (
-          <span className="text-[11px] font-bold text-mute uppercase">
-            at least
-          </span>
-        ) : null}
-        <span className={cn("display num text-[28px]", tone)}>{value}</span>
-      </p>
-      {caption ? (
-        <p className="mt-1 text-[11.5px] leading-snug text-mute">{caption}</p>
-      ) : null}
-    </div>
-  );
+/** A count that climbs. Plain ease, no overshoot: these are ledgers, not results. */
+function Count({ n }: { n: number }) {
+  return <>{fmtInt(useCountUp(n, 700))}</>;
 }
 
-function Figure({
-  value,
-  label,
-  tone,
-}: {
-  value: string;
-  label: string;
-  tone?: string;
-}) {
+function Money({ cents }: { cents: number }) {
+  return <>{fmtMoney(useCountUp(cents, 700))}</>;
+}
+
+function Figure({ value, label, tone }: { value: number; label: string; tone?: string }) {
   return (
-    <span>
-      <span className={cn("display num block text-[22px]", tone)}>{value}</span>
+    <span className="rounded-[var(--r-sm)] bg-surface-2 px-3 py-2">
+      <span className={cn("display num block text-[22px]", tone)}>
+        <Count n={value} />
+      </span>
       <Label>{label}</Label>
     </span>
   );

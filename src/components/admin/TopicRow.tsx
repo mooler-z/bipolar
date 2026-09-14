@@ -48,16 +48,19 @@ export type Can = {
   publish: boolean;
 };
 
-const STATUS: Record<string, { label: string; tone: string }> = {
-  active: { label: "Live", tone: "bg-go/15 text-go" },
-  draft: { label: "Draft", tone: "bg-surface-3 text-mute" },
-  archived: { label: "Archived", tone: "bg-love/12 text-love" },
+/* The status is the row's left edge as well as its chip — a list of forty
+   rows scans by colour long before it scans by word. */
+const STATUS: Record<string, { label: string; tone: string; edge: string }> = {
+  active: { label: "Live", tone: "bg-go-fill/15 text-go", edge: "border-l-go" },
+  draft: { label: "Draft", tone: "bg-surface-3 text-mute", edge: "border-l-line-2" },
+  archived: { label: "Archived", tone: "bg-love-fill/12 text-love", edge: "border-l-love" },
 };
 
 export function TopicRow({
   topic,
   can,
   busy,
+  index = 0,
   onStatus,
   onFeature,
   onLock,
@@ -66,6 +69,8 @@ export function TopicRow({
   topic: AdminTopic;
   can: Can;
   busy: boolean;
+  /** Position in the list, for the staggered entrance. */
+  index?: number;
   onStatus: (status: "draft" | "active" | "archived") => void;
   onFeature: (featured: boolean) => void;
   onLock: (locked: boolean) => void;
@@ -78,8 +83,16 @@ export function TopicRow({
   const editable = topic.mine;
 
   return (
-    <li className="card flex items-center gap-3 p-3">
-      <Thumb src={topic.imageUrl} alt="" rounded="rounded-[7px]" className="size-11" />
+    <li
+      className={cn(
+        "stagger flex items-center gap-3 rounded-[var(--r-card)] border border-line border-l-[3px] bg-surface p-3",
+        "transition-[transform,border-color] duration-150 hover:translate-x-0.5 hover:border-line-2",
+        status.edge,
+        busy && "opacity-60",
+      )}
+      style={{ animationDelay: `${Math.min(index, 14) * 28}ms` }}
+    >
+      <Thumb src={topic.imageUrl} alt="" rounded="rounded-[8px]" className="size-11 border border-line-2" />
 
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5">
@@ -101,7 +114,7 @@ export function TopicRow({
           ) : null}
         </span>
         <span className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-mute">
-          <span className={cn("rounded-[5px] px-1.5 py-0.5 font-bold", status.tone)}>
+          <span className={cn("rounded-[5px] px-1.5 py-0.5 font-extrabold tracking-[0.04em] uppercase", status.tone)}>
             {status.label}
           </span>
           <span className="capitalize">{topic.categorySlug}</span>
@@ -122,7 +135,7 @@ export function TopicRow({
           it is the one that asks. */}
       {confirming ? (
         <span className="flex shrink-0 items-center gap-2">
-          <span className="text-[11.5px] font-bold text-love">Take it down?</span>
+          <span className="slide-up text-[11.5px] font-extrabold text-love">Take it down?</span>
           <Button
             variant="love"
             size="sm"

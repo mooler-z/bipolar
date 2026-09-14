@@ -8,6 +8,7 @@ import { Shell } from "../components/admin/Shell";
 import { NAV, sectionOf } from "../lib/admin-nav";
 import { signOut } from "../lib/auth-client";
 import { Button } from "../ui/Button";
+import { Wordmark } from "../ui/Wordmark";
 
 /**
  * The staff console.
@@ -64,9 +65,10 @@ export function Admin({
 function Door({ onGo }: { onGo: (path: string) => void }) {
   return (
     <div className="grid h-[100dvh] place-items-center bg-canvas px-6 text-center">
-      <div className="max-w-sm">
-        <span className="mx-auto grid size-14 place-items-center rounded-full bg-surface-2 text-mute">
-          <Prohibit className="size-6" />
+      <div className="rise max-w-sm">
+        <Wordmark className="mx-auto mb-6" />
+        <span className="mx-auto grid size-14 place-items-center rounded-full bg-surface-3 text-mute">
+          <Prohibit weight="fill" className="size-6" />
         </span>
         <h1 className="display mt-5 text-[clamp(1.5rem,3vw,2rem)]">
           Staff only.
@@ -76,8 +78,8 @@ function Door({ onGo }: { onGo: (path: string) => void }) {
           you, someone with the keys has to say so.
         </p>
         <p className="mt-5 flex items-center justify-center gap-1.5">
-          <ShieldCheck className="size-3.5 text-mute" />
-          <span className="text-[11.5px] tracking-wide text-mute uppercase">
+          <ShieldCheck weight="fill" className="size-3.5 text-go" />
+          <span className="text-[11px] font-extrabold tracking-[0.08em] text-mute uppercase">
             Every action here is recorded
           </span>
         </p>

@@ -52,14 +52,14 @@ export function Discovery({
   return (
     <section
       className={cn(
-        "card flex flex-wrap items-center gap-x-5 gap-y-3 p-4",
-        review ? "border-go/35 bg-go/[0.06]" : "border-coin/35 bg-coin/[0.06]",
+        "tile tile-in flex flex-wrap items-center gap-x-5 gap-y-3",
+        review ? "!border-go-fill/50 bg-go-fill/[0.06]" : "!border-coin-fill/50 bg-coin-fill/[0.06]",
       )}
     >
       <span
         className={cn(
           "grid size-10 shrink-0 place-items-center rounded-[var(--r-btn)]",
-          review ? "bg-go/15 text-go" : "bg-coin/15 text-coin",
+          review ? "bg-go-fill/15 text-go" : "bg-coin-fill/15 text-coin",
         )}
       >
         {review ? (
@@ -70,7 +70,7 @@ export function Discovery({
       </span>
 
       <span className="min-w-0 flex-1">
-        <span className="block text-[14px] font-bold">
+        <span className="display block text-[15px]">
           {review
             ? "Discovery proposes — a moderator publishes"
             : "Discovery publishes on its own"}
@@ -100,31 +100,40 @@ export function Discovery({
           for the same reason: both states are a real choice, and neither is a
           setting you leave alone by accident. */}
       <span
+        role="radiogroup"
+        aria-label="Discovery mode"
         className={cn(
-          "flex shrink-0 items-center gap-0.5 rounded-[var(--r-pill)] border border-line bg-surface-2 p-1",
+          "flex shrink-0 items-center gap-1 rounded-[var(--r-btn)] bg-surface-2 p-1",
           !mayChange && "opacity-50",
         )}
       >
-        {(["auto", "review"] as const).map((m) => (
-          <Button
-            key={m}
-            bare
-            role="switch"
-            aria-checked={state.mode === m}
-            disabled={!mayChange || busy}
-            onClick={() => void flip(m)}
-            className={cn(
-              "min-h-8 rounded-[var(--r-pill)] px-3.5 text-[12.5px] font-bold transition-colors",
-              state.mode === m
-                ? m === "review"
-                  ? "bg-go text-black"
-                  : "bg-coin text-black"
-                : "text-mute hover:text-ink",
-            )}
-          >
-            {m === "auto" ? "Auto-publish" : "Review first"}
-          </Button>
-        ))}
+        {(["auto", "review"] as const).map((m) => {
+          const on = state.mode === m;
+          return (
+            <Button
+              key={m}
+              bare
+              role="radio"
+              aria-checked={on}
+              disabled={!mayChange || busy}
+              onClick={() => void flip(m)}
+              className={cn(
+                "relative min-h-9 rounded-[9px] px-3.5 text-[12.5px] font-extrabold transition-[background-color,color,transform] duration-150",
+                on ? "bg-surface-4 text-ink" : "text-mute hover:bg-surface-3/70 hover:text-ink-3",
+                on && !busy && "pop-in",
+              )}
+            >
+              {m === "auto" ? "Auto-publish" : "Review first"}
+              <span
+                aria-hidden
+                className={cn(
+                  "absolute inset-x-2.5 bottom-0 h-[3px] rounded-full transition-colors",
+                  on ? (m === "review" ? "bg-go-fill" : "bg-coin-fill") : "bg-transparent",
+                )}
+              />
+            </Button>
+          );
+        })}
       </span>
 
       {!mayChange ? (

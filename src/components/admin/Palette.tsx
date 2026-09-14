@@ -75,7 +75,7 @@ export function Palette({
         aria-modal="true"
         aria-label="Command palette"
         onClick={(e) => e.stopPropagation()}
-        className="rise w-full max-w-lg overflow-hidden rounded-[var(--r-card)] border border-line bg-surface"
+        className="rise w-full max-w-lg overflow-hidden rounded-[var(--r-card)] border-2 border-line-2 bg-surface"
       >
         <label className="flex items-center gap-2.5 border-b border-line px-4">
           <MagnifyingGlass className="size-4 shrink-0 text-mute" />
@@ -91,9 +91,7 @@ export function Palette({
             placeholder="Jump to a section…"
             className="h-12"
           />
-          <kbd className="rounded-[5px] bg-surface-3 px-1.5 py-0.5 text-[10px] font-bold text-mute">
-            esc
-          </kbd>
+          <kbd className="key">esc</kbd>
         </label>
 
         <ul className="col-scroll max-h-[46vh] p-2">
@@ -114,12 +112,15 @@ export function Palette({
                       onClose();
                     }}
                     className={cn(
-                      "flex min-h-10 w-full items-center gap-2.5 rounded-[var(--r-btn)] px-2.5",
-                      "text-[13px] font-bold transition-colors",
-                      i === cursor ? "bg-surface-3 text-ink" : "text-ink-3",
+                      "relative flex min-h-10 w-full items-center gap-2.5 rounded-[var(--r-sm)] px-2.5",
+                      "text-[13px] font-bold transition-[background-color,color,transform]",
+                      i === cursor ? "translate-x-0.5 bg-surface-4 text-ink" : "text-ink-3",
                     )}
                   >
-                    <Icon className="size-4 shrink-0" />
+                    {i === cursor ? (
+                      <span aria-hidden className="absolute inset-y-2 left-0 w-[3px] rounded-full bg-go-fill" />
+                    ) : null}
+                    <Icon weight={i === cursor ? "fill" : "regular"} className="size-4 shrink-0" />
                     <span className="flex-1 text-left">{hit.label}</span>
                     {i === cursor ? (
                       <kbd className="text-[10px] text-mute">&crarr;</kbd>
