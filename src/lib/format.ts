@@ -43,24 +43,6 @@ export function verdict(love: number, hate: number): string {
   return "Despised";
 }
 
-/**
- * A country's flag, from its ISO code.
- *
- * The house rule is no emoji anywhere — with exactly one exception, which is
- * this: a country is always shown with its flag. Two regional-indicator code
- * points, nothing else, so any valid alpha-2 code works without a lookup table.
- *
- * Returns a white flag for anything that is not a two-letter code, so an
- * unknown or unset country renders as a placeholder rather than as mojibake.
- */
-export function flagEmoji(code: string): string {
-  // `ZZ` is the server's "unknown" and has no flag; it must not render as
-  // two letters standing where a flag should be.
-  if (!/^[A-Za-z]{2}$/.test(code) || code.toUpperCase() === "ZZ") return "\u{1F3F3}\uFE0F";
-  return String.fromCodePoint(
-    ...[...code.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65),
-  );
-}
 
 /** The uppercase ISO code, or `??`. Shown beside the flag, never instead of it. */
 export function countryCode(code: string): string {

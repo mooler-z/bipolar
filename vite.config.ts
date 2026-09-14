@@ -17,5 +17,11 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
   },
-  build: { outDir: "dist" },
+  build: {
+    outDir: "dist",
+    // Flags stay files. Vite inlines any asset under 4KB as base64, and two
+    // hundred small SVGs pasted into the main bundle is a megabyte the browser
+    // downloads to show one of them. A file is fetched only when it is on screen.
+    assetsInlineLimit: (file) => (file.includes("flag-icons") ? false : undefined),
+  },
 });

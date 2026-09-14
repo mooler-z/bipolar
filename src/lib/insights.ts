@@ -1,5 +1,4 @@
 import worldMap from "../data/world-map.json";
-import { flagEmoji } from "./format";
 
 /**
  * Turning tallies into sentences.
@@ -136,7 +135,7 @@ export function buildBoard(rows: CountryRow[], minVotes = 3): Board {
  */
 export function phraseCountry(c: CountryInsight): string {
   const votes = `${c.total} ${c.total === 1 ? "vote" : "votes"}`;
-  const who = `${flagEmoji(c.code)} ${c.name}`;
+  const who = `${c.name}`;
   if (c.lean === "split") {
     return `${who} cannot decide — ${c.lovePct}/${c.hatePct} across ${votes}.`;
   }
@@ -162,7 +161,7 @@ export function headline(board: Board, globalLovePct: number): string | null {
   // A country going the other way to the whole world is the best line there is.
   if (rebel && rebel.lean !== "split" && rebel.lean !== worldSide) {
     const pct = rebel.lean === "love" ? rebel.lovePct : rebel.hatePct;
-    return `The world says ${worldSide}. ${flagEmoji(rebel.code)} ${rebel.name} says ${rebel.lean} — ${pct}%.`;
+    return `The world says ${worldSide}. ${rebel.name} says ${rebel.lean} — ${pct}%.`;
   }
 
   if (mostPolarized && mostPolarized.margin >= 40) {
@@ -170,12 +169,12 @@ export function headline(board: Board, globalLovePct: number): string | null {
       mostPolarized.lean === "love"
         ? mostPolarized.lovePct
         : mostPolarized.hatePct;
-    return `${flagEmoji(mostPolarized.code)} ${mostPolarized.name} is the least divided — ${pct}% one way.`;
+    return `${mostPolarized.name} is the least divided — ${pct}% one way.`;
   }
 
   const top = worldSide === "love" ? mostLoved : mostHated;
   const pct = worldSide === "love" ? top.lovePct : top.hatePct;
-  return `${flagEmoji(top.code)} ${top.name} feels it hardest — ${pct}% ${worldSide}.`;
+  return `${top.name} feels it hardest — ${pct}% ${worldSide}.`;
 }
 
 /**
@@ -190,5 +189,5 @@ export function phraseSparkGap(c: CountryInsight): string | null {
   const gap = c.sparkLovePct - c.lovePct;
   if (Math.abs(gap) < 12) return null;
   const direction = gap > 0 ? "warmer" : "colder";
-  return `${flagEmoji(c.code)} ${c.name}'s money runs ${direction} than its mouth — ${c.sparkLovePct}% love when it costs 50¢, ${c.lovePct}% when it is free.`;
+  return `${c.name}'s money runs ${direction} than its mouth — ${c.sparkLovePct}% love when it costs 50¢, ${c.lovePct}% when it is free.`;
 }

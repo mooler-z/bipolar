@@ -3,7 +3,8 @@ import { Lightning, Users } from "@phosphor-icons/react";
 
 import worldMap from "../data/world-map.json";
 import { cn } from "../lib/cn";
-import { flagEmoji, fmtInt } from "../lib/format";
+import { fmtInt } from "../lib/format";
+import { Flag } from "../ui/Flag";
 import type { CountryInsight } from "../lib/insights";
 import { Button } from "../ui/Button";
 import { Label } from "../ui/Label";
@@ -148,9 +149,7 @@ export function HeatMap({ countries }: { countries: CountryInsight[] }) {
                   setPinned((p) => (p === country.code ? null : country.code))
                 }
               >
-                <title>
-                  {flagEmoji(country.code)} {country.name}
-                </title>
+                <title>{country.name}</title>
               </path>
             );
           })}
@@ -161,8 +160,8 @@ export function HeatMap({ countries }: { countries: CountryInsight[] }) {
       <div className="mt-3 min-h-[3.5rem]">
         {active ? (
           <p className="roll text-[15px] leading-snug">
-            <span className="font-bold">
-              {flagEmoji(active)} {name}
+            <span className="inline-flex items-center gap-1.5 font-bold">
+              <Flag code={active} /> {name}
             </span>{" "}
             {total(stat) === 0 ? (
               <span className="text-mute">

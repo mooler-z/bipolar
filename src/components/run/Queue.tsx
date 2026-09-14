@@ -74,10 +74,10 @@ export function Queue({
                   {t.question}
                 </span>
                 <span className="mt-0.5 flex items-center gap-1.5">
+                  {t.scopeCountry ? <Flag code={t.scopeCountry} /> : null}
                   <span className="text-[11px] font-semibold text-mute capitalize">
                     {t.categorySlug}
                   </span>
-                  {t.scopeCountry ? <Flag code={t.scopeCountry} /> : null}
                 </span>
               </span>
               <CaretRight

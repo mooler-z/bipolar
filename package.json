@@ -25,6 +25,7 @@
     "clsx": "^2.1.1",
     "convex": "^1.45.0",
     "convex-helpers": "^0.1.124",
+    "flag-icons": "^7.5.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^3.7.0",
