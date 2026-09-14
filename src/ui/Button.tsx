@@ -27,6 +27,7 @@ type Variant =
   | "love"
   | "hate"
   | "coin"
+  | "streak"
   | "steel"
   | "ghost"
   | "link";
@@ -38,6 +39,8 @@ const VARIANTS: Record<Variant, string> = {
   love: "snap rounded-[var(--r-btn)] bg-love-fill text-on-love uppercase tracking-[0.04em] [--ring:var(--love-fill)]",
   hate: "snap rounded-[var(--r-btn)] bg-hate-fill text-on-hate uppercase tracking-[0.04em] [--ring:var(--hate-fill)]",
   coin: "snap rounded-[var(--r-btn)] bg-coin-fill text-on-coin uppercase tracking-[0.04em] [--ring:var(--coin-fill)]",
+  streak:
+    "snap rounded-[var(--r-btn)] bg-streak-fill text-on-streak uppercase tracking-[0.04em] [--ring:var(--streak-fill)]",
   steel:
     "snap rounded-[var(--r-btn)] bg-surface-3 text-ink-2 hover:bg-surface-4 hover:text-ink [--ring:var(--ink-3)]",
   ghost:

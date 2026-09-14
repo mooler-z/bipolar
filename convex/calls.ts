@@ -94,6 +94,9 @@ export async function record(
     crowdWasLove,
     correct,
     sampleSize,
+    // What this call is about to overwrite. See `retract`.
+    priorStreak: stats.streak,
+    priorBestStreak: stats.bestStreak,
   });
 
   await ctx.db.patch("callerStats", stats._id, {
@@ -115,6 +118,52 @@ export async function record(
     streak,
     bestStreak: Math.max(stats.bestStreak, streak),
   };
+}
+
+/**
+ * Un-grade a call, because the vote it rode on was retracted.
+ *
+ * A call is graded against a snapshot and is as final as its vote — so when
+ * the vote goes, the call goes with it, and the caller's record is restored to
+ * what it was rather than adjusted by arithmetic. `made` and `right` could be
+ * decremented; `streak` cannot, because a wrong call sets it to zero and zero
+ * remembers nothing. That is what `priorStreak` is for.
+ *
+ * A row written before retraction existed has no snapshot. It is still worth
+ * undoing the counts, and the streak is then the best inference available: a
+ * correct call added one, so take one back; a wrong one is left alone rather
+ * than invented.
+ */
+export async function retract(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  topicId: Id<"topics">,
+  myChoice: "love" | "hate",
+): Promise<void> {
+  const call = await ctx.db
+    .query("calls")
+    .withIndex("by_user_topic", (q) =>
+      q.eq("userId", userId).eq("topicId", topicId),
+    )
+    .unique();
+  if (!call) return;
+
+  const stats = await statsRow(ctx, userId);
+  const withCrowd =
+    (call.crowdWasLove ? "love" : "hate") === myChoice ? 1 : 0;
+
+  await ctx.db.patch("callerStats", stats._id, {
+    made: Math.max(0, stats.made - 1),
+    right: Math.max(0, stats.right - (call.correct ? 1 : 0)),
+    graded: Math.max(0, stats.graded - 1),
+    withCrowd: Math.max(0, stats.withCrowd - withCrowd),
+    streak:
+      call.priorStreak ??
+      (call.correct ? Math.max(0, stats.streak - 1) : stats.streak),
+    bestStreak: call.priorBestStreak ?? stats.bestStreak,
+  });
+
+  await ctx.db.delete("calls", call._id);
 }
 
 /** A voter's record, created on first need. */

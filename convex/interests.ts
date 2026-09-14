@@ -168,6 +168,8 @@ export async function noteCategoryLean(
   userId: Id<"users">,
   categoryId: Id<"categories">,
   choice: "love" | "hate",
+  /** `-1` walks it back, for a retracted vote. */
+  delta: 1 | -1 = 1,
 ): Promise<void> {
   const row = await ctx.db
     .query("userCategoryStats")
@@ -178,10 +180,10 @@ export async function noteCategoryLean(
 
   if (row) {
     await ctx.db.patch("userCategoryStats", row._id, {
-      love: row.love + (choice === "love" ? 1 : 0),
-      hate: row.hate + (choice === "hate" ? 1 : 0),
+      love: Math.max(0, row.love + (choice === "love" ? delta : 0)),
+      hate: Math.max(0, row.hate + (choice === "hate" ? delta : 0)),
     });
-  } else {
+  } else if (delta > 0) {
     await ctx.db.insert("userCategoryStats", {
       userId,
       categoryId,

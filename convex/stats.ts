@@ -99,8 +99,9 @@ export const aggregateValidator = v.object({
 });
 
 /**
- * Move the running totals for one vote. Called only from inside the vote
- * transaction, so a counter and the row it counts can never be written apart.
+ * Move the running totals for one vote, in either direction. Called only from
+ * inside the vote transaction — or the retraction — so a counter and the row it
+ * counts can never be written apart.
  */
 export async function bumpCounters(
   ctx: MutationCtx,
@@ -109,6 +110,8 @@ export async function bumpCounters(
   voteType: "free" | "paid",
   choice: "love" | "hate",
   stakedCents: number,
+  /** `-1` takes the vote back out, for a retraction. */
+  delta: 1 | -1 = 1,
 ): Promise<void> {
   const field = `${voteType}${choice === "love" ? "Love" : "Hate"}` as
     | "freeLove"
@@ -122,10 +125,10 @@ export async function bumpCounters(
     .unique();
   if (totals) {
     await ctx.db.patch("topicStats", totals._id, {
-      [field]: totals[field] + 1,
-      stakedCents: totals.stakedCents + stakedCents,
+      [field]: Math.max(0, totals[field] + delta),
+      stakedCents: Math.max(0, totals.stakedCents + stakedCents * delta),
     });
-  } else {
+  } else if (delta > 0) {
     await ctx.db.insert("topicStats", {
       topicId,
       freeLove: 0,
@@ -147,9 +150,9 @@ export async function bumpCounters(
     .unique();
   if (perCountry) {
     await ctx.db.patch("countryTopicStats", perCountry._id, {
-      [field]: perCountry[field] + 1,
+      [field]: Math.max(0, perCountry[field] + delta),
     });
-  } else {
+  } else if (delta > 0) {
     await ctx.db.insert("countryTopicStats", {
       topicId,
       countryCode,

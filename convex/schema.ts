@@ -440,6 +440,16 @@ export default defineSchema({
     /** Which way it had actually gone, at the moment of the call. */
     crowdWasLove: v.boolean(),
     correct: v.boolean(),
+    /**
+     * The caller's streak and best *before* this call was graded.
+     *
+     * Optional because rows written before retraction existed do not have it.
+     * A streak cannot be derived backwards — a wrong call sets it to zero and
+     * the number it was is gone — so retracting one restores from here rather
+     * than guessing.
+     */
+    priorStreak: v.optional(v.number()),
+    priorBestStreak: v.optional(v.number()),
     /** How big the room was when graded. Below the floor, nothing counts. */
     sampleSize: v.number(),
   })

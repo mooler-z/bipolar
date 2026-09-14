@@ -355,3 +355,194 @@ describe("the top-backers board counts topics, not money", () => {
   });
 });
 
+
+describe("a vote can be taken back, until the run moves on", () => {
+  /*
+   * The one exception to "a vote is final", so it is the one that needs the
+   * most watching. What these prove: everything the cast wrote comes back out,
+   * the ledger does not lose a row doing it, the window closes, and nobody can
+   * pull somebody else's vote.
+   */
+
+  test("a retracted paid vote returns the spark and leaves the counters as it found them", async () => {
+    const t = harness();
+    const { as, userId } = await voter(t, "voter");
+    const topicId = await topic(t);
+
+    await as.mutation(api.votes.cast, { topicId, choice: "love", voteType: "paid" });
+    await as.mutation(api.retract.vote, { topicId });
+
+    const after = await t.run(async (ctx) => {
+      const u = await ctx.db.get("users", userId);
+      const stats = await ctx.db
+        .query("topicStats")
+        .withIndex("by_topic", (q) => q.eq("topicId", topicId))
+        .unique();
+      const votes = await ctx.db
+        .query("votes")
+        .withIndex("by_user_topic_type", (q) =>
+          q.eq("userId", userId).eq("topicId", topicId),
+        )
+        .collect();
+      const ledger = await ctx.db
+        .query("creditTransactions")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect();
+      return {
+        wallet: u!.walletBalanceCents,
+        backed: u!.topicsBacked,
+        paidLove: stats?.paidLove ?? 0,
+        staked: stats?.stakedCents ?? 0,
+        votes: votes.length,
+        spends: ledger.filter((r) => r.type === "spend").length,
+        refunds: ledger.filter((r) => r.type === "refund").length,
+      };
+    });
+
+    expect(after.wallet).toBe(500);
+    expect(after.backed).toBe(0);
+    expect(after.paidLove).toBe(0);
+    expect(after.staked).toBe(0);
+    expect(after.votes).toBe(0);
+    // Append-only survives it: the spend stays put and a refund joins it.
+    expect(after.spends).toBe(1);
+    expect(after.refunds).toBe(1);
+  });
+
+  test("the country counters come back down too", async () => {
+    const t = harness();
+    const { as } = await voter(t, "voter");
+    const topicId = await topic(t);
+
+    await as.mutation(api.votes.cast, { topicId, choice: "love", voteType: "free" });
+    await as.mutation(api.retract.vote, { topicId });
+
+    const rows = await t.run(async (ctx) =>
+      ctx.db
+        .query("countryTopicStats")
+        .withIndex("by_topic", (q) => q.eq("topicId", topicId))
+        .collect(),
+    );
+    expect(rows.reduce((n, r) => n + r.freeLove, 0)).toBe(0);
+  });
+
+  test("a retracted vote can be cast again, the other way", async () => {
+    const t = harness();
+    const { as } = await voter(t, "voter");
+    const topicId = await topic(t);
+
+    await as.mutation(api.votes.cast, { topicId, choice: "love", voteType: "free" });
+    await as.mutation(api.retract.vote, { topicId });
+    await as.mutation(api.votes.cast, { topicId, choice: "hate", voteType: "free" });
+
+    const stats = await t.run(async (ctx) =>
+      ctx.db
+        .query("topicStats")
+        .withIndex("by_topic", (q) => q.eq("topicId", topicId))
+        .unique(),
+    );
+    expect(stats?.freeLove).toBe(0);
+    expect(stats?.freeHate).toBe(1);
+  });
+
+  test("retracting restores the streak the call wiped out", async () => {
+    const t = harness();
+    const { as, userId } = await voter(t, "voter");
+    const topicId = await topic(t);
+
+    // A room big enough to grade, and a record worth protecting.
+    await t.run(async (ctx) => {
+      const row = await ctx.db
+        .query("topicStats")
+        .withIndex("by_topic", (q) => q.eq("topicId", topicId))
+        .unique();
+      if (row) {
+        await ctx.db.patch("topicStats", row._id, { freeLove: 6, freeHate: 1 });
+      } else {
+        await ctx.db.insert("topicStats", {
+          topicId,
+          freeLove: 6,
+          freeHate: 1,
+          paidLove: 0,
+          paidHate: 0,
+          skips: 0,
+          comments: 0,
+          stakedCents: 0,
+        });
+      }
+      await ctx.db.insert("callerStats", {
+        userId,
+        made: 9,
+        right: 7,
+        streak: 4,
+        bestStreak: 6,
+        graded: 9,
+        withCrowd: 5,
+      });
+    });
+
+    // A wrong call: the streak goes to zero, and zero remembers nothing.
+    await as.mutation(api.votes.cast, {
+      topicId,
+      choice: "love",
+      voteType: "free",
+      call: "hate",
+    });
+    const broken = await t.run(async (ctx) =>
+      ctx.db
+        .query("callerStats")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .unique(),
+    );
+    expect(broken?.streak).toBe(0);
+    expect(broken?.made).toBe(10);
+
+    await as.mutation(api.retract.vote, { topicId });
+
+    const restored = await t.run(async (ctx) =>
+      ctx.db
+        .query("callerStats")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .unique(),
+    );
+    expect(restored?.streak).toBe(4);
+    expect(restored?.bestStreak).toBe(6);
+    expect(restored?.made).toBe(9);
+    expect(restored?.right).toBe(7);
+    expect(restored?.graded).toBe(9);
+
+    const calls = await t.run(async (ctx) =>
+      ctx.db
+        .query("calls")
+        .withIndex("by_user_topic", (q) =>
+          q.eq("userId", userId).eq("topicId", topicId),
+        )
+        .collect(),
+    );
+    expect(calls).toHaveLength(0);
+  });
+
+  test("the window closes, and a vote past it is final", async () => {
+    const t = harness();
+    const { as } = await voter(t, "voter");
+    const topicId = await topic(t);
+
+    await as.mutation(api.votes.cast, { topicId, choice: "love", voteType: "free" });
+    vi.advanceTimersByTime(6 * 60_000);
+
+    await expect(as.mutation(api.retract.vote, { topicId })).rejects.toThrow(/final/i);
+  });
+
+  test("nobody can take back a vote they did not cast", async () => {
+    const t = harness();
+    const { as } = await voter(t, "voter");
+    const { as: other } = await voter(t, "other");
+    const topicId = await topic(t);
+
+    await as.mutation(api.votes.cast, { topicId, choice: "love", voteType: "free" });
+
+    await expect(other.mutation(api.retract.vote, { topicId })).rejects.toThrow(
+      /no vote here/i,
+    );
+  });
+});
