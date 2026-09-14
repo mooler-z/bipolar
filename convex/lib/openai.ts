@@ -1,4 +1,5 @@
 import { CATEGORIES, OPENAI, TOPIC_PROMPT, keys } from "../config";
+import { usable } from "./wikipedia";
 
 /**
  * OpenAI: the thing that turns a news story into an argument.
@@ -27,6 +28,15 @@ export type DraftedTopic = {
   sensitive: boolean;
   /** ISO 3166-1 alpha-2 of the country the topic is *about*, or null. */
   country: string | null;
+  /**
+   * The English Wikipedia article to take a picture from, or null.
+   *
+   * Asked for **here**, in the same call that writes the question, because the
+   * model has the story in front of it and knows what the question is actually
+   * about. A separate pass later would be a second model call guessing at a
+   * sentence, which is what this replaced.
+   */
+  wikipediaTitle: string | null;
 };
 
 const TOOL = {
@@ -59,6 +69,14 @@ const TOOL = {
           description: "0-100. How evenly a room would actually split.",
         },
         sensitive: { type: "boolean" },
+        wikipediaTitle: {
+          type: "string",
+          description:
+            "Exact English Wikipedia article title for the most " +
+            "photographable thing this is about — a person, company, place, " +
+            "product or organisation. Prefer the concrete subject over the " +
+            "abstract one. Empty string when nothing concrete fits.",
+        },
         country: {
           type: "string",
           description:
@@ -181,8 +199,17 @@ function normalise(parsed: unknown): DraftedTopic | null {
       ? d.country.trim().toUpperCase()
       : null;
 
+  /* A title the picture pipeline would refuse anyway is dropped here, so the
+     topic is minted without one rather than carrying a name that can never
+     resolve and being asked about on every backfill. */
+  const article =
+    typeof d.wikipediaTitle === "string" && usable(d.wikipediaTitle)
+      ? d.wikipediaTitle.trim()
+      : null;
+
   return {
     country,
+    wikipediaTitle: article,
     question: question.endsWith("?") ? question : `${question}?`,
     description:
       typeof d.description === "string" ? d.description.trim().slice(0, 200) : "",

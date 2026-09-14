@@ -61,8 +61,6 @@ export const FIRECRAWL = {
   search: "https://api.firecrawl.dev/v2/search",
   scrape: "https://api.firecrawl.dev/v2/scrape",
   timeoutMs: 20_000,
-  /** Results asked for per query. Kept small; most are discarded. */
-  resultsPerQuery: 8,
 } as const;
 
 /* ── AgentMail ──────────────────────────────────────────────────────────── */
@@ -102,8 +100,49 @@ export const DISCOVERY_QUERIES = [
   "artificial intelligence controversy this week",
 ] as const;
 
-/** Topics minted per discovery run, at most. Keeps a bad run cheap. */
-export const TOPICS_PER_RUN = 3;
+/**
+ * Discovery: how often the crawler goes out, and what it is expected to come
+ * back with.
+ *
+ * **`runsPerDay` is the knob.** The cron spaces that many sessions evenly
+ * across the day, and every screen that quotes a cadence derives it from here,
+ * so changing how often the feed refills is this one number and nothing else.
+ */
+export const DISCOVERY = {
+  /**
+   * Crawling sessions a day, evenly spaced. Six is every four hours.
+   *
+   * The **default**, not the schedule: this is overridable from the console
+   * without a deploy, and the cron ticks hourly and asks whether a session is
+   * due rather than carrying the cadence itself. See `lib/tunables.ts`.
+   */
+  runsPerDay: 6,
+  /** New questions one session sets out to mint. */
+  topicsPerRun: 15,
+  /**
+   * Searches one session may spend getting there. Most findings never become a
+   * topic — already seen, already asked, or something nobody actually argues
+   * about — so fifteen questions costs far more than fifteen results.
+   */
+  queriesPerRun: 8,
+  /** Results asked of each search. */
+  resultsPerQuery: 12,
+  /**
+   * How much of the clock one session may spend before it stops early and
+   * keeps what it has. A run that overstays is a run the platform kills
+   * somewhere in the middle of its own bookkeeping.
+   */
+  budgetMs: 6 * 60_000,
+  /** Recent questions the sameness check compares a new one against. */
+  memory: 800,
+  /**
+   * Word overlap above which two questions are the same question. Deliberately
+   * loose: minting one argument twice is a worse failure than dropping one
+   * good question.
+   */
+  sameness: 0.6,
+} as const;
+
 
 /**
  * The model's own score, 0–100, for how genuinely two-sided a subject is.
@@ -168,7 +207,13 @@ export const TOPIC_PROMPT =
   "5. polarizing is 0-100: how evenly a room would actually split. A subject " +
   "almost everyone agrees on scores under 30 however loud it is.\n" +
   "6. sensitive is true for violence, death, active conflict or a private " +
-  "individual's tragedy — subjects a vote button trivialises.";
+  "individual's tragedy — subjects a vote button trivialises.\n" +
+  "7. wikipediaTitle is the exact English Wikipedia article title for the " +
+  "most photographable thing the question is about — a person, a company, a " +
+  "place, a product, an organisation. Prefer the concrete subject over the " +
+  "abstract one: the bank rather than the interest rate, the singer rather " +
+  "than the genre, the court rather than the ruling. Empty string when " +
+  "nothing concrete fits.";
 
 /* ── Notifications ──────────────────────────────────────────────────────── */
 
@@ -183,9 +228,7 @@ export const DIGEST = {
 
 /** Every schedule in the product, in one table. Hours, UTC. */
 export const CADENCE = {
-  /** How often Firecrawl goes looking for something to argue about. */
-  discoverHours: 6,
-  /** The daily mail, at this UTC hour. */
+  /** The daily mail, at this UTC hour. Discovery's cadence is in `DISCOVERY`. */
   digestHourUtc: 14,
 } as const;
 

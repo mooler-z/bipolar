@@ -112,7 +112,7 @@ describe("who may reach the console", () => {
       topicId,
       status: "archived",
     });
-    const after = await t.run(async (ctx) => ctx.db.get(topicId));
+    const after = await t.run(async (ctx) => ctx.db.get("topics", topicId!));
     expect(after?.status).toBe("archived");
   });
 });
@@ -185,7 +185,7 @@ describe("featuring is exclusive", () => {
       topicId,
       status: "archived",
     });
-    const after = await t.run(async (ctx) => ctx.db.get(topicId));
+    const after = await t.run(async (ctx) => ctx.db.get("topics", topicId!));
     // The ranker weights isFeatured; a dead row must not keep the weight.
     expect(after?.isFeatured).toBe(false);
   });
@@ -289,7 +289,9 @@ describe("who decides what the public sees", () => {
       topicId,
       status: "active",
     });
-    expect((await t.run(async (ctx) => ctx.db.get(topicId)))?.status).toBe("active");
+    expect(
+      (await t.run(async (ctx) => ctx.db.get("topics", topicId!)))?.status,
+    ).toBe("active");
   });
 });
 
@@ -340,7 +342,7 @@ describe("discovery mode decides where new topics land", () => {
       sourceTitle: "A headline",
     });
 
-    const row = await t.run(async (ctx) => ctx.db.get(topicId));
+    const row = await t.run(async (ctx) => ctx.db.get("topics", topicId!));
     // The whole point: the crawler proposes, it does not publish.
     expect(row?.status).toBe("draft");
   });
@@ -357,6 +359,6 @@ describe("discovery mode decides where new topics land", () => {
       sourceUrl: "https://example.test/b",
       sourceTitle: "A headline",
     });
-    expect((await t.run(async (ctx) => ctx.db.get(topicId)))?.status).toBe("active");
+    expect((await t.run(async (ctx) => ctx.db.get("topics", topicId!)))?.status).toBe("active");
   });
 });

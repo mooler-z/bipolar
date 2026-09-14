@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 
 import { SIGNUP_GRANT_CENTS, SIGNUP_GRANT_QUILLS } from "./config";
+import { keyOf } from "./lib/dedupe";
 import { internalMutation } from "./_generated/server";
 
 /**
@@ -171,6 +172,33 @@ export const reset = internalMutation({
 });
 
 /** What is in here, before anything is deleted. */
+/**
+ * Fill in the question key for everything written before there was one.
+ *
+ * The duplicate check reads an index, and an index cannot see a field that was
+ * never written. Without this, discovery would happily re-ask a question that
+ * has been in the feed since the seed — which is exactly the failure the check
+ * exists to prevent. Idempotent, bounded, and safe to run twice.
+ */
+export const reindexQuestions = internalMutation({
+  args: { batch: v.optional(v.number()) },
+  returns: v.object({ filled: v.number(), remaining: v.boolean() }),
+  handler: async (ctx, args) => {
+    const limit = Math.min(args.batch ?? 400, 800);
+    const rows = await ctx.db.query("topics").take(limit + 1);
+
+    let filled = 0;
+    for (const topic of rows.slice(0, limit)) {
+      if (topic.questionKey) continue;
+      await ctx.db.patch("topics", topic._id, {
+        questionKey: keyOf(topic.question),
+      });
+      filled += 1;
+    }
+    return { filled, remaining: rows.length > limit };
+  },
+});
+
 export const census = internalMutation({
   args: {},
   returns: v.array(v.object({ table: v.string(), atLeast: v.number() })),

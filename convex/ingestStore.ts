@@ -1,12 +1,13 @@
 import { v } from "convex/values";
 
-import { CATEGORIES } from "./config";
+import { CATEGORIES, DISCOVERY } from "./config";
 import {
   internalMutation,
   internalQuery,
   type MutationCtx,
 } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
+import { keyOf } from "./lib/dedupe";
 import { slugify, suffix } from "./lib/slug";
 import { discoveryMode } from "./settings";
 
@@ -33,6 +34,29 @@ export const unseen = internalQuery({
     return fresh;
   },
 });
+
+/**
+ * The questions already in the feed, canonicalised, newest first.
+ *
+ * Read **once** at the top of a crawling session and held in memory for the
+ * length of it. The alternative — a query per candidate — is the same answer
+ * bought forty times, and this is a background job that can afford to be one
+ * read and a set membership test.
+ */
+export const recentKeys = internalQuery({
+  args: { limit: v.optional(v.number()) },
+  returns: v.array(v.string()),
+  handler: async (ctx, args) => {
+    const rows = await ctx.db
+      .query("topics")
+      .order("desc")
+      .take(Math.min(args.limit ?? DISCOVERY.memory, 2000));
+    // Computed for the rows that predate the field, so a topic written before
+    // this existed still blocks its own duplicate.
+    return rows.map((t) => t.questionKey ?? keyOf(t.question));
+  },
+});
+
 
 export const markSeen = internalMutation({
   args: {
@@ -125,14 +149,32 @@ export const mint = internalMutation({
     sourceSnippet: v.optional(v.string()),
     /** The country the topic is *about*. Absent means global. */
     scopeCountry: v.optional(v.string()),
+    /** The article the picture comes from. Named by the model that wrote the
+        question, resolved to an image by `images.resolve` afterwards. */
+    wikipediaTitle: v.optional(v.string()),
+    /** The session this came out of, so the queue can be worked in waves. */
+    runId: v.optional(v.id("ingestRuns")),
   },
-  returns: v.id("topics"),
+  returns: v.union(v.null(), v.id("topics")),
   handler: async (ctx, args) => {
     const author = await systemUser(ctx);
+
+    /* The last word on whether this question is new, inside the transaction
+       that writes it. The session already checked in memory; this is what
+       makes the guarantee hold when two runs overlap, and it is an indexed
+       read rather than a scan. */
+    const key = keyOf(args.question);
+    const asked = await ctx.db
+      .query("topics")
+      .withIndex("by_question_key", (q) => q.eq("questionKey", key))
+      .first();
+    if (asked) return null;
 
     const topicId = await ctx.db.insert("topics", {
       slug: await freeSlug(ctx, args.question),
       question: args.question,
+      questionKey: key,
+      wikipediaTitle: args.wikipediaTitle,
       categoryId: await categoryId(ctx, args.category),
       // `review` holds everything as a draft until a moderator says otherwise.
       status: (await discoveryMode(ctx)) === "review" ? "draft" : "active",
@@ -142,6 +184,7 @@ export const mint = internalMutation({
       isSensitive: args.sensitive,
       isLocked: false,
       isFeatured: false,
+      ingestRunId: args.runId,
       createdBy: author,
     });
 
@@ -192,31 +235,3 @@ export const mint = internalMutation({
   },
 });
 
-export const startRun = internalMutation({
-  args: { query: v.string() },
-  returns: v.id("ingestRuns"),
-  handler: async (ctx, args) =>
-    await ctx.db.insert("ingestRuns", {
-      query: args.query,
-      found: 0,
-      minted: 0,
-      rejected: 0,
-    }),
-});
-
-export const finishRun = internalMutation({
-  args: {
-    runId: v.id("ingestRuns"),
-    found: v.number(),
-    minted: v.number(),
-    rejected: v.number(),
-    error: v.optional(v.string()),
-    finishedAt: v.number(),
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const { runId, ...rest } = args;
-    await ctx.db.patch("ingestRuns", runId, rest);
-    return null;
-  },
-});

@@ -4,6 +4,7 @@ import { describe, expect, test } from "vitest";
 
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import { keyOf } from "./lib/dedupe";
 import schema from "./schema";
 
 /**
@@ -69,10 +70,10 @@ describe("discovery never mints the same story twice", () => {
 describe("minting a topic writes all of it", () => {
   test("the topic, its counters, its source and its audit row", async () => {
     const t = convexTest(schema, modules);
-    const topicId: Id<"topics"> = await t.mutation(
+    const topicId = (await t.mutation(
       internal.ingestStore.mint,
       draft,
-    );
+    )) as Id<"topics">;
 
     const state = await t.run(async (ctx) => ({
       topic: await ctx.db.get("topics", topicId),
@@ -107,20 +108,48 @@ describe("minting a topic writes all of it", () => {
     });
   });
 
-  test("a repeated question gets its own address", async () => {
+  test("a question already asked is refused, however it is worded", async () => {
+    const t = convexTest(schema, modules);
+    expect(await t.mutation(internal.ingestStore.mint, draft)).not.toBeNull();
+
+    /* This used to mint a second topic and give it four characters of entropy
+       on the end of its slug, which is how one story written up by twenty
+       outlets became twenty questions. The mint refuses instead, inside the
+       transaction, so two sessions racing cannot both get through. */
+    expect(
+      await t.mutation(internal.ingestStore.mint, {
+        ...draft,
+        sourceUrl: "https://example.test/pineapple-again",
+      }),
+    ).toBeNull();
+
+    // Reworded, reordered, repunctuated — still the same argument.
+    expect(
+      await t.mutation(internal.ingestStore.mint, {
+        ...draft,
+        question: "Is pineapple on a pizza?",
+        sourceUrl: "https://example.test/pineapple-third",
+      }),
+    ).toBeNull();
+
+    const topics = await t.run(async (ctx) => await ctx.db.query("topics").collect());
+    expect(topics).toHaveLength(1);
+    expect(topics[0]!.slug).toBe("pineapple-on-pizza");
+  });
+
+  test("a genuinely different question still gets through", async () => {
     const t = convexTest(schema, modules);
     await t.mutation(internal.ingestStore.mint, draft);
-    await t.mutation(internal.ingestStore.mint, {
-      ...draft,
-      sourceUrl: "https://example.test/pineapple-again",
-    });
+    expect(
+      await t.mutation(internal.ingestStore.mint, {
+        ...draft,
+        question: "Anchovies on pizza?",
+        sourceUrl: "https://example.test/anchovies",
+      }),
+    ).not.toBeNull();
 
-    const slugs = await t.run(async (ctx) =>
-      (await ctx.db.query("topics").collect()).map((x) => x.slug),
-    );
-    expect(new Set(slugs).size).toBe(2);
-    expect(slugs[0]).toBe("pineapple-on-pizza");
-    expect(slugs[1]).toMatch(/^pineapple-on-pizza-[a-z0-9]{4}$/);
+    const topics = await t.run(async (ctx) => await ctx.db.query("topics").collect());
+    expect(topics).toHaveLength(2);
   });
 
   test("discovery posts under one account, not a new one each time", async () => {
@@ -210,5 +239,58 @@ describe("nobody is mailed the same thing twice", () => {
         dedupeKey: `digest:${userId}:2026-09-14`,
       }),
     ).not.toBeNull();
+  });
+});
+
+describe("a crawling session is a thing with a number on it", () => {
+  test("sessions count up, and what they mint carries the number", async () => {
+    const t = convexTest(schema, modules);
+
+    const first = await t.mutation(internal.ingestRuns.startRun, {
+      query: "first sweep",
+    });
+    const second = await t.mutation(internal.ingestRuns.startRun, {
+      query: "second sweep",
+    });
+
+    const seqs = await t.run(async (ctx) => ({
+      first: (await ctx.db.get("ingestRuns", first))?.seq,
+      second: (await ctx.db.get("ingestRuns", second))?.seq,
+    }));
+    // A document id is unique and unsayable. "Everything from 2" is a sentence.
+    expect(seqs.first).toBe(1);
+    expect(seqs.second).toBe(2);
+
+    const topicId = await t.mutation(internal.ingestStore.mint, {
+      ...draft,
+      runId: second,
+    });
+    const topic = await t.run(async (ctx) => ctx.db.get("topics", topicId!));
+    expect(topic?.ingestRunId).toBe(second);
+  });
+
+  test("the questions already asked are offered to the next session", async () => {
+    const t = convexTest(schema, modules);
+    await t.mutation(internal.ingestStore.mint, draft);
+
+    // Including rows written before the key existed: the key is computed for
+    // them on the way out, so a seeded topic still blocks its own duplicate.
+    await t.run(async (ctx) => {
+      const author = (await ctx.db.query("users").first())!;
+      await ctx.db.insert("topics", {
+        slug: "older-row",
+        question: "Nuclear power in Germany?",
+        categoryId: (await ctx.db.query("categories").first())!._id,
+        status: "active",
+        isSensitive: false,
+        isLocked: false,
+        isFeatured: false,
+        createdBy: author._id,
+      });
+    });
+
+    const known = await t.query(internal.ingestStore.recentKeys, {});
+    expect(known).toContain(keyOf("Pineapple on pizza?"));
+    expect(known).toContain(keyOf("Nuclear power in Germany?"));
   });
 });

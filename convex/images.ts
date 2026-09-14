@@ -48,9 +48,11 @@ export const pending = internalQuery({
     }),
   ),
   handler: async (ctx, args) => {
-    // Bounded: the scan is over topics that mostly already have an image, and
-    // this is a background job, not a page.
-    const rows = await ctx.db.query("topics").take(600);
+    /* Bounded, and **newest first**. The scan is mostly over topics that
+       already have their picture, so the order is what decides whether a
+       question minted this hour gets one today or waits behind six hundred
+       older rows that were resolved months ago. */
+    const rows = await ctx.db.query("topics").order("desc").take(600);
     return rows
       .filter(
         (t) =>

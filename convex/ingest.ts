@@ -1,193 +1,112 @@
 import { v } from "convex/values";
 
-import {
-  DISCOVERY_QUERIES,
-  MIN_POLARIZING_SCORE,
-  TOPICS_PER_RUN,
-  keys,
-} from "./config";
 import { internal } from "./_generated/api";
+import { action, internalAction, internalQuery } from "./_generated/server";
+import { sessionDue } from "./lib/tunables";
 import {
-  action,
-  internalAction,
-  internalQuery,
-  type ActionCtx,
-} from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
-import type { Infer } from "convex/values";
-import * as firecrawl from "./lib/firecrawl";
-import * as openai from "./lib/openai";
+  outcome,
+  runSession,
+  windowOfQueries,
+  type Outcome,
+  type Settings,
+} from "./ingestSession";
 import { requireUser } from "./users";
 
 /**
- * Where topics come from.
+ * The two ways a crawling session starts: the clock, and an administrator who
+ * wants topics now. The session itself is in `ingestSession.ts`.
  *
- * Nobody writes them. Every few hours this runs: Firecrawl goes and finds what
- * the web is arguing about this week, OpenAI turns one of those stories into a
- * question a stranger can answer with LOVE or HATE, and the pair that survive
- * the filters become rows people can vote on. Remove Firecrawl and the feed
- * stops refilling; remove OpenAI and what is left is headlines, which nobody
- * can vote on.
- *
- * The loop is deliberately conservative. Every URL is remembered whether or not
- * it became a topic, so the same story cannot be minted twice; every draft the
- * model scores as something people actually agree about is dropped; and one bad
- * run costs at most `TOPICS_PER_RUN` model calls.
+ * **The cadence is a setting, not a schedule.** A cron interval is fixed when
+ * the code is deployed, so the cron ticks hourly and this decides whether a
+ * session is actually due from `discovery.runsPerDay` — which means changing
+ * how often the feed refills is a number on a page rather than a deploy.
  */
 
-/** What a run did, so an operator reading logs sees it in one line. */
-const outcome = v.object({
-  query: v.string(),
-  found: v.number(),
-  minted: v.number(),
-  rejected: v.number(),
-  skipped: v.boolean(),
-});
-
-type Outcome = Infer<typeof outcome>;
-
-async function runDiscovery(
-  ctx: ActionCtx,
-  queryText: string,
-  want = TOPICS_PER_RUN,
-): Promise<Outcome> {
-  const empty = {
-    query: queryText,
-    found: 0,
-    minted: 0,
-    rejected: 0,
-    skipped: true,
-  };
-  // No keys, no run. A deployment without them still serves every topic it
-  // already has; it simply stops learning about new arguments.
-  if (!keys.firecrawl() || !keys.openai()) return empty;
-
-  const runId: Id<"ingestRuns"> = await ctx.runMutation(
-    internal.ingestStore.startRun,
-    { query: queryText },
+/** The settings a session spends, resolved from the table. */
+async function settingsFor(
+  ctx: Parameters<typeof runSession>[0],
+  want?: number,
+  queries?: number,
+): Promise<{ settings: Settings; runsPerDay: number; queries: number }> {
+  const cfg: Record<string, number> = await ctx.runQuery(
+    internal.tunables.resolved,
+    {},
   );
-
-  let found = 0;
-  let minted = 0;
-  let rejected = 0;
-  let error: string | undefined;
-
-  try {
-    const findings = await firecrawl.search(queryText, Math.max(8, want * 3));
-    found = findings.length;
-
-    const fresh: string[] = await ctx.runQuery(internal.ingestStore.unseen, {
-      urls: findings.map((f) => f.url),
-    });
-    const freshSet = new Set(fresh);
-
-    for (const finding of findings) {
-      if (minted >= want) break;
-      if (!freshSet.has(finding.url)) continue;
-
-      // A headline and a sentence is usually enough to write a question from.
-      // When it is not, read the page — one extra call, only when it pays.
-      let material = `${finding.title}\n${finding.snippet ?? ""}`.trim();
-      if (material.length < 120) {
-        const page = await firecrawl.read(finding.url);
-        if (page) material = `${finding.title}\n${page}`;
-      }
-
-      const draft = await openai.draftTopic(material);
-      if (!draft) {
-        await ctx.runMutation(internal.ingestStore.markSeen, {
-          url: finding.url,
-          outcome: "failed",
-        });
-        continue;
-      }
-
-      // The model's own read on whether a room would actually split. A story
-      // everybody agrees about is news, not a topic.
-      if (draft.polarizing < MIN_POLARIZING_SCORE) {
-        rejected += 1;
-        await ctx.runMutation(internal.ingestStore.markSeen, {
-          url: finding.url,
-          outcome: "rejected",
-          score: draft.polarizing,
-        });
-        continue;
-      }
-
-      const topicId: Id<"topics"> = await ctx.runMutation(
-        internal.ingestStore.mint,
-        {
-          question: draft.question,
-          description: draft.description,
-          category: draft.category,
-          tags: draft.tags,
-          polarizing: draft.polarizing,
-          sensitive: draft.sensitive,
-          sourceUrl: finding.url,
-          sourceTitle: finding.title,
-          sourceSnippet: finding.snippet,
-          scopeCountry: draft.country ?? undefined,
-        },
-      );
-      minted += 1;
-      await ctx.runMutation(internal.ingestStore.markSeen, {
-        url: finding.url,
-        outcome: "minted",
-        score: draft.polarizing,
-        topicId,
-      });
-    }
-  } catch (e) {
-    error = e instanceof Error ? e.message : String(e);
-  }
-
-  await ctx.runMutation(internal.ingestStore.finishRun, {
-    runId,
-    found,
-    minted,
-    rejected,
-    error,
-    finishedAt: Date.now(),
-  });
-
-  return { query: queryText, found, minted, rejected, skipped: false };
+  return {
+    runsPerDay: cfg["discovery.runsPerDay"]!,
+    queries: queries ?? cfg["discovery.queriesPerRun"]!,
+    settings: {
+      want: Math.min(want ?? cfg["discovery.topicsPerRun"]!, 40),
+      queries: queries ?? cfg["discovery.queriesPerRun"]!,
+      resultsPerQuery: cfg["discovery.resultsPerQuery"]!,
+      minPolarizing: cfg["discovery.minPolarizing"]!,
+      // Stored as a percentage, because a settings page with 0.6 in a box is a
+      // settings page somebody types 60 into.
+      sameness: cfg["discovery.sameness"]! / 100,
+    },
+  };
 }
 
-/**
- * The scheduled run. One query per firing, rotating through the list in
- * `config.ts` by the clock, so a day's runs sweep different ground instead of
- * re-reading the same front page.
- */
 export const discover = internalAction({
   args: {
     queryOverride: v.optional(v.string()),
     want: v.optional(v.number()),
+    queries: v.optional(v.number()),
+    /** Run whether or not the clock says it is due. */
+    force: v.optional(v.boolean()),
+    /** A run the console already opened. Implies `force`: being pressed is the reason. */
+    runId: v.optional(v.id("ingestRuns")),
   },
   returns: outcome,
-  handler: async (ctx, args) => {
-    const slot = Math.floor(Date.now() / 3_600_000) % DISCOVERY_QUERIES.length;
-    return await runDiscovery(
+  handler: async (ctx, args): Promise<Outcome> => {
+    const { settings, runsPerDay, queries } = await settingsFor(
       ctx,
-      args.queryOverride ?? DISCOVERY_QUERIES[slot],
-      Math.min(args.want ?? TOPICS_PER_RUN, 12),
+      args.want,
+      args.queries,
+    );
+
+    const last: number | null = await ctx.runQuery(
+      internal.ingestRuns.lastStartedAt,
+      {},
+    );
+    if (!args.force && !args.runId && !sessionDue(last, runsPerDay, Date.now())) {
+      return {
+        query: "not due yet",
+        found: 0,
+        minted: 0,
+        rejected: 0,
+        duplicate: 0,
+        skipped: true,
+      };
+    }
+
+    return await runSession(
+      ctx,
+      args.queryOverride ? [args.queryOverride] : windowOfQueries(queries),
+      settings,
+      args.runId,
     );
   },
 });
 
 /**
  * The same pipeline, on demand, for an administrator who wants topics now —
- * seeding a fresh deployment, or filling a category before a demo.
+ * seeding a fresh deployment, or filling a category before a demo. It never
+ * asks whether a session is due: being asked for is the reason.
  */
 export const runNow = action({
-  args: { query: v.optional(v.string()) },
+  args: { query: v.optional(v.string()), want: v.optional(v.number()) },
   returns: outcome,
   handler: async (ctx, args): Promise<Outcome> => {
-    const role: string | null = await ctx.runQuery(
-      internal.ingest.callerRole,
-      {},
-    );
+    const role: string | null = await ctx.runQuery(internal.ingest.callerRole, {});
     if (role !== "admin") throw new Error("Administrators only.");
-    return await runDiscovery(ctx, args.query ?? DISCOVERY_QUERIES[0]);
+
+    const { settings, queries } = await settingsFor(ctx, args.want);
+    return await runSession(
+      ctx,
+      args.query ? [args.query] : windowOfQueries(queries),
+      settings,
+    );
   },
 });
 

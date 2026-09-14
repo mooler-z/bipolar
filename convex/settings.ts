@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 
-import { CADENCE } from "./config";
+import { tunedIn } from "./tunables";
 import { mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { audit, requirePermission } from "./admin";
@@ -40,6 +40,7 @@ export const discovery = query({
     mode: v.string(),
     everyHours: v.number(),
     runsPerDay: v.number(),
+    topicsPerRun: v.number(),
     pending: v.number(),
   }),
   handler: async (ctx) => {
@@ -48,12 +49,14 @@ export const discovery = query({
       .query("topics")
       .withIndex("by_status", (q) => q.eq("status", "draft"))
       .take(200);
+    const runsPerDay = await tunedIn(ctx, "discovery.runsPerDay");
     return {
       mode: await discoveryMode(ctx),
-      everyHours: CADENCE.discoverHours,
       // Derived, never typed twice: a cadence and a rate that disagree is how
       // a console ends up lying about the thing it exists to show.
-      runsPerDay: Math.round(24 / CADENCE.discoverHours),
+      everyHours: Math.round((24 / runsPerDay) * 10) / 10,
+      runsPerDay,
+      topicsPerRun: await tunedIn(ctx, "discovery.topicsPerRun"),
       pending: drafts.length,
     };
   },

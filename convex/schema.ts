@@ -70,6 +70,15 @@ export default defineSchema({
     claimedPackId: v.optional(v.string()),
     /** Whether the daily hot-topic mail goes out to this address. */
     digestOptIn: v.boolean(),
+    /**
+     * Straight to the next question after voting, without the result.
+     *
+     * For the reader who is here to answer forty of these, not to study one.
+     * The vote is still cast, still counted and still retractable — the only
+     * thing skipped is the screen. Absent means the result is shown, which is
+     * what every account did before this existed.
+     */
+    skipReveal: v.optional(v.boolean()),
     /** When the digest last went out, so a re-run cannot mail twice. */
     lastDigestAt: v.optional(v.number()),
   })
@@ -132,6 +141,19 @@ export default defineSchema({
   topics: defineTable({
     slug: v.string(),
     question: v.string(),
+    /**
+     * The subject of the question, canonicalised — see `lib/dedupe.ts`.
+     *
+     * The slug cannot do this job. Two questions about the same argument get
+     * two different slugs the moment one word differs, and `freeSlug` will
+     * happily append four characters of entropy and mint the second one. This
+     * is what discovery reads before it writes, so the feed does not fill up
+     * with one argument phrased six ways on a busy news day.
+     *
+     * Optional because it arrived after the rows did. `maintenance.reindexQuestions`
+     * fills it in for everything already here.
+     */
+    questionKey: v.optional(v.string()),
     /** Convex file storage. Replaces the MinIO object key. */
     imageId: v.optional(v.id("_storage")),
     /** Fallback hero image when nothing has been uploaded. */
@@ -171,11 +193,21 @@ export default defineSchema({
     /** A freeze on voting without archiving. Checked on every cast. */
     isLocked: v.boolean(),
     isFeatured: v.boolean(),
+    /**
+     * The crawling session that minted this, when a crawler did.
+     *
+     * What makes the review queue triageable: drafts arrive in waves of
+     * fifteen, and a wave is the unit a moderator actually works through.
+     * Absent on everything a person wrote or an import seeded.
+     */
+    ingestRunId: v.optional(v.id("ingestRuns")),
     createdBy: v.id("users"),
   })
     .index("by_slug", ["slug"])
+    .index("by_run", ["ingestRunId"])
     .index("by_status", ["status"])
-    .index("by_category", ["categoryId"]),
+    .index("by_category", ["categoryId"])
+    .index("by_question_key", ["questionKey"]),
 
   topicTags: defineTable({
     topicId: v.id("topics"),
@@ -390,14 +422,59 @@ export default defineSchema({
    * that runs unattended: what was asked, what came back, what was minted.
    */
   ingestRuns: defineTable({
+    /**
+     * The session number: 1, 2, 3, counting up forever.
+     *
+     * A document id is unique and unsayable. A moderator triaging the drafts
+     * one session left behind needs to name it — "everything from 47" — and a
+     * timestamp is not a name either when six sessions land in a day. Assigned
+     * in the same mutation that opens the run, by reading the highest one so
+     * far, which two overlapping runs cannot both do.
+     *
+     * Optional because it arrived after the first runs did.
+     */
+    seq: v.optional(v.number()),
     query: v.string(),
     found: v.number(),
     minted: v.number(),
     rejected: v.number(),
+    /** Dropped because the feed already carries that argument. */
+    duplicate: v.optional(v.number()),
     /** Absent on success; the message on failure. */
     error: v.optional(v.string()),
+    /** Absent while the session is still out. */
     finishedAt: v.optional(v.number()),
-  }).index("by_finished", ["finishedAt"]),
+    /** The admin who pressed the button. Absent when the clock did. */
+    startedBy: v.optional(v.id("users")),
+  })
+    .index("by_finished", ["finishedAt"])
+    .index("by_seq", ["seq"]),
+
+  /**
+   * What a session did, line by line, as it did it.
+   *
+   * The run row carries the totals; this carries the story — which search,
+   * which page, what the model said, why a story was dropped. Written from
+   * inside the session so the console can watch one happen rather than read
+   * about it afterwards. Append-only, bounded per run, cheap to drop later.
+   */
+  ingestEvents: defineTable({
+    runId: v.id("ingestRuns"),
+    kind: v.union(
+      v.literal("search"),
+      v.literal("read"),
+      v.literal("draft"),
+      v.literal("minted"),
+      v.literal("duplicate"),
+      v.literal("rejected"),
+      v.literal("failed"),
+      v.literal("picture"),
+      v.literal("done"),
+      v.literal("error"),
+    ),
+    text: v.string(),
+    topicId: v.optional(v.id("topics")),
+  }).index("by_run", ["runId"]),
 
   /**
    * Every notice AgentMail was asked to carry. The dedupe key is the point: a

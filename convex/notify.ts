@@ -195,15 +195,19 @@ export const digest = internalAction({
   args: {},
   returns: v.object({ sent: v.number() }),
   handler: async (ctx) => {
+    const cfg: Record<string, number> = await ctx.runQuery(
+      internal.tunables.resolved,
+      {},
+    );
     const topics = await ctx.runQuery(internal.notify.hottest, {
-      limit: DIGEST.topics,
+      limit: cfg["digest.topics"] ?? DIGEST.topics,
     });
     // Nothing to argue about is not worth an email.
     if (topics.length === 0) return { sent: 0 };
 
     const day = new Date().toISOString().slice(0, 10);
     const audience = await ctx.runQuery(internal.notify.digestAudience, {
-      limit: DIGEST.maxRecipients,
+      limit: cfg["digest.maxRecipients"] ?? DIGEST.maxRecipients,
     });
 
     const site = publicSite();

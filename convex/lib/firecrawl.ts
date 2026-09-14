@@ -1,4 +1,4 @@
-import { FIRECRAWL, keys } from "../config";
+import { DISCOVERY, FIRECRAWL, keys } from "../config";
 
 /**
  * Firecrawl: what the world is arguing about right now.
@@ -22,7 +22,7 @@ export type Finding = {
 /** Search the live web. Returns [] on any failure, including no key. */
 export async function search(
   query: string,
-  limit: number = FIRECRAWL.resultsPerQuery,
+  limit: number = DISCOVERY.resultsPerQuery,
 ): Promise<Finding[]> {
   const key = keys.firecrawl();
   if (!key) return [];
