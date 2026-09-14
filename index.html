@@ -2,8 +2,25 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
     <meta name="theme-color" content="#000000" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+    <!-- Installable. The manifest names the app, its icons and its splash;
+         the theme-colour tag is kept in step with the chosen theme by
+         src/lib/theme.ts, because the theme here is an explicit choice and
+         not the system's. iOS reads none of the manifest and needs its own. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="bi-polar" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -11,6 +28,15 @@
       rel="stylesheet"
     />
     <title>bi-polar — love it or hate it</title>
+    <script>
+      // The stored theme, before the first paint, so a light-theme reader
+      // never sees a black flash. Dark is the default and needs no attribute.
+      try {
+        if (localStorage.getItem("bipolar:theme") === "light") {
+          document.documentElement.dataset.theme = "light";
+        }
+      } catch (e) {}
+    </script>
     <meta
       name="description"
       content="Vote LOVE or HATE on polarizing topics, and see what the people who paid to be counted actually think."
