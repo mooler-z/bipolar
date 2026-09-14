@@ -42,10 +42,13 @@ function Tick({ label, value }: { label: string; value: string }) {
 
 export function TopBar({
   signedIn,
+  atAccount = false,
   onAccount,
   onHome,
 }: {
   signedIn: boolean;
+  /** Already on the account route, so the bar has nowhere to send them. */
+  atAccount?: boolean;
   onAccount: () => void;
   onHome: () => void;
 }) {
@@ -162,7 +165,7 @@ export function TopBar({
             <SignOut className="size-4" />
           </Button>
         </>
-      ) : (
+      ) : atAccount ? null : (
         <Button variant="go" size="sm" onClick={onAccount}>
           Sign in
         </Button>

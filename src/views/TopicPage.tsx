@@ -13,6 +13,7 @@ import { DeckHint, Pager, useDeck } from "../components/mobile/Deck";
 import { RoomRail, type RoomTab } from "../components/room/RoomRail";
 import { MIN_ROOM, type Side } from "../lib/format";
 import { useRunKeys } from "../lib/keys";
+import { toSignIn } from "../lib/nav";
 import { Button } from "../ui/Button";
 import { WorldRail } from "./topic/WorldRail";
 
@@ -102,6 +103,8 @@ export function TopicPage({ slug, onBack }: { slug: string; onBack: () => void }
   }
 
   function commit(side: Side, call?: Side) {
+    // Not a refusal: the door, and `App` brings them back to this topic.
+    if (!viewer.signedIn) return toSignIn();
     void attempt(async () => {
       const out = await cast({
         topicId: topic!._id as Id<"topics">,
@@ -189,8 +192,12 @@ export function TopicPage({ slug, onBack }: { slug: string; onBack: () => void }
                 <Button
                   variant="coin"
                   size="sm"
-                  disabled={!viewer.signedIn || !canSpark || busy}
-                  onClick={() => void attempt(() => peek({ topicId: topic!._id as Id<"topics"> }))}
+                  disabled={busy || (viewer.signedIn && !canSpark)}
+                  onClick={() =>
+                    viewer.signedIn
+                      ? void attempt(() => peek({ topicId: topic!._id as Id<"topics"> }))
+                      : toSignIn()
+                  }
                 >
                   <Eye weight="fill" className="size-4" /> Peek · 1 spark
                 </Button>

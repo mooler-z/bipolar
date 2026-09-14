@@ -11,6 +11,7 @@ import { Home } from "./views/Home";
 import { TopicPage } from "./views/TopicPage";
 import { Welcome } from "./views/Welcome";
 import { useSession } from "./lib/auth-client";
+import { nextAfterSignIn, toSignIn } from "./lib/nav";
 
 /**
  * Routing, such as it is: `/t/<slug>`, `/account`, or the feed.
@@ -39,6 +40,24 @@ export function App() {
     if (session.data && me === null) void ensure({});
   }, [session.data, me, ensure]);
 
+  /*
+   * Back to the doorstep.
+   *
+   * A gated action sends a signed-out reader to `/account?next=…`. The moment
+   * the session lands, that is redeemed — they arrive where they were pressing
+   * rather than on whatever the feed happens to be showing.
+   */
+  useEffect(() => {
+    if (!session.data || path !== "/account") return;
+    const next = nextAfterSignIn(window.location.search);
+    if (!next) return;
+    // Replace, never push. The door is not a place to come back to, and a
+    // pushed entry would catch the back button and bounce it forward again.
+    window.history.replaceState({}, "", next);
+    setPath(next);
+    window.scrollTo(0, 0);
+  }, [session.data, path]);
+
   useEffect(() => {
     const onPop = () => setPath(window.location.pathname);
     window.addEventListener("popstate", onPop);
@@ -50,6 +69,13 @@ export function App() {
     setPath(next);
     window.scrollTo(0, 0);
   }
+
+  /*
+   * One button, two destinations. Signed in, `/account` is the wallet. Signed
+   * out, it is the door — and the door has to remember where they were, or
+   * "sign in to be counted" costs them the topic they were counted on.
+   */
+  const toAccount = () => (session.data ? go("/account") : toSignIn());
 
   const slug = path.startsWith("/t/") ? decodeURIComponent(path.slice(3)) : null;
   /** The staff console owns the whole window and carries its own chrome. */
@@ -69,8 +95,9 @@ export function App() {
     <>
       <TopBar
         signedIn={!!session.data}
+        atAccount={path === "/account"}
         onHome={() => go("/")}
-        onAccount={() => go("/account")}
+        onAccount={toAccount}
       />
       {needsWelcome ? (
         <Welcome onDone={() => go("/")} />
@@ -79,7 +106,7 @@ export function App() {
       ) : path === "/account" ? (
         <Account onDone={() => go("/")} />
       ) : (
-        <Home onAccount={() => go("/account")} />
+        <Home onAccount={toAccount} />
       )}
     </>
   );

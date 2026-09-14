@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Feather, PaperPlaneRight } from "@phosphor-icons/react";
 
 import { cn } from "../../lib/cn";
+import { toSignIn } from "../../lib/nav";
 import { Button } from "../../ui/Button";
 import { TextArea } from "../../ui/TextArea";
 
@@ -49,9 +50,14 @@ export function Composer({
 
   if (!signedIn) {
     return (
-      <p className="shrink-0 border-t border-line px-4 py-3 text-[13px] text-mute">
-        Sign in to join. One quill buys one comment.
-      </p>
+      <div className="shrink-0 border-t border-line px-4 py-3">
+        <p className="text-[13px] leading-snug text-mute">
+          One quill buys one comment, and a new account starts with three.
+        </p>
+        <Button variant="go" size="sm" block className="mt-2.5" onClick={toSignIn}>
+          Sign in to join
+        </Button>
+      </div>
     );
   }
 
