@@ -59,6 +59,8 @@ export const me = query({
       quillBalance: v.number(),
       role: v.string(),
       digestOptIn: v.boolean(),
+      /** Straight to the next question after voting, without the result. */
+      skipReveal: v.boolean(),
       sparks: v.number(),
       /** Topics backed with a spark. What the rank on screen is derived from. */
       topicsBacked: v.number(),
@@ -77,6 +79,7 @@ export const me = query({
       quillBalance: user.quillBalance,
       role: user.role,
       digestOptIn: user.digestOptIn,
+      skipReveal: user.skipReveal ?? false,
       topicsBacked: user.topicsBacked,
       // A convenience, derived server-side so the client never divides money.
       sparks: Math.floor(user.walletBalanceCents / 50),
@@ -163,6 +166,24 @@ export const setDigestOptIn = mutation({
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
     await ctx.db.patch("users", user._id, { digestOptIn: args.optIn });
+    return null;
+  },
+});
+
+/**
+ * Skip the result and go straight to the next question.
+ *
+ * A preference about a screen, not about a vote: what is cast, counted and
+ * recorded is identical either way, and the vote can still be taken back — the
+ * undo simply moves to the foot of the next question instead of living under
+ * the result nobody asked to see.
+ */
+export const setSkipReveal = mutation({
+  args: { skip: v.boolean() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+    await ctx.db.patch("users", user._id, { skipReveal: args.skip });
     return null;
   },
 });

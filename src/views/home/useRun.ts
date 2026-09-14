@@ -22,7 +22,7 @@ export type Card = NonNullable<
   ReturnType<typeof useQuery<typeof api.topics.feed>>
 >[number];
 
-export function useRun() {
+export function useRun({ startWith }: { startWith?: string } = {}) {
   // One seed per visit: a reload is a different run, not the same list again.
   const [session] = useState(() => ({
     now: Date.now(),
@@ -42,7 +42,10 @@ export function useRun() {
   const [armed, setArmed] = useState(false);
   const [asking, setAsking] = useState<Side | null>(null);
   const [busy, setBusy] = useState(false);
-  const [picked, setPicked] = useState<string | null>(null);
+  /* Initial state, not an effect: the first render already knows which
+     question the link was about, and a flash of a different one misses the
+     entire point of having been sent it. */
+  const [picked, setPicked] = useState<string | null>(startWith ?? null);
   const [error, setError] = useState("");
   const [answer, setAnswer] = useState<{
     /** The card as it was answered — held, not re-derived. See below. */
@@ -104,14 +107,11 @@ export function useRun() {
    * The next question, chosen **now** rather than read off the list later.
    *
    * `feed` is a live ranked subscription and every move rewrites its own
-   * inputs: a skip writes a row the ranker reads, a vote writes taste, the
-   * counters and the velocity window. So the list re-orders about a round trip
-   * after the run moves on — and a front card read off it at that moment is
-   * shown for a beat and then silently replaced by a different question. The
-   * reader watches the thing they were about to answer turn into something
-   * else. Pinning the successor at the moment of the press ends that: the
-   * re-rank still happens and still decides what comes *after*, but it can no
-   * longer reach the card already on screen.
+   * inputs, so the list re-orders about a round trip after the run moves on.
+   * A front card read off it at that moment is shown for a beat and then
+   * silently replaced. Pinning the successor at the moment of the press ends
+   * that: the re-rank still decides what comes *after*, but it can no longer
+   * reach the card already on screen.
    */
   function advance() {
     setFront(upNext[0] ?? null);
@@ -120,11 +120,8 @@ export function useRun() {
   /** Done with this one — bank it and move to the next in the run. */
   function next() {
     const left = answer?.topic ?? pulled;
-    if (left) {
-      setDone((s) => new Set(s).add(left._id));
-      history.push(left, true);
-    }
-    advance();
+    if (left) bank(left);
+    else advance();
     clear();
   }
 
@@ -176,22 +173,23 @@ export function useRun() {
     setFront(last.card);
   }
 
+  /** Done with this card: out of the run, onto the stack, and move on. */
+  function bank(card: Card) {
+    setDone((s) => new Set(s).add(card._id));
+    history.push(card, true);
+    advance();
+  }
+
   /**
-   * A row in a rail takes the middle column, whatever is currently in it.
-   *
-   * It used to only set `picked`, which does nothing while a result is still
-   * on screen — `pulling` is false until the answer clears. The click looked
-   * ignored, and then the topic arrived a second or two later on the heels of
-   * the auto-advance. Banking the answer here means the pull registers on the
-   * press, and the column shows the loader until that topic's own card lands.
+   * A row in a rail takes the middle column, whatever is in it. Setting
+   * `picked` alone does nothing while a result is up, so banking the answer
+   * here is what makes the pull register on the press.
    */
   function pull(slug: string) {
     if (busy) return;
     const left = answer?.topic;
     if (left) {
-      setDone((s) => new Set(s).add(left._id));
-      history.push(left, true);
-      advance();
+      bank(left);
     } else if (topic) {
       // Nothing else moves while the pulled card loads: the column holds the
       // question it was already showing, under the loader, rather than letting
@@ -216,8 +214,14 @@ export function useRun() {
         voteType: armed ? "paid" : "free",
         call,
       });
-      setAnswer({ topic, side, staked: armed, verdict: out.verdict });
       run.voted(side, armed, out.verdict ? out.verdict.correct : null);
+      // Forty answered, not one studied. Same vote; only the screen is skipped.
+      if (me.skipReveal) {
+        bank(topic);
+        noteCast({ topic, side });
+      } else {
+        setAnswer({ topic, side, staked: armed, verdict: out.verdict });
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -230,10 +234,8 @@ export function useRun() {
    * Pressing an answer opens the call, and the call is the pending window.
    *
    * Nothing reaches the server until `commit` runs, which is the whole reason
-   * `undo` can exist: a pending vote is free to take back and a cast one is
-   * final, exactly as Rule 8 requires. A room too small to read is never asked
-   * to be called and never graded, so it casts on the press — an extra
-   * confirmation there is ceremony for its own sake.
+   * `undo` can exist. A room too small to read is never asked to be called and
+   * never graded, so it casts on the press.
    */
   function pick(side: Side) {
     if (!topic || busy) return;
@@ -241,7 +243,7 @@ export function useRun() {
     else void commit(side);
   }
 
-  const { undone, undo } = useUndo({
+  const { undone, undo, canUndo, noteCast } = useUndo({
     answer,
     asking,
     busy,
@@ -262,8 +264,7 @@ export function useRun() {
     result,
     /** Answered, but the aggregate has not arrived yet. */
     loading: !!answer && !result,
-    /* True from the click, not from the card landing — the banner has to
-       appear immediately or the pull looks like nothing happened. */
+    /** True from the click, not from the card landing. */
     pulled: pulling,
     /** A pick is in flight. Only the middle column waits on it. */
     resolving: pulling && page === undefined,
@@ -277,7 +278,7 @@ export function useRun() {
     /** Whether there is anything behind you in the run. */
     canGoBack: history.any,
     /** A vote cast this sitting, still inside its window. */
-    canUndo: !!answer,
+    canUndo,
     /** The side a retraction just pulled back. Drives the rewind. */
     undone,
     restart: () => {

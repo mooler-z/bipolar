@@ -5,6 +5,8 @@ import type { ArenaHandle } from "../components/Arena";
 import { CallStep } from "../components/CallStep";
 import { Centre } from "../components/Centre";
 import { DeckHint, Pager, useDeck } from "../components/mobile/Deck";
+import { PeekOffer } from "../components/PeekOffer";
+import { navigate } from "../lib/nav";
 import { RoomRail, type RoomTab } from "../components/room/RoomRail";
 import { RunRail } from "../components/run/RunRail";
 import { useRunKeys } from "../lib/keys";
@@ -35,8 +37,15 @@ const PANEL =
   "min-h-0 max-xl:h-[calc(100dvh-var(--bar))] max-xl:shrink-0 max-xl:snap-start max-xl:snap-always";
 
 const SECTIONS = ["The question", "The room", "Your run"];
-export function Home({ onAccount }: { onAccount: () => void }) {
-  const run = useRun();
+export function Home({
+  onAccount,
+  slug,
+}: {
+  onAccount: () => void;
+  /** A topic named in the address. The console opens on it. */
+  slug?: string;
+}) {
+  const run = useRun({ startWith: slug });
   const [tab, setTab] = useState<RoomTab>("live");
   const [composing, setComposing] = useState(false);
   const arena = useRef<ArenaHandle>(null);
@@ -102,7 +111,14 @@ export function Home({ onAccount }: { onAccount: () => void }) {
           ref={arena}
           topic={topic}
           pulled={run.pulled}
-          onRelease={run.release}
+          linked={!!slug && run.pulled}
+          onRelease={() => {
+            // A link's address outlives the topic it opened: joining the run
+            // has to leave it, or the back button returns to a question the
+            // reader has already dealt with.
+            if (slug) navigate("/");
+            else run.release();
+          }}
           result={run.result}
           loading={run.loading}
           resolving={run.resolving}
@@ -112,6 +128,18 @@ export function Home({ onAccount }: { onAccount: () => void }) {
           busy={run.busy}
           composing={composing}
           hint={<DeckHint label="The room" onGo={() => deck.goTo(1)} />}
+          /* Only on a topic somebody came to on purpose. In a run the point
+             is to answer, and an offer to buy the answer instead is the run
+             arguing with itself. */
+          extra={
+            run.pulled && !run.result ? (
+              <PeekOffer
+                topicId={topic._id}
+                signedIn={!!run.me}
+                canSpark={run.canSpark}
+              />
+            ) : null
+          }
           pending={
             asking ? (
               <CallStep

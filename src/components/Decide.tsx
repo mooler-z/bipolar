@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowSquareOut,
+  ArrowUUpLeft,
   ChatCircle,
   Users,
   Warning,
@@ -62,6 +63,8 @@ export const Decide = forwardRef<
     onSkip?: () => void;
     /** One step back through the run. Absent when there is nothing behind. */
     onBack?: () => void;
+    /** Take back the vote just cast. Only for a reader who skips the result. */
+    onUndo?: () => void;
     onComments: () => void;
     onGetSparks: () => void;
     /** Anything that belongs under the arena — the peek, on a topic's own page. */
@@ -74,7 +77,7 @@ export const Decide = forwardRef<
     restoring?: Side | null;
   }
 >(function Decide(
-  { topic, armed, canSpark, sparks, busy, onArm, onPick, onSkip, onBack, onComments, onGetSparks, extra, hint, pending, restoring },
+  { topic, armed, canSpark, sparks, busy, onArm, onPick, onSkip, onBack, onUndo, onComments, onGetSparks, extra, hint, pending, restoring },
   ref,
 ) {
   /* Which answer the cursor is over, and whether it has been pressed. It only
@@ -90,14 +93,15 @@ export const Decide = forwardRef<
       <Backdrop lean={lean.side} flood={lean.pressed} />
       {/* Band 1 — context. One line; nothing here competes with the question. */}
       <header className={cn("flex shrink-0 flex-wrap items-center gap-x-2.5 gap-y-2 border-b border-line py-2.5", PAD)}>
-        <span className="rounded-[6px] bg-ink px-2.5 py-1 text-[11.5px] font-extrabold tracking-[0.06em] text-canvas uppercase">
-          {topic.categorySlug}
-        </span>
+        {/* The flag leads so it sits in the same place on every question. */}
         {topic.scopeCountry ? (
           <span className="chip !bg-surface-3">
             <Flag code={topic.scopeCountry} withCode />
           </span>
         ) : null}
+        <span className="rounded-[6px] bg-ink px-2.5 py-1 text-[11.5px] font-extrabold tracking-[0.06em] text-canvas uppercase">
+          {topic.categorySlug}
+        </span>
         {topic.isSensitive ? (
           <span className="chip !bg-coin-fill/15 !text-coin">
             <Warning weight="fill" className="size-3" /> Sensitive
@@ -111,19 +115,6 @@ export const Decide = forwardRef<
 
         <span className="flex-1" />
 
-        <span className="num flex items-center gap-1.5 rounded-[6px] bg-surface-4 px-2.5 py-1 text-[12.5px] font-extrabold text-ink">
-          <Users weight="fill" className="size-3.5 text-ink-3" />
-          {fmtInt(topic.voteCount)} in
-        </span>
-        <Button
-          bare
-          onClick={onComments}
-          className="lift flex items-center gap-1.5 text-[12.5px] text-mute hover:text-ink"
-        >
-          <ChatCircle weight="fill" className="size-3.5" />
-          <span className="num font-bold">{fmtInt(topic.commentCount)}</span>
-          <span className="hidden sm:inline">arguing</span>
-        </Button>
         {topic.sourceUrl ? (
           <a
             href={topic.sourceUrl}
@@ -185,6 +176,38 @@ export const Decide = forwardRef<
             ) : null}
           </div>
         </div>
+
+        {/* How big the room is, at a size that says so.
+            This was a 12.5px chip in the context strip, sitting between a
+            hashtag and a source link — and the size of the room is the whole
+            reason to have an opinion about the question, not a footnote to it.
+            Its own band under the question, full width, so the number is read
+            before the answer is pressed rather than after. */}
+        <div key={`c-${topic.slug}`} className="rise mt-4 flex flex-wrap items-center gap-2">
+          <span className="flex items-center gap-2.5 rounded-[var(--r-btn)] border-2 border-line-2 bg-surface-2 px-3.5 py-2">
+            <Users weight="fill" className="size-[18px] text-ink-3" />
+            <span className="num display text-[clamp(1.2rem,1.8vw,1.75rem)] leading-none">
+              {fmtInt(topic.voteCount)}
+            </span>
+            <span className="text-[11.5px] font-extrabold tracking-[0.08em] text-mute uppercase">
+              {topic.voteCount === 1 ? "vote in" : "votes in"}
+            </span>
+          </span>
+
+          <Button
+            bare
+            onClick={onComments}
+            className="lift flex items-center gap-2.5 rounded-[var(--r-btn)] border-2 border-line bg-surface-2 px-3.5 py-2 hover:border-line-2"
+          >
+            <ChatCircle weight="fill" className="size-[18px] text-hate" />
+            <span className="num display text-[clamp(1.2rem,1.8vw,1.75rem)] leading-none">
+              {fmtInt(topic.commentCount)}
+            </span>
+            <span className="text-[11.5px] font-extrabold tracking-[0.08em] text-mute uppercase">
+              arguing
+            </span>
+          </Button>
+        </div>
       </div>
 
       {/* Band 3 — the answer. Always here, whatever the question was. */}
@@ -231,6 +254,20 @@ export const Decide = forwardRef<
           </span>
           <span className="xl:hidden">{hint}</span>
           <span className="flex items-center gap-1">
+            {/* The vote just cast, for a reader who skipped past its result.
+                There is no reveal to put this under, so it stands here — left
+                of Skip, orange against the violet, on the same key. */}
+            {onUndo ? (
+              <Button
+                variant="streak"
+                size="sm"
+                onClick={onUndo}
+                title="Take back the vote you just cast"
+              >
+                <ArrowUUpLeft weight="bold" className="size-4" /> Undo
+                <kbd className="key ml-1 !bg-current/15 !text-current !shadow-none">U</kbd>
+              </Button>
+            ) : null}
             {/* A run that only moves forward makes one stray keystroke
                 permanent. This is the way back to it. */}
             {onBack ? (

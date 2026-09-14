@@ -30,6 +30,10 @@ export function useUndo(run: {
   setFront: (card: Card) => void;
 }) {
   const retract = useMutation(api.retract.vote);
+  /* The vote cast by a reader who skipped the result. There is no reveal to
+     put an undo under, so it follows them to the foot of the next question —
+     the same retraction, one screen later. */
+  const [lastCast, setLastCast] = useState<{ topic: Card; side: Side } | null>(null);
   /* The side a retraction just pulled back. It lives here because the arena
      that plays the rewind is mounted by the swap it has to survive. */
   const [undone, setUndone] = useState<Side | null>(null);
@@ -40,13 +44,17 @@ export function useUndo(run: {
       run.setAsking(null);
       return;
     }
-    const cast = run.answer?.topic;
+    /* Either shape of "the vote I just cast": the one under the result, or
+       the one the reader skipped past. Both are the same retraction. */
+    const held = run.answer ?? lastCast;
+    const cast = held?.topic;
     if (!cast) return;
     run.setBusy(true);
     try {
-      const pulled = run.answer!.side;
+      const pulled = held!.side;
       await retract({ topicId: cast._id as Id<"topics"> });
       run.setAnswer(null);
+      setLastCast(null);
       setUndone(pulled);
       window.setTimeout(() => setUndone(null), 1015);
       // Straight back to the question, ahead of the queue, ready to be
@@ -59,5 +67,12 @@ export function useUndo(run: {
     }
   }
 
-  return { undone, undo };
+  return {
+    undone,
+    undo,
+    /** A vote cast this sitting that can still be pulled back. */
+    canUndo: !!run.answer || !!lastCast,
+    /** Remember a vote whose result was skipped past. */
+    noteCast: setLastCast,
+  };
 }

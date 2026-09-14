@@ -1,4 +1,4 @@
-import { forwardRef, type ReactNode } from "react";
+import { forwardRef, useEffect, useState, type ReactNode } from "react";
 import { ArrowRight, Broadcast, X } from "@phosphor-icons/react";
 
 import type { Side } from "../lib/format";
@@ -28,6 +28,8 @@ export const Centre = forwardRef<
     topic: DecideTopic;
     /** True when this topic came from a rail rather than from the run. */
     pulled: boolean;
+    /** …and it came from a shared link rather than from a rail. */
+    linked?: boolean;
     onRelease: () => void;
     result: Result | null;
     /** Answered, but the aggregate has not arrived yet. */
@@ -42,6 +44,8 @@ export const Centre = forwardRef<
     composing: boolean;
     /** The way to the next panel, on a phone. Shown in the decision's foot. */
     hint?: ReactNode;
+    /** Anything under the arena — the peek, on a topic somebody came to. */
+    extra?: ReactNode;
     /** A pressed-but-uncast vote. Takes the arena's place while it is open. */
     pending?: ReactNode;
     onArm: (armed: boolean) => void;
@@ -61,24 +65,40 @@ export const Centre = forwardRef<
   }
 >(function Centre(
   {
-    topic, pulled, onRelease, result, loading, resolving, armed, canSpark, sparks,
-    busy, composing, hint, pending, undone, onArm, onPick, onSkip, onBack, onUndo, onComments, onGetSparks, onNext, onShare,
+    topic, pulled, linked = false, onRelease, result, loading, resolving, armed, canSpark, sparks,
+    busy, composing, hint, extra, pending, undone, onArm, onPick, onSkip, onBack, onUndo, onComments, onGetSparks, onNext, onShare,
   },
   ref,
 ) {
+  /* The band is an announcement, not a status: it exists to say the question
+     changed because you clicked something. Three seconds is long enough to be
+     read and short enough not to become furniture over the answer. The way
+     back to the run lives on the keyboard (escape) and in the room's own row
+     either way. */
+  const [banner, setBanner] = useState(false);
+  useEffect(() => {
+    if (!pulled) return setBanner(false);
+    setBanner(true);
+    const out = window.setTimeout(() => setBanner(false), 3000);
+    return () => window.clearTimeout(out);
+  }, [pulled, topic.slug]);
+
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {pulled ? (
+      {banner ? (
         <div className="slide-up flex shrink-0 items-center gap-2 bg-coin-fill px-[clamp(1.25rem,3vw,3.5rem)] py-1.5 text-on-coin">
           <Broadcast weight="fill" className="size-3.5" />
-          <span className="text-[12.5px] font-extrabold">Pulled from the room</span>
+          <span className="text-[12.5px] font-extrabold">
+            {linked ? "Opened from a link" : "Pulled from the room"}
+          </span>
           <span className="flex-1" />
           <Button
             bare
             onClick={onRelease}
             className="lift flex items-center gap-1.5 text-[12.5px] font-extrabold hover:opacity-70"
           >
-            Back to the run <X weight="bold" className="size-3.5" />
+            {linked ? "Join the run" : "Back to the run"}{" "}
+            <X weight="bold" className="size-3.5" />
             <kbd className="key !bg-current/15 !text-current !shadow-none">esc</kbd>
           </Button>
         </div>
@@ -139,9 +159,12 @@ export const Centre = forwardRef<
             onPick={onPick}
             onSkip={onSkip}
             onBack={onBack}
+            /* Only here when there is no reveal to carry it. */
+            onUndo={onUndo}
             onComments={onComments}
             onGetSparks={onGetSparks}
             hint={hint}
+            extra={extra}
             pending={pending}
             restoring={undone}
           />

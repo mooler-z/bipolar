@@ -98,6 +98,12 @@ export function useRunKeys({
       } else if ((k === "s" || k === "arrowright") && onSkip) {
         e.preventDefault();
         onSkip();
+      } else if (k === "u" && onUndo) {
+        // A reader who skips the result has no reveal to press undo on, so
+        // the key follows the vote to the next question. Only `U`: the left
+        // arrow still means "back through the run" here.
+        e.preventDefault();
+        onUndo();
       } else if (k === "arrowleft" && onBack) {
         e.preventDefault();
         onBack();

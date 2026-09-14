@@ -8,7 +8,6 @@ import { api } from "../convex/_generated/api";
 import { Admin } from "./views/Admin";
 import { Account } from "./views/Account";
 import { Home } from "./views/Home";
-import { TopicPage } from "./views/TopicPage";
 import { Welcome } from "./views/Welcome";
 import { useSession } from "./lib/auth-client";
 import { nextAfterSignIn, toSignIn } from "./lib/nav";
@@ -17,8 +16,12 @@ import { nextAfterSignIn, toSignIn } from "./lib/nav";
  * Routing, such as it is: `/t/<slug>`, `/account`, or the feed.
  *
  * `/t/<slug>` is the same address the Convex HTTP route answers for a crawler,
- * so a pasted link renders real markup for a machine and this for a person. A
- * router library can take over later without either address moving.
+ * so a pasted link renders real markup for a machine and this for a person.
+ *
+ * It is **not a page of its own**. A link out of the daily mail used to open a
+ * different three columns — a world rail nobody asked for on the left, and no
+ * way into the run — which made the most-shared address in the product the one
+ * place the product was not. It opens the console now, on that question.
  */
 export function App() {
   const [path, setPath] = useState(() => window.location.pathname);
@@ -101,12 +104,10 @@ export function App() {
       />
       {needsWelcome ? (
         <Welcome onDone={() => go("/")} />
-      ) : slug ? (
-        <TopicPage slug={slug} onBack={() => go("/")} />
       ) : path === "/account" ? (
         <Account onDone={() => go("/")} />
       ) : (
-        <Home onAccount={toAccount} />
+        <Home key={slug ?? "run"} slug={slug ?? undefined} onAccount={toAccount} />
       )}
     </>
   );
