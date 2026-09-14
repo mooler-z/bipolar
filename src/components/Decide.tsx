@@ -136,54 +136,50 @@ export const Decide = forwardRef<
         ) : null}
       </header>
 
-      {/* Band 2 — the question. Takes the slack, so the bands below never move.
-          On a phone it fills from the top down, because a centred column under
-          a full-bleed picture leaves the picture floating in the middle of the
-          screen with black above it. */}
+      {/* Band 2 — the question. Takes the slack, so the bands below never move. */}
       <div
         className={cn(
-          "col-scroll flex flex-1 flex-col max-sm:justify-start sm:justify-center",
-          "pb-[clamp(1.25rem,3vh,2.5rem)] max-sm:pt-0 sm:pt-[clamp(1.25rem,3vh,2.5rem)]",
+          "col-scroll flex flex-1 flex-col justify-center",
+          "py-[clamp(1.25rem,3vh,2.5rem)]",
           PAD,
         )}
       >
         <div
           key={topic.slug}
-          className="rise flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-[clamp(1.25rem,2.5vw,2.5rem)]"
+          className="rise flex items-center gap-4 sm:gap-[clamp(1.25rem,2.5vw,2.5rem)]"
         >
-          {/* Two shapes, one picture.
-              On a phone it is a **full-bleed band** under the context strip —
-              the negative margin cancels this band's own gutter, so the image
-              runs edge to edge and the question reads as a headline under it.
-              The picture is *contained* inside that band over a blurred copy
-              of itself (`fill`), because these sources are a few hundred pixels
-              wide and covering a banner with one blew a cropped face up across
-              the whole screen. A small square pinned to the left margin was
-              tried before that and read as a thumbnail somebody forgot to
-              remove.
-              On a desk it goes back to a square standing beside the question,
-              where the width is there to spend.
+          {/* One shape at both sizes: the picture stands to the **left** of the
+              question and the question reads down its right-hand side.
+              A full-bleed band above the headline was tried on the phone and
+              cost a third of the screen to a picture, pushing the question into
+              the arena. Standing it beside the words keeps the question the
+              biggest thing on the phone as well as on the desk — it just takes
+              a narrower column, which is why the headline steps down a size
+              there rather than wrapping every second word.
+              The picture is *contained* over a blurred copy of itself (`fill`)
+              rather than cropped: these sources are a few hundred pixels wide
+              and covering with one blew a cropped face up across the screen.
               `Thumb` renders nothing where there is nothing, so two thirds of
               this feed — the abstract topics — lose no room to a picture that
               does not exist. */}
           <Thumb
             src={topic.imageUrl}
             alt=""
-            rounded="rounded-none sm:rounded-[var(--r-card)]"
+            rounded="rounded-[var(--r-card)]"
             position="object-center sm:object-[50%_25%]"
             fit="object-contain sm:object-cover"
             fill
             className={cn(
-              "-mx-[clamp(1.25rem,3vw,3.5rem)] h-[min(23vh,13rem)] border-line-2",
-              "sm:mx-0 sm:aspect-square sm:h-auto sm:w-[clamp(8rem,14vw,15rem)] sm:border-2",
+              "aspect-square w-[34%] max-w-[10rem] shrink-0 border border-line-2",
+              "sm:w-[clamp(8rem,14vw,15rem)] sm:max-w-none sm:border-2",
             )}
           />
           <div className="min-w-0 flex-1">
-            <h1 className="display max-w-[20ch] text-[clamp(2.4rem,4.4vw,5.2rem)] text-balance">
+            <h1 className="display max-w-[20ch] text-[clamp(1.35rem,7vw,2rem)] text-balance sm:text-[clamp(2.4rem,4.4vw,5.2rem)]">
               {topic.question}
             </h1>
             {topic.description ? (
-              <p className="mt-4 line-clamp-3 max-w-[58ch] text-[clamp(0.95rem,1.05vw,1.2rem)] leading-relaxed text-ink-3 sm:line-clamp-none">
+              <p className="mt-2 line-clamp-3 max-w-[58ch] text-[13px] leading-relaxed text-ink-3 sm:mt-4 sm:line-clamp-none sm:text-[clamp(0.95rem,1.05vw,1.2rem)]">
                 {topic.description}
               </p>
             ) : null}
