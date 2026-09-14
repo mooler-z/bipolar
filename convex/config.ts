@@ -192,6 +192,15 @@ export const CADENCE = {
 /* ── Limits ─────────────────────────────────────────────────────────────── */
 
 export const LIMITS = {
+  /**
+   * Packs an emptied account may take back in a day.
+   *
+   * A pack returns when the balance it carries has run dry, so credit is a
+   * budget rather than a one-time gift. The daily ceiling is what keeps it a
+   * budget: without it the catalogue is an unlimited wallet and a paid vote
+   * stops meaning anything, which is the only thing the paid layer is for.
+   */
+  reclaimsPerDay: 3,
   /** Votes one account may cast in a minute, across all topics. */
   votesPerMinute: 30,
   /** Comment posts per hour. A quill is spent either way; this stops floods. */

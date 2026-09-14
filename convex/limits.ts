@@ -1,4 +1,4 @@
-import { MINUTE, HOUR, RateLimiter } from "@convex-dev/rate-limiter";
+import { DAY, MINUTE, HOUR, RateLimiter } from "@convex-dev/rate-limiter";
 
 import { LIMITS } from "./config";
 import { components } from "./_generated/api";
@@ -24,4 +24,10 @@ export const limiter = new RateLimiter(components.rateLimiter, {
   comment: { kind: "token bucket", rate: LIMITS.commentsPerHour, period: HOUR },
   /** Checkout attempts, so a stolen session cannot hammer Stripe. */
   checkout: { kind: "fixed window", rate: 10, period: HOUR },
+  /**
+   * Packs taken back after a wallet ran dry. The emptiness test already gates
+   * each one; this is the ceiling that stops an afternoon of draining and
+   * refilling from turning free credit into infinite credit.
+   */
+  reclaim: { kind: "fixed window", rate: LIMITS.reclaimsPerDay, period: DAY },
 });

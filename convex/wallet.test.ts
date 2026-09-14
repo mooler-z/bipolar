@@ -64,7 +64,7 @@ describe("claiming a pack", () => {
     expect(state.ledger.some((r) => r.type === "purchase")).toBe(false);
   });
 
-  test("one claim per account, and the second one credits nothing", async () => {
+  test("a second pack is refused while the first still has sparks in it", async () => {
     const t = harness();
     const { as, userId } = await account(t, "greedy");
 
@@ -73,7 +73,7 @@ describe("claiming a pack", () => {
 
     await expect(
       as.mutation(api.wallet.claimPack, { packId: "heavy" }),
-    ).rejects.toThrow(/already claimed/i);
+    ).rejects.toThrow(/still have sparks/i);
 
     const state = await t.run(async (ctx) => ({
       user: await ctx.db.get("users", userId),
@@ -131,7 +131,7 @@ describe("claiming a pack", () => {
     });
     await expect(
       again.mutation(api.wallet.claimPack, { packId: STARTER.id }),
-    ).rejects.toThrow(/already claimed/i);
+    ).rejects.toThrow(/still have sparks/i);
   });
 });
 
@@ -144,6 +144,7 @@ describe("the catalogue is the only source of prices", () => {
     expect(before.free).toBe(true);
     expect(before.claimedPackId).toBeNull();
     expect(before.items.map((p) => p.id)).toEqual(PACKS.map((p) => p.id));
+    expect(before.items.every((p) => p.claimable)).toBe(true);
 
     await as.mutation(api.wallet.claimPack, { packId: STARTER.id });
     expect((await as.query(api.wallet.packs, {})).claimedPackId).toBe(STARTER.id);

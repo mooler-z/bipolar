@@ -60,8 +60,12 @@ export default defineSchema({
      */
     topicsBacked: v.number(),
     /**
-     * The pack this account claimed, if it has. Presence is the rule: one claim
-     * per account, read from this field before the write. Absent means never.
+     * The last pack this account took. Absent means never.
+     *
+     * Presence used to be the whole rule — one claim per account. It is now
+     * one *at a time*: a pack can be taken again once the balance it carries
+     * has run dry, so this field says what was taken last rather than that
+     * nothing more may be. The rule that replaced it reads the wallet.
      */
     claimedPackId: v.optional(v.string()),
     /** Whether the daily hot-topic mail goes out to this address. */

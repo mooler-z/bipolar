@@ -18,6 +18,24 @@ import { credit, currentUser, requireUser } from "./users";
  * a price can name zero.
  */
 
+/**
+ * Has the balance this pack refills run dry?
+ *
+ * One rule, asked of one currency: a pack that carries sparks comes back when
+ * the wallet can no longer buy one, and the quill pack comes back when the
+ * quills are gone. Asking about both at once gives the wrong answer in both
+ * directions — an account out of sparks but holding quills is stuck, and an
+ * account out of quills could refill its sparks for free.
+ */
+function ranDry(
+  user: { walletBalanceCents: number; quillBalance: number },
+  pack: { sparks: number },
+): boolean {
+  return pack.sparks > 0
+    ? user.walletBalanceCents < SPARK_CENTS
+    : user.quillBalance <= 0;
+}
+
 /** Public, and the only shape of a price the client ever sees. */
 export const packs = query({
   args: {},
@@ -32,6 +50,8 @@ export const packs = query({
         priceCents: v.number(),
         sparks: v.number(),
         quills: v.number(),
+        /** Whether this reader may take this pack right now. */
+        claimable: v.boolean(),
       }),
     ),
   }),
@@ -40,7 +60,12 @@ export const packs = query({
     return {
       free: true,
       claimedPackId: user?.claimedPackId ?? null,
-      items: PACKS.map((p) => ({ ...p })),
+      items: PACKS.map((p) => ({
+        ...p,
+        // Signed out, the catalogue is shown as it stands rather than greyed
+        // out: nothing has run dry for somebody who has no wallet yet.
+        claimable: !user || user.claimedPackId === undefined || ranDry(user, p),
+      })),
     };
   },
 });
@@ -111,10 +136,14 @@ export const history = query({
  * actually reached us through a processor, and nothing writes one. The ledger
  * must never claim money that did not exist. The pack is recorded beside it.
  *
- * **One claim per account.** Otherwise the catalogue is an unlimited wallet and
- * the paid vote stops meaning anything — which would quietly destroy the only
- * thing the paid layer is for. Enforced the way the vote rule is: a read before
- * the write, plus a test that hammers it.
+ * **One pack at a time, not one per account.** A pack comes back once the
+ * balance it carries has run dry — spend every spark and the catalogue opens
+ * again — because an account that runs out otherwise has no way back into the
+ * paid layer, and a dead end is a worse answer than a budget. What stops that
+ * being an unlimited wallet is the pair of guards below: the emptiness test,
+ * which is read before the write the way the vote rule is, and a daily ceiling
+ * on reclaims. Without both, a paid vote stops meaning anything, which is the
+ * only thing the paid layer is for.
  *
  * Swapping real payments in later replaces this mutation with a checkout action
  * and a verified webhook. Everything downstream of `credit()` is untouched.
@@ -134,9 +163,22 @@ export const claimPack = mutation({
     if (!pack) throw new Error("No such pack.");
 
     if (user.claimedPackId !== undefined) {
-      throw new Error(
-        "You have already claimed a pack. One per account while packs are free.",
-      );
+      if (!ranDry(user, pack)) {
+        throw new Error(
+          pack.sparks > 0
+            ? "You still have sparks. A pack comes back when your wallet runs dry."
+            : "You still have quills. The quill pack comes back when they run out.",
+        );
+      }
+      // Only a reclaim spends the daily budget; a first pack never does. The
+      // consumption is inside this transaction, so a refusal below it — or an
+      // OCC retry — hands the token back rather than burning it.
+      const { ok } = await limiter.limit(ctx, "reclaim", { key: user._id });
+      if (!ok) {
+        throw new Error(
+          "That is every pack you can take back today. The catalogue opens again tomorrow.",
+        );
+      }
     }
 
     // The marker goes down in the same transaction as the credit, so two
