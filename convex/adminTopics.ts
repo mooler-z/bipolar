@@ -42,6 +42,8 @@ const row = v.object({
   votes: v.number(),
   comments: v.number(),
   postedAt: v.number(),
+  /** The crawling session that minted it, when a crawler did. */
+  runSeq: v.union(v.null(), v.number()),
   mine: v.boolean(),
 });
 
@@ -95,8 +97,19 @@ export const list = query({
       );
     });
 
+    const wanted = matched.slice(0, Math.min(args.limit ?? 60, 120));
+
+    /* One read per distinct session rather than one per row: a wave of fifteen
+       drafts would otherwise fetch the same run fifteen times. */
+    const seqOf = new Map<string, number | null>();
+    for (const t of wanted) {
+      if (!t.ingestRunId || seqOf.has(t.ingestRunId)) continue;
+      const run = await ctx.db.get("ingestRuns", t.ingestRunId);
+      seqOf.set(t.ingestRunId, run?.seq ?? null);
+    }
+
     const rows = [];
-    for (const t of matched.slice(0, Math.min(args.limit ?? 60, 120))) {
+    for (const t of wanted) {
       const category = await ctx.db.get("categories", t.categoryId);
       const stats = await ctx.db
         .query("topicStats")
@@ -119,6 +132,7 @@ export const list = query({
           : 0,
         comments: stats?.comments ?? 0,
         postedAt: t._creationTime,
+        runSeq: t.ingestRunId ? (seqOf.get(t.ingestRunId) ?? null) : null,
         mine: mine(user, t),
       });
     }

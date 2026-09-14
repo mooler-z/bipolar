@@ -134,15 +134,18 @@ export const dashboard = query({
         slug: v.string(),
         question: v.string(),
         categorySlug: v.string(),
+        imageUrl: v.union(v.null(), v.string()),
       }),
     ),
     lastIngest: v.union(
       v.null(),
       v.object({
+        seq: v.union(v.null(), v.number()),
         query: v.string(),
         found: v.number(),
         minted: v.number(),
         rejected: v.number(),
+        duplicate: v.number(),
         error: v.union(v.null(), v.string()),
         finishedAt: v.union(v.null(), v.number()),
       }),
@@ -201,14 +204,17 @@ export const dashboard = query({
             slug: featuredRow.slug,
             question: featuredRow.question,
             categorySlug: category?.slug ?? "uncategorised",
+            imageUrl: featuredRow.externalImageUrl ?? null,
           }
         : null,
       lastIngest: run
         ? {
+            seq: run.seq ?? null,
             query: run.query,
             found: run.found,
             minted: run.minted,
             rejected: run.rejected,
+            duplicate: run.duplicate ?? 0,
             error: run.error ?? null,
             finishedAt: run.finishedAt ?? null,
           }

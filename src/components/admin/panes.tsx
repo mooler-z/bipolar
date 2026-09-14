@@ -22,10 +22,13 @@ import { Button } from "../../ui/Button";
  */
 export function Work({
   toolbar,
+  footer,
   children,
 }: {
   /** The section's own controls. Sits on the strip, not in the list. */
   toolbar?: ReactNode;
+  /** Anything that must stay in view while the list scrolls under it. */
+  footer?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -36,6 +39,7 @@ export function Work({
         </div>
       ) : null}
       <div className="col-scroll flex-1 p-4">{children}</div>
+      {footer}
     </section>
   );
 }

@@ -9,6 +9,7 @@
  */
 
 import type * as admin from "../admin.js";
+import type * as adminQueue from "../adminQueue.js";
 import type * as adminTopics from "../adminTopics.js";
 import type * as auditLog from "../auditLog.js";
 import type * as auth from "../auth.js";
@@ -20,15 +21,19 @@ import type * as http from "../http.js";
 import type * as images from "../images.js";
 import type * as importTopics from "../importTopics.js";
 import type * as ingest from "../ingest.js";
+import type * as ingestRuns from "../ingestRuns.js";
+import type * as ingestSession from "../ingestSession.js";
 import type * as ingestStore from "../ingestStore.js";
 import type * as interests from "../interests.js";
 import type * as leaderboards from "../leaderboards.js";
 import type * as lib_agentmail from "../lib/agentmail.js";
+import type * as lib_dedupe from "../lib/dedupe.js";
 import type * as lib_firecrawl from "../lib/firecrawl.js";
 import type * as lib_openai from "../lib/openai.js";
 import type * as lib_rank from "../lib/rank.js";
 import type * as lib_rbac from "../lib/rbac.js";
 import type * as lib_slug from "../lib/slug.js";
+import type * as lib_tunables from "../lib/tunables.js";
 import type * as lib_wikipedia from "../lib/wikipedia.js";
 import type * as limits from "../limits.js";
 import type * as maintenance from "../maintenance.js";
@@ -42,6 +47,7 @@ import type * as seo from "../seo.js";
 import type * as settings from "../settings.js";
 import type * as stats from "../stats.js";
 import type * as topics from "../topics.js";
+import type * as tunables from "../tunables.js";
 import type * as users from "../users.js";
 import type * as votes from "../votes.js";
 import type * as wallet from "../wallet.js";
@@ -54,6 +60,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
+  adminQueue: typeof adminQueue;
   adminTopics: typeof adminTopics;
   auditLog: typeof auditLog;
   auth: typeof auth;
@@ -65,15 +72,19 @@ declare const fullApi: ApiFromModules<{
   images: typeof images;
   importTopics: typeof importTopics;
   ingest: typeof ingest;
+  ingestRuns: typeof ingestRuns;
+  ingestSession: typeof ingestSession;
   ingestStore: typeof ingestStore;
   interests: typeof interests;
   leaderboards: typeof leaderboards;
   "lib/agentmail": typeof lib_agentmail;
+  "lib/dedupe": typeof lib_dedupe;
   "lib/firecrawl": typeof lib_firecrawl;
   "lib/openai": typeof lib_openai;
   "lib/rank": typeof lib_rank;
   "lib/rbac": typeof lib_rbac;
   "lib/slug": typeof lib_slug;
+  "lib/tunables": typeof lib_tunables;
   "lib/wikipedia": typeof lib_wikipedia;
   limits: typeof limits;
   maintenance: typeof maintenance;
@@ -87,6 +98,7 @@ declare const fullApi: ApiFromModules<{
   settings: typeof settings;
   stats: typeof stats;
   topics: typeof topics;
+  tunables: typeof tunables;
   users: typeof users;
   votes: typeof votes;
   wallet: typeof wallet;

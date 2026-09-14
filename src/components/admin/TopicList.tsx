@@ -1,37 +1,37 @@
-import { useEffect, useState } from "react";
-import { useQuery } from "convex/react";
-import { ClipboardText, MagnifyingGlass, Scroll, Stack } from "@phosphor-icons/react";
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery } from "convex/react";
+import { ClipboardText, Robot, Scroll, Stack, Warning } from "@phosphor-icons/react";
 
 import { api } from "../../../convex/_generated/api";
-import { cn } from "../../lib/cn";
+import type { Id } from "../../../convex/_generated/dataModel";
 import { fmtInt } from "../../lib/format";
-import { Button } from "../../ui/Button";
-import { Field } from "../../ui/Field";
-import { Inspector } from "./Inspector";
 import { AuditRecord } from "./AuditRecord";
+import { CrawlPanel } from "./Crawl";
+import { CrawlFeed } from "./CrawlFeed";
+import { Inspector } from "./Inspector";
 import { Aside, Empty, Work } from "./panes";
+import { BulkBar, SessionHead, groupBySession } from "./queue";
 import { TopicRow, type AdminTopic } from "./TopicRow";
+import { TopicToolbar } from "./TopicToolbar";
 
 /**
  * The work: a filtered list of topics, and whatever one of them is open.
  *
  * Two sections come out of this one component, because they are the same job
  * seen through a different filter: **Topics** is everything, **Review queue**
- * is the drafts. Building the queue as its own screen would have meant two
- * lists, two selection models and two sets of actions drifting apart.
+ * is the drafts, grouped into the crawling sessions they arrived in. Building
+ * the queue as its own screen would have meant two lists, two selection models
+ * and two sets of actions drifting apart.
+ *
+ * **Two kinds of selection, deliberately.** Opening a row fills the aside;
+ * picking a row puts it in a batch. They are different jobs — one is "what is
+ * this", the other is "these fifteen, yes" — and a list where they are the same
+ * gesture makes the second one dangerous.
  *
  * Search and the filter are local state rather than URL state, because this
- * console has no router — one honest limitation stated once beats a half-built
- * one. Everything else is a live Convex query, so an archive lands on screen
- * without a refetch, in the list and in the aside at the same time.
+ * console has no router. Everything else is a live Convex query, so an archive
+ * lands on screen without a refetch, in the list and in the aside at once.
  */
-
-const FILTERS = [
-  { id: "", label: "All" },
-  { id: "active", label: "Live" },
-  { id: "draft", label: "Draft" },
-  { id: "archived", label: "Archived" },
-] as const;
 
 export function TopicList({
   permissions,
@@ -43,16 +43,46 @@ export function TopicList({
 }) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string>("");
-  const [selected, setSelected] = useState<string | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
+  const [picked, setPicked] = useState<Set<string>>(() => new Set());
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
-  const data = useQuery(api.adminTopics.list, {
-    search: search.trim() || undefined,
-    status: fixedStatus ?? status ?? undefined,
-    limit: 80,
-  });
+  const queue = fixedStatus === "draft";
+  const crawl = !fixedStatus && status === "crawl"; // its own tab, not a filter
+  const [session, setSession] = useState<Id<"ingestRuns"> | null>(null);
+  const data = useQuery(
+    api.adminTopics.list,
+    crawl
+      ? "skip"
+      : {
+          search: search.trim() || undefined,
+          status: fixedStatus ?? status ?? undefined,
+          limit: 80,
+        },
+  );
+  const sessions = useQuery(
+    api.adminQueue.sessions,
+    queue || crawl ? { limit: crawl ? 30 : 20 } : "skip",
+  );
+  const decide = useMutation(api.adminQueue.decideMany);
 
-  const rows = (data?.rows ?? []) as AdminTopic[];
-  const current = rows.find((r) => r._id === selected) ?? null;
+  const rows = useMemo(() => (data?.rows ?? []) as AdminTopic[], [data]);
+  const current = rows.find((r) => r._id === open) ?? null;
+  const waves = useMemo(
+    () => (queue ? groupBySession(rows) : [{ seq: null, rows }]),
+    [queue, rows],
+  );
+  const sessionOf = useMemo(
+    () => new Map((sessions ?? []).map((s) => [s.seq, s])),
+    [sessions],
+  );
+
+  const can = {
+    publish: permissions.includes("topics:publish"),
+    archive: permissions.includes("topics:archive"),
+  };
+  const batching = can.publish || can.archive;
 
   /* The keyboard is a real path here: a moderator working a queue should never
      have to go back to the mouse between one topic and the next. */
@@ -65,82 +95,120 @@ export function TopicList({
       }
       if (e.metaKey || e.ctrlKey || e.altKey) return;
 
-      if (e.key === "Escape") return setSelected(null);
+      if (e.key === "Escape") {
+        setOpen(null);
+        setPicked(new Set());
+        return;
+      }
       if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
       if (rows.length === 0) return;
       e.preventDefault();
-      const at = rows.findIndex((r) => r._id === selected);
+      const at = rows.findIndex((r) => r._id === open);
       const next =
         e.key === "ArrowDown"
           ? Math.min(at + 1, rows.length - 1)
           : Math.max(at - 1, 0);
-      setSelected(rows[at === -1 ? 0 : next]!._id);
+      setOpen(rows[at === -1 ? 0 : next]!._id);
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  const queue = fixedStatus === "draft";
+  function toggle(id: string) {
+    setPicked((was) => {
+      const next = new Set(was);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+  }
+
+  /** All of a wave, or none of it, depending on where it already stands. */
+  function toggleWave(ids: string[], allIn: boolean) {
+    setPicked((was) => {
+      const next = new Set(was);
+      for (const id of ids) {
+        if (allIn) next.delete(id);
+        else next.add(id);
+      }
+      return next;
+    });
+  }
+
+  async function decideAll(to: "active" | "archived") {
+    setBusy(true);
+    setError("");
+    try {
+      const out = await decide({
+        topicIds: [...picked] as Id<"topics">[],
+        status: to,
+      });
+      setPicked(new Set());
+      if (out.skipped > 0) {
+        setError(
+          `${fmtInt(out.changed)} changed. ${fmtInt(out.skipped)} left alone — already there, or not yours.`,
+        );
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const toolbar = (
+    <TopicToolbar
+      search={search}
+      onSearch={setSearch}
+      status={status}
+      onStatus={setStatus}
+      fixed={fixedStatus}
+      total={data?.total}
+      permissions={permissions}
+    />
+  );
+
+  if (crawl) {
+    const current = sessions?.find((s) => s._id === session) ?? null;
+    return (
+      <>
+        <Work toolbar={toolbar}>
+          <CrawlPanel
+            permissions={permissions}
+            sessions={sessions}
+            selected={session}
+            onSelect={setSession}
+          />
+        </Work>
+        <Aside title="The session" icon={<Robot weight="fill" className="size-4 text-mute" />}>
+          <CrawlFeed session={current} />
+        </Aside>
+      </>
+    );
+  }
 
   return (
     <>
       <Work
-        toolbar={
-          <>
-            <span className="flex min-h-9 min-w-0 flex-1 items-center gap-2 rounded-[var(--r-btn)] border border-line-2 bg-surface-2 px-3 transition-colors focus-within:border-hate-fill">
-              <MagnifyingGlass className="size-4 shrink-0 text-mute" />
-              <Field
-                bare
-                label="Search topics"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Question, slug, or picture title…"
-              />
-            </span>
-
-            {fixedStatus ? null : (
-              <span
-                role="tablist"
-                className="flex shrink-0 items-center gap-1 rounded-[var(--r-btn)] bg-surface-2 p-1 max-lg:hidden"
-              >
-                {FILTERS.map((f) => (
-                  <Button
-                    key={f.id}
-                    bare
-                    role="tab"
-                    aria-selected={status === f.id}
-                    onClick={() => setStatus(f.id)}
-                    className={cn(
-                      "relative min-h-8 rounded-[9px] px-3 text-[12.5px] font-bold transition-colors",
-                      status === f.id
-                        ? "bg-surface-4 text-ink"
-                        : "text-mute hover:bg-surface-3/70 hover:text-ink-3",
-                    )}
-                  >
-                    {f.label}
-                    <span
-                      aria-hidden
-                      className={cn(
-                        "absolute inset-x-2.5 bottom-0 h-[3px] rounded-full transition-colors",
-                        status === f.id ? "bg-go-fill" : "bg-transparent",
-                      )}
-                    />
-                  </Button>
-                ))}
-              </span>
-            )}
-
-            {data ? (
-              <span className="chip shrink-0 max-sm:hidden">
-                <span className="num font-extrabold text-ink">
-                  {fmtInt(data.total)}
-                </span>
-                {data.total === 1 ? "topic" : "topics"}
-              </span>
-            ) : null}
-          </>
+        toolbar={toolbar}
+        footer={
+          <BulkBar
+            count={picked.size}
+            busy={busy}
+            canPublish={can.publish}
+            canArchive={can.archive}
+            onPublish={() => void decideAll("active")}
+            onArchive={() => void decideAll("archived")}
+            onClear={() => setPicked(new Set())}
+          />
         }
       >
+        {error ? (
+          <p className="slide-up mb-3 flex items-center gap-2 rounded-[var(--r-sm)] border border-love-fill/40 bg-love-fill/12 px-3.5 py-2.5 text-[13px] font-semibold text-love">
+            <Warning weight="fill" className="size-4 shrink-0" />
+            {error}
+          </p>
+        ) : null}
+
         {data === undefined ? (
           <ul className="space-y-1.5">
             {Array.from({ length: 10 }, (_, i) => (
@@ -149,13 +217,7 @@ export function TopicList({
           </ul>
         ) : rows.length === 0 ? (
           <Empty
-            icon={
-              queue ? (
-                <ClipboardText className="size-7" />
-              ) : (
-                <Stack className="size-7" />
-              )
-            }
+            icon={queue ? <ClipboardText className="size-7" /> : <Stack className="size-7" />}
             title={
               search
                 ? "Nothing matches that."
@@ -167,22 +229,41 @@ export function TopicList({
               search
                 ? undefined
                 : queue
-                  ? "Every draft discovery proposed has been decided on."
-                  : "Discovery runs every six hours and mints what it finds."
+                  ? "Every draft the crawler proposed has been decided on."
+                  : "Discovery runs several times a day and mints what it finds."
             }
           />
         ) : (
-          <ul className="space-y-1">
-            {rows.map((t, i) => (
-              <TopicRow
-                key={t._id}
-                index={i}
-                topic={t}
-                selected={selected === t._id}
-                onSelect={() => setSelected(t._id === selected ? null : t._id)}
-              />
-            ))}
-          </ul>
+          waves.map((wave) => {
+            const ids = wave.rows.map((r) => r._id);
+            const allIn = ids.every((id) => picked.has(id));
+            return (
+              <div key={wave.seq ?? "none"}>
+                {queue ? (
+                  <SessionHead
+                    seq={wave.seq}
+                    session={sessionOf.get(wave.seq)}
+                    count={ids.length}
+                    allChecked={allIn}
+                    onToggleAll={() => toggleWave(ids, allIn)}
+                  />
+                ) : null}
+                <ul className="space-y-1">
+                  {wave.rows.map((t, i) => (
+                    <TopicRow
+                      key={t._id}
+                      index={i}
+                      topic={t}
+                      selected={open === t._id}
+                      checked={picked.has(t._id)}
+                      onSelect={() => setOpen(t._id === open ? null : t._id)}
+                      onCheck={batching ? () => toggle(t._id) : undefined}
+                    />
+                  ))}
+                </ul>
+              </div>
+            );
+          })
         )}
 
         {/* The list is bounded. Say so, rather than presenting a cap as a total. */}
@@ -196,17 +277,15 @@ export function TopicList({
 
       <Aside
         title={current ? "The topic" : "The record"}
-        icon={
-          current ? null : <Scroll weight="fill" className="size-4 text-mute" />
-        }
+        icon={current ? null : <Scroll weight="fill" className="size-4 text-mute" />}
         sheet={!!current}
-        onClose={current ? () => setSelected(null) : undefined}
+        onClose={current ? () => setOpen(null) : undefined}
       >
         {current ? (
           <Inspector topic={current} permissions={permissions} />
         ) : permissions.includes("audit:read") ? (
-          /* Nothing selected, so the column shows what the console has been
-             used for. It is the one screen that makes "every action here is
+          /* Nothing open, so the column shows what the console has been used
+             for. It is the one screen that makes "every action here is
              recorded" something you can see rather than something you are told. */
           <AuditRecord limit={30} dense />
         ) : (
