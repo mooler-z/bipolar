@@ -183,3 +183,51 @@ describe("the dashboard counts", () => {
     expect(data.users.last7d).toBe(1);
   });
 });
+
+describe("the record", () => {
+  test("a moderator cannot read it, and an admin can", async () => {
+    const t = convexTest(schema, modules);
+    await account(t, "mod", "moderator");
+    const adminId = await account(t, "boss", "admin");
+    await t.run(async (ctx) => {
+      await ctx.db.insert("auditLog", {
+        actorId: adminId,
+        action: "topic.archive",
+        targetType: "topics",
+        targetId: "abc",
+      });
+    });
+
+    // `audit:read` is the one capability no moderator inherits: the record is
+    // what a moderator is accountable to.
+    await expect(as(t, "mod").query(api.auditLog.recent, {})).rejects.toThrow(
+      /audit read/i,
+    );
+    const rows = await as(t, "boss").query(api.auditLog.recent, {});
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.action).toBe("topic.archive");
+    expect(rows[0]!.actor).toBe("boss");
+  });
+
+  test("a signed-out reader gets nothing at all", async () => {
+    const t = convexTest(schema, modules);
+    await expect(t.query(api.auditLog.recent, {})).rejects.toThrow();
+  });
+
+  test("newest first, and bounded", async () => {
+    const t = convexTest(schema, modules);
+    const adminId = await account(t, "boss", "admin");
+    await t.run(async (ctx) => {
+      for (let i = 0; i < 5; i++) {
+        await ctx.db.insert("auditLog", {
+          actorId: adminId,
+          action: `step.${i}`,
+          targetType: "topics",
+        });
+      }
+    });
+
+    const rows = await as(t, "boss").query(api.auditLog.recent, { limit: 3 });
+    expect(rows.map((r) => r.action)).toEqual(["step.4", "step.3", "step.2"]);
+  });
+});
