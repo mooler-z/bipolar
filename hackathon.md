@@ -286,4 +286,62 @@ arena with nothing under it; the profile is a grid of the identity card, the pac
 and the ledger; onboarding is two panels rather than a column. `src/views/account/`,
 `src/views/Welcome.tsx`, `src/views/welcome/`.
 
-**114 tests.** The six new ones cover the retraction: the spark returned and the counters left exactly as they were found, the country counters with them, a retracted vote recast the other way, the streak restored from its snapshot, the window closing, and one voter unable to take back another's vote.
+**A gated press opens the door instead of refusing.** Voting, staking a spark, paying to
+peek and writing a comment all used to answer a signed-out reader with a sentence telling
+them to sign in — a dead end reached after they had already said what they wanted. Each one
+now carries them to the sign-in page with the address they were on remembered, and the
+moment the session lands they are put back on it, mid-question. The return replaces the
+door in history rather than stacking on it, so the back button still leads out; the
+remembered address must begin with a single slash, so the page cannot be used to bounce
+anyone off-site. Google survives the round trip because the callback is this page's own
+absolute address rather than the one origin the deployment was configured with.
+`src/lib/nav.ts`.
+
+**Sparks come back when they run out.** A pack was one per account, which meant an account
+that spent its last spark had no way back into the paid layer — a dead end dressed up as a
+rule. A pack now returns once the balance it carries has run dry: spend every spark and the
+catalogue opens again, up to three times a day. The two currencies are asked about
+separately, so being out of quills does not refill the sparks and being out of sparks does
+not hand over free quills. Every reclaim is a `grant` beside the last one, never a purchase,
+and the ledger keeps all of them. What stops it being an unlimited wallet is the pair of
+guards: the emptiness test, read before the write the way the vote rule is, and the daily
+ceiling. `convex/wallet.ts`, `convex/reclaim.test.ts`.
+
+**The question stops changing under the reader.** The feed is a live ranked subscription and
+every move rewrites its own inputs — a skip writes a row the ranker reads, a vote writes
+taste and the counters — so the list re-ordered about a round trip after the run moved on,
+and the card that had just appeared was silently replaced by a different question. The next
+question is now chosen at the moment of the press and pinned: the re-rank still decides what
+comes after, but it can no longer reach the card already on screen. A row clicked in a rail
+registers on the press rather than waiting for the reveal to finish, and the column holds
+the question it was showing, under a loader, until the pulled card lands.
+`src/views/home/useRun.ts`.
+
+**The staff console is three columns too.** It was a rail and a page; it is now the public
+console's own shape turned to a different job — where you are, the work, and what one row of
+it actually is. Opening a topic no longer leaves the console: it fills the third column,
+where every action on it lives with room to say what it does, and a moderator who was eighty
+rows into a filtered list is still eighty rows into it afterwards. The rows gave up their
+five buttons each and became scannable instead — the status is a colour on the left edge
+before it is a word, and the counts are tabular so a long list reads as two columns of
+numbers. Arrow keys walk the list, escape closes the panel. `src/components/admin/`.
+
+**The record.** Rule 8 has always made every privileged write land in an append-only table
+inside the same transaction as the thing it describes. It is now a screen, in plain words
+rather than event names: who did it, what they did, and when. It is its own section for
+admins and it is also what the console's third column shows whenever nothing is selected, so
+"every action here is recorded" is something a person can check rather than something they
+are told. Reading it is the one capability a moderator does not inherit — the record is what
+a moderator is accountable to. `convex/auditLog.ts`.
+
+**The review queue is real.** Discovery's drafts had a dimmed nav entry and no screen. The
+queue is the topic list with its status pinned, so there are not two lists and two sets of
+actions drifting apart, and the rail carries the count of what is waiting — the only badge in
+the console, because a console that badges everything teaches people to ignore badges.
+
+**The picture stands beside the question on a phone.** A full-bleed band above the headline
+cost a third of the screen and pushed the question down into the arena. It now sits to the
+left of the words at both sizes, and the headline steps down a size on a phone rather than
+wrapping every second word. `src/components/Decide.tsx`.
+
+**122 tests.** Six cover the retraction: the spark returned and the counters left exactly as they were found, the country counters with them, a retracted vote recast the other way, the streak restored from its snapshot, the window closing, and one voter unable to take back another's vote. Five more cover reclaiming: an emptied wallet taking another pack with both grants left in the ledger, a wallet one spark above empty refused, the two currencies emptying independently, the daily ceiling, and the ceiling lifting the next day. Three more cover the record: a moderator refused, an admin served, and the rows bounded and newest-first.
