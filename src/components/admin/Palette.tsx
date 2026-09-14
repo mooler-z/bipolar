@@ -10,8 +10,12 @@ import { Field } from "../../ui/Field";
  * The command palette.
  *
  * Seeded from the same nav list and filtered by the same permissions as the
- * sidebar, so it can never offer a page the role cannot reach. A palette that
+ * rail, so it can never offer a page the role cannot reach. A palette that
  * knows more than the rail is a palette that eventually offers a 403.
+ *
+ * It searches what a section is *for* as well as what it is called, because
+ * somebody hunting for the audit trail types "log" long before they type
+ * "record".
  */
 export function Palette({
   open,
@@ -27,8 +31,12 @@ export function Palette({
   const [q, setQ] = useState("");
   const [cursor, setCursor] = useState(0);
 
+  const needle = q.trim().toLowerCase();
   const hits = reachable(permissions).filter(
-    (n) => n.ready && n.label.toLowerCase().includes(q.trim().toLowerCase()),
+    (n) =>
+      n.ready &&
+      (n.label.toLowerCase().includes(needle) ||
+        n.blurb.toLowerCase().includes(needle)),
   );
 
   useEffect(() => {
@@ -67,7 +75,7 @@ export function Palette({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 px-6 pt-[18vh] backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-canvas/70 px-6 pt-[18vh] backdrop-blur-sm"
       onClick={onClose}
     >
       <div
@@ -112,7 +120,7 @@ export function Palette({
                       onClose();
                     }}
                     className={cn(
-                      "relative flex min-h-10 w-full items-center gap-2.5 rounded-[var(--r-sm)] px-2.5",
+                      "relative flex min-h-11 w-full items-center gap-2.5 rounded-[var(--r-sm)] px-2.5",
                       "text-[13px] font-bold transition-[background-color,color,transform]",
                       i === cursor ? "translate-x-0.5 bg-surface-4 text-ink" : "text-ink-3",
                     )}
@@ -121,7 +129,12 @@ export function Palette({
                       <span aria-hidden className="absolute inset-y-2 left-0 w-[3px] rounded-full bg-go-fill" />
                     ) : null}
                     <Icon weight={i === cursor ? "fill" : "regular"} className="size-4 shrink-0" />
-                    <span className="flex-1 text-left">{hit.label}</span>
+                    <span className="min-w-0 flex-1 text-left leading-tight">
+                      {hit.label}
+                      <span className="block truncate text-[11.5px] font-medium text-mute">
+                        {hit.blurb}
+                      </span>
+                    </span>
                     {i === cursor ? (
                       <kbd className="text-[10px] text-mute">&crarr;</kbd>
                     ) : null}
