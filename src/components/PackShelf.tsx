@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { Check, Lightning } from "@phosphor-icons/react";
+import { Check, Feather, Lightning } from "@phosphor-icons/react";
 
 import { api } from "../../convex/_generated/api";
 import { cn } from "../lib/cn";
@@ -30,6 +30,7 @@ export function PackShelf() {
 
   if (!catalogue) return null;
   const { free, claimedPackId, items } = catalogue;
+  const spent = claimedPackId !== null;
 
   async function take(packId: string) {
     setBusy(packId);
@@ -46,36 +47,42 @@ export function PackShelf() {
   return (
     <Panel title="Get credit" icon={<Lightning className="size-4 text-coin" />}>
       {free ? (
-        <p className="mb-4 rounded-[var(--r-card)] border border-coin/35 bg-coin/10 px-3.5 py-3 text-[14px] leading-snug text-coin">
+        <p className="mb-4 rounded-[var(--r-btn)] border-2 border-coin-fill/45 bg-coin-fill/10 px-3.5 py-3 text-[13.5px] leading-snug text-coin">
           <strong>Free during the hackathon.</strong> No card is charged and
           nothing asks for one. The prices are what a pack will cost when
-          payments are real — and what your wallet is credited now, so a spark
-          still costs 50&cent; and still runs out.
+          payments are real &mdash; and what your wallet is credited now, so a
+          spark still costs 50&cent; and still runs out.
         </p>
       ) : null}
 
       <ul className="space-y-2.5">
-        {items.map((pack) => {
+        {items.map((pack, i) => {
           const taken = claimedPackId === pack.id;
-          const spent = claimedPackId !== null;
           return (
             <li
               key={pack.id}
               className={cn(
-                "flex items-center gap-3 rounded-[var(--r-card)] border p-3.5 transition-colors",
-                taken ? "border-go/40 bg-go/10" : "border-line bg-surface-2",
+                "stagger flex items-center gap-3 rounded-[var(--r-btn)] border-2 p-3.5 transition-colors",
+                taken
+                  ? "border-go-fill/50 bg-go-fill/10"
+                  : spent
+                    ? "border-line bg-surface-2 opacity-60"
+                    : "border-line-2 bg-surface-2",
               )}
+              style={{ animationDelay: `${i * 60}ms` }}
             >
               <div className="min-w-0 flex-1">
                 <p className="text-[15px] font-bold">{pack.label}</p>
                 <p className="mt-1.5 flex flex-wrap items-center gap-1.5">
                   {pack.sparks > 0 ? (
                     <Chip tone="coin">
+                      <Lightning weight="fill" className="size-3" />
                       <span className="num">{pack.sparks}</span> sparks
                     </Chip>
                   ) : null}
                   {pack.quills > 0 ? (
-                    <Chip>
+                    <Chip tone="hate">
+                      <Feather weight="fill" className="size-3" />
                       <span className="num">{pack.quills}</span> quills
                     </Chip>
                   ) : null}
@@ -85,7 +92,7 @@ export function PackShelf() {
 
               {taken ? (
                 <Chip tone="go">
-                  <Check className="size-3.5" /> Claimed
+                  <Check weight="bold" className="size-3.5" /> Claimed
                 </Chip>
               ) : (
                 <Button
@@ -104,12 +111,12 @@ export function PackShelf() {
       </ul>
 
       <p className="mt-3 text-[12px] text-mute">
-        One pack per account. Recorded as a grant, never a purchase — the ledger
-        never claims money that did not exist.
+        One pack per account. Recorded as a grant, never a purchase &mdash; the
+        ledger never claims money that did not exist.
       </p>
 
       {error ? (
-        <p className="mt-3 rounded-[var(--r-btn)] bg-love/15 px-3 py-2 text-[13px] font-semibold text-love">
+        <p className="mt-3 rounded-[var(--r-btn)] border border-love-fill/40 bg-love-fill/12 px-3 py-2 text-[13px] font-semibold text-love">
           {error}
         </p>
       ) : null}

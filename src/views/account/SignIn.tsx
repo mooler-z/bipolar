@@ -4,6 +4,8 @@ import { Check, GoogleLogo, Lightning } from "@phosphor-icons/react";
 import { signIn, signUp } from "../../lib/auth-client";
 import { Button } from "../../ui/Button";
 import { Field } from "../../ui/Field";
+import { Wordmark } from "../../ui/Wordmark";
+import { Hero } from "./Hero";
 
 /**
  * The door.
@@ -11,7 +13,7 @@ import { Field } from "../../ui/Field";
  * Two halves of the window: the claim on the left, the form on the right. The
  * claim is there because this is the one page a stranger reaches before they
  * have seen a single question, and "sign in" with no reason attached is the
- * weakest possible ask.
+ * weakest possible ask. So the arena itself is the first thing on the page.
  */
 
 const PROMISES = [
@@ -35,37 +37,51 @@ export function SignIn() {
   }
 
   return (
-    <div className="grid min-h-[calc(100dvh-4rem)] lg:grid-cols-2">
+    <div className="grid min-h-[calc(100dvh-var(--bar))] lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
       {/* The claim. */}
-      <section className="flex flex-col justify-center border-line px-[clamp(1.5rem,5vw,5rem)] py-14 lg:border-r">
-        <h1 className="display max-w-[14ch] text-[clamp(2.5rem,5vw,4.5rem)]">
+      <section className="flex flex-col justify-center border-line px-[clamp(1.5rem,5vw,5rem)] py-12 lg:border-r">
+        <div className="rise">
+          <Hero />
+        </div>
+
+        <h1 className="display mt-8 max-w-[14ch] text-[clamp(2.5rem,4.8vw,4.5rem)]">
           Pick a side.
         </h1>
-        <p className="mt-5 max-w-[44ch] text-[clamp(1rem,1.2vw,1.25rem)] leading-relaxed text-ink-3">
+        <p className="mt-4 max-w-[46ch] text-[clamp(1rem,1.15vw,1.2rem)] leading-relaxed text-ink-3">
           Everyone votes for free. Only some pay 50&cent; to be counted
-          separately — and the gap between those two numbers is the whole point.
+          separately &mdash; and the gap between those two numbers is the whole
+          point.
         </p>
 
-        <ul className="mt-9 space-y-3.5">
-          {PROMISES.map((line) => (
-            <li key={line} className="flex items-start gap-3">
-              <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-go/15">
-                <Check weight="bold" className="size-3.5 text-go" />
+        <ul className="mt-8 grid gap-2.5">
+          {PROMISES.map((line, i) => (
+            <li
+              key={line}
+              className="stagger flex items-center gap-3 rounded-[var(--r-btn)] border border-line bg-surface px-3.5 py-3"
+              style={{ animationDelay: `${180 + i * 80}ms` }}
+            >
+              <span className="grid size-7 shrink-0 place-items-center rounded-[8px] bg-go-fill text-on-go">
+                <Check weight="bold" className="size-4" />
               </span>
-              <span className="text-[15px] text-ink-2">{line}</span>
+              <span className="text-[15px] font-semibold text-ink-2">{line}</span>
             </li>
           ))}
         </ul>
 
-        <p className="mt-9 inline-flex w-fit items-center gap-2 rounded-[var(--r-pill)] border border-coin/35 bg-coin/10 px-4 py-2.5 text-[13px] font-bold text-coin">
+        <p className="mt-7 inline-flex w-fit items-center gap-2 rounded-[var(--r-pill)] border border-coin-fill/40 bg-coin-fill/10 px-4 py-2.5 text-[13px] font-bold text-coin">
           <Lightning weight="fill" className="size-4" />
           New accounts start with sparks on the house
         </p>
       </section>
 
       {/* The form. */}
-      <section className="flex flex-col justify-center px-[clamp(1.5rem,5vw,5rem)] py-14">
+      <section className="flex flex-col justify-center px-[clamp(1.5rem,5vw,5rem)] py-12">
         <div className="w-full max-w-md">
+          <Wordmark size="lg" />
+          <p className="mt-4 mb-7 text-[14px] text-mute">
+            Sign in, or make an account in the same two boxes.
+          </p>
+
           <Button
             variant="steel"
             size="lg"
@@ -135,7 +151,7 @@ export function SignIn() {
           </div>
 
           {error ? (
-            <p className="mt-5 rounded-[var(--r-btn)] bg-love/15 px-3.5 py-2.5 text-sm font-semibold text-love">
+            <p className="mt-5 rounded-[var(--r-btn)] border border-love-fill/40 bg-love-fill/12 px-3.5 py-2.5 text-sm font-semibold text-love">
               {error}
             </p>
           ) : null}

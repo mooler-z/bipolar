@@ -1,194 +1,135 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  MagnifyingGlass,
-} from "@phosphor-icons/react";
+import { ArrowLeft, ArrowRight } from "@phosphor-icons/react";
 
 import { api } from "../../convex/_generated/api";
-import worldMap from "../data/world-map.json";
-import { cn } from "../lib/cn";
 import { Button } from "../ui/Button";
-import { Field } from "../ui/Field";
-import { Flag } from "../ui/Flag";
 import { Label } from "../ui/Label";
+import { Wordmark } from "../ui/Wordmark";
+import { CountryStep } from "./welcome/CountryStep";
+import { InterestStep } from "./welcome/InterestStep";
 
 /**
  * Two questions, once: where you are, and what you care about.
  *
  * Both feed the ranker and neither can be guessed. Country drives the "your
  * country disagrees with the world" signal and every per-country board;
- * interests seed affinity before there is any behaviour to learn from. After
- * that the answers matter less and less — every vote and skip nudges a live
- * taste weight that the ranker blends with what was said here.
+ * interests seed affinity before there is any behaviour to learn from.
+ *
+ * Two panels that fill the window: the question and its controls on the
+ * left, the picker taking the rest. A 640px column floating in a black sea
+ * is the layout Rule 5 exists to ban, and it was this page.
  *
  * Both answers save in one mutation, because marking the account onboarded
  * halfway would strand anyone who closed the tab between the steps.
  */
-
-const NATIONS = [...worldMap.countries]
-  .map((c) => ({ code: c.code, name: c.name }))
-  .sort((a, b) => a.name.localeCompare(b.name));
-
 export function Welcome({ onDone }: { onDone: () => void }) {
-  const me = useQuery(api.users.me);
   const categories = useQuery(api.interests.categories);
   const save = useMutation(api.interests.save);
 
   const [step, setStep] = useState<"country" | "interests">("country");
   const [country, setCountry] = useState<string | null>(null);
   const [chosen, setChosen] = useState<Set<string>>(() => new Set());
-  const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
-
-  const shown = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return NATIONS;
-    return NATIONS.filter(
-      (c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase() === q,
-    );
-  }, [query]);
 
   async function finish(slugs: string[]) {
     if (busy) return;
     setBusy(true);
     try {
-      await save({
-        countryCode: country ?? undefined,
-        categorySlugs: slugs,
-      });
+      await save({ countryCode: country ?? undefined, categorySlugs: slugs });
       onDone();
     } finally {
       setBusy(false);
     }
   }
 
-  if (step === "country") {
-    return (
-      <div className="mx-auto flex min-h-[80svh] w-full max-w-2xl flex-col px-4 py-10 sm:px-6">
-        <Label>Step 1 of 2</Label>
-        <h1 className="display mt-2 text-[clamp(2rem,6vw,3rem)]">
-          Where are you voting from?
-        </h1>
-        <p className="mt-3 text-[15px] text-ink-3">
-          It decides which country you count towards, and it is how the app can
-          tell you when your country disagrees with the world. Two changes a
-          month after this.
-        </p>
-
-        <div className="relative mt-6">
-          <MagnifyingGlass className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-mute" />
-          <Field
-            label="Find your country"
-            value={query}
-            placeholder="Start typing…"
-            onChange={(e) => setQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-
-        <ul className="mt-4 grid max-h-[46svh] grid-cols-1 gap-1.5 overflow-y-auto pr-1 sm:grid-cols-2">
-          {shown.slice(0, 240).map((c) => (
-            <li key={c.code}>
-              <Button
-                bare
-                onClick={() => setCountry(c.code)}
-                className={cn(
-                  "flex min-h-11 w-full items-center gap-2.5 rounded-[var(--r-btn)] px-2.5 text-left",
-                  "transition-[background-color,transform] duration-150 hover:translate-x-0.5 hover:bg-surface-3",
-                  country === c.code && "bg-go/15 text-go",
-                )}
-              >
-                <Flag code={c.code} withCode />
-                <span className="flex-1 truncate text-[14px] font-medium">
-                  {c.name}
-                </span>
-                {country === c.code ? (
-                  <Check weight="bold" className="size-4" />
-                ) : null}
-              </Button>
-            </li>
-          ))}
-        </ul>
-
-        <div className="mt-6 flex items-center justify-between gap-3">
-          <Button variant="ghost" size="sm" onClick={() => setStep("interests")}>
-            Skip
-          </Button>
-          <Button
-            variant="go"
-            size="lg"
-            disabled={!country}
-            onClick={() => setStep("interests")}
-          >
-            Continue <ArrowRight className="size-4" />
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const first = step === "country";
+  const progress = first ? 50 : 100;
 
   return (
-    <div className="mx-auto flex min-h-[80svh] w-full max-w-2xl flex-col px-4 py-10 sm:px-6">
-      <Button
-        variant="ghost"
-        size="sm"
-        className="mb-2 self-start"
-        onClick={() => setStep("country")}
+    <div className="grid min-h-[calc(100dvh-var(--bar))] lg:h-[calc(100dvh-var(--bar))] lg:grid-cols-[minmax(0,38fr)_minmax(0,62fr)]">
+      {/* The question. */}
+      <section
+        key={step}
+        className="rise flex flex-col border-line px-[clamp(1.5rem,4vw,4rem)] py-10 lg:border-r"
       >
-        <ArrowLeft className="size-4" /> Back
-      </Button>
-      <Label>Step 2 of 2</Label>
-      <h1 className="display mt-2 text-[clamp(2rem,6vw,3rem)]">
-        What do you argue about?
-      </h1>
-      <p className="mt-3 text-[15px] text-ink-3">
-        A head start for the feed, not a filter — it will keep learning from what
-        you actually vote on, and you will still see everything else.
-        {me ? "" : ""}
-      </p>
+        <Wordmark />
 
-      <ul className="mt-6 flex flex-wrap gap-2.5">
-        {(categories ?? []).map((c) => {
-          const on = chosen.has(c.slug);
-          return (
-            <li key={c._id}>
-              <Button
-                variant={on ? "go" : "steel"}
-                onClick={() =>
-                  setChosen((prev) => {
-                    const next = new Set(prev);
-                    if (next.has(c.slug)) next.delete(c.slug);
-                    else next.add(c.slug);
-                    return next;
-                  })
-                }
-                className="capitalize"
-              >
-                {on ? <Check weight="bold" className="size-4" /> : null}
-                {c.name}
+        <div className="mt-8 flex items-center gap-3">
+          <span className="bar flex-1">
+            <span className="bar-fill" style={{ width: `${progress}%` }} />
+          </span>
+          <Label className="num shrink-0">Step {first ? 1 : 2} of 2</Label>
+        </div>
+
+        <h1 className="display mt-6 text-[clamp(2rem,3.4vw,3.25rem)]">
+          {first ? "Where are you voting from?" : "What do you argue about?"}
+        </h1>
+        <p className="mt-4 max-w-[42ch] text-[15px] leading-relaxed text-ink-3">
+          {first
+            ? "It decides which country you count towards, and it is how the app can tell you when your country disagrees with the world. Two changes a month after this."
+            : "A head start for the feed, not a filter — it will keep learning from what you actually vote on, and you will still see everything else."}
+        </p>
+
+        <div className="mt-auto flex items-center justify-between gap-3 pt-10">
+          {first ? (
+            <Button variant="ghost" size="sm" onClick={() => setStep("interests")}>
+              Skip
+            </Button>
+          ) : (
+            <Button variant="ghost" size="sm" onClick={() => setStep("country")}>
+              <ArrowLeft className="size-4" /> Back
+            </Button>
+          )}
+          {first ? (
+            <Button
+              variant="go"
+              size="lg"
+              disabled={!country}
+              onClick={() => setStep("interests")}
+            >
+              Continue <ArrowRight className="size-4" />
+            </Button>
+          ) : (
+            <span className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={() => void finish([])}>
+                Skip
               </Button>
-            </li>
-          );
-        })}
-      </ul>
+              <Button
+                variant="go"
+                size="lg"
+                disabled={busy}
+                onClick={() => void finish([...chosen])}
+              >
+                {busy
+                  ? "Saving…"
+                  : `Start voting${chosen.size ? ` · ${chosen.size}` : ""}`}
+                <ArrowRight className="size-4" />
+              </Button>
+            </span>
+          )}
+        </div>
+      </section>
 
-      <div className="mt-auto flex items-center justify-between gap-3 pt-8">
-        <Button variant="ghost" size="sm" onClick={() => void finish([])}>
-          Skip
-        </Button>
-        <Button
-          variant="go"
-          size="lg"
-          disabled={busy}
-          onClick={() => void finish([...chosen])}
-        >
-          {busy ? "Saving…" : `Start voting${chosen.size ? ` · ${chosen.size}` : ""}`}
-          <ArrowRight className="size-4" />
-        </Button>
-      </div>
+      {/* The picker. */}
+      <section className="flex min-h-0 flex-col px-[clamp(1.5rem,4vw,4rem)] py-10">
+        {first ? (
+          <CountryStep country={country} onPick={setCountry} />
+        ) : (
+          <InterestStep
+            categories={categories}
+            chosen={chosen}
+            onToggle={(slug) =>
+              setChosen((prev) => {
+                const next = new Set(prev);
+                if (next.has(slug)) next.delete(slug);
+                else next.add(slug);
+                return next;
+              })
+            }
+          />
+        )}
+      </section>
     </div>
   );
 }
