@@ -54,7 +54,9 @@ export function verdict(love: number, hate: number): string {
  * unknown or unset country renders as a placeholder rather than as mojibake.
  */
 export function flagEmoji(code: string): string {
-  if (!/^[A-Za-z]{2}$/.test(code)) return "\u{1F3F3}\uFE0F";
+  // `ZZ` is the server's "unknown" and has no flag; it must not render as
+  // two letters standing where a flag should be.
+  if (!/^[A-Za-z]{2}$/.test(code) || code.toUpperCase() === "ZZ") return "\u{1F3F3}\uFE0F";
   return String.fromCodePoint(
     ...[...code.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65),
   );
@@ -62,7 +64,7 @@ export function flagEmoji(code: string): string {
 
 /** The uppercase ISO code, or `??`. Shown beside the flag, never instead of it. */
 export function countryCode(code: string): string {
-  return /^[A-Za-z]{2}$/.test(code) ? code.toUpperCase() : "??";
+  return /^[A-Za-z]{2}$/.test(code) && code.toUpperCase() !== "ZZ" ? code.toUpperCase() : "??";
 }
 
 export function fmtShortDate(ms: number): string {

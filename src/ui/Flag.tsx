@@ -1,3 +1,5 @@
+import { Globe } from "@phosphor-icons/react";
+
 import { cn } from "../lib/cn";
 import { countryCode, flagEmoji } from "../lib/format";
 
@@ -11,6 +13,9 @@ import { countryCode, flagEmoji } from "../lib/format";
  * The code rides alongside it wherever there is room, because flags for
  * neighbouring countries are easy to confuse and some platforms still render a
  * pair of letters instead of the glyph.
+ *
+ * An unknown country — the server's `ZZ`, or anything that is not a code — is
+ * a globe, never two stray letters standing where a flag should be.
  */
 export function Flag({
   code,
@@ -22,6 +27,18 @@ export function Flag({
   className?: string;
 }) {
   const name = countryCode(code);
+  if (name === "??") {
+    return (
+      <span
+        className={cn("inline-flex shrink-0 items-center gap-1.5", className)}
+        title="Unknown country"
+      >
+        <Globe weight="fill" className="size-[17px] text-mute" aria-hidden />
+        <span className="sr-only">Unknown country</span>
+        {withCode ? <span className="num text-[11px] font-bold text-mute">??</span> : null}
+      </span>
+    );
+  }
   return (
     <span
       className={cn("inline-flex shrink-0 items-center gap-1.5", className)}
