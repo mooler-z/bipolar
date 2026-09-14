@@ -7,7 +7,6 @@ import { cn } from "../lib/cn";
 import { fmtMoney } from "../lib/format";
 import { Button } from "../ui/Button";
 import { Chip } from "../ui/Label";
-import { Panel } from "../ui/Panel";
 
 /**
  * The catalogue.
@@ -50,13 +49,13 @@ export function PackShelf() {
   }
 
   return (
-    <Panel title="Get credit" icon={<Lightning className="size-4 text-coin" />}>
+    <div>
       {free ? (
-        <p className="mb-4 rounded-[var(--r-btn)] border-2 border-coin-fill/45 bg-coin-fill/10 px-3.5 py-3 text-[13.5px] leading-snug text-coin">
-          <strong>Free during the hackathon.</strong> No card is charged and
-          nothing asks for one. The prices are what a pack will cost when
-          payments are real &mdash; and what your wallet is credited now, so a
-          spark still costs 50&cent; and still runs out.
+        <p className="mb-3.5 text-[13px] leading-relaxed text-ink-3">
+          <strong className="text-coin">Free during the hackathon.</strong> No
+          card is charged and nothing asks for one. The prices are what a pack
+          will cost when payments are real &mdash; and what your wallet is
+          credited now, so a spark still costs 50&cent; and still runs out.
         </p>
       ) : null}
 
@@ -124,17 +123,15 @@ export function PackShelf() {
         })}
       </ul>
 
-      <p className="mt-3 text-[12px] text-mute">
+      <p className="mt-3 text-[12px] leading-relaxed text-mute">
         One pack at a time. Spend the sparks and it comes back, up to three
         times a day. Every one is recorded as a grant, never a purchase &mdash;
         the ledger never claims money that did not exist.
       </p>
 
       {error ? (
-        <p className="mt-3 rounded-[var(--r-btn)] border border-love-fill/40 bg-love-fill/12 px-3 py-2 text-[13px] font-semibold text-love">
-          {error}
-        </p>
+        <p className="mt-3 text-[13px] font-semibold text-love">{error}</p>
       ) : null}
-    </Panel>
+    </div>
   );
 }
