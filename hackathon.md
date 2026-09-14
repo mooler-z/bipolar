@@ -344,4 +344,109 @@ cost a third of the screen and pushed the question down into the arena. It now s
 left of the words at both sizes, and the headline steps down a size on a phone rather than
 wrapping every second word. `src/components/Decide.tsx`.
 
-**122 tests.** Six cover the retraction: the spark returned and the counters left exactly as they were found, the country counters with them, a retracted vote recast the other way, the streak restored from its snapshot, the window closing, and one voter unable to take back another's vote. Five more cover reclaiming: an emptied wallet taking another pack with both grants left in the ledger, a wallet one spark above empty refused, the two currencies emptying independently, the daily ceiling, and the ceiling lifting the next day. Three more cover the record: a moderator refused, an admin served, and the rows bounded and newest-first.
+**The crawler goes out six times a day and comes back with fifteen.** It used to run every
+six hours and mint three, from one search. A firing is now a **session**: it sweeps up to
+eight searches, rotating through the query list by the clock so consecutive sessions read
+different ground, and keeps going until it has fifteen new questions, runs out of material,
+or runs out of its clock budget. One number in `convex/config.ts` sets the cadence —
+`DISCOVERY.runsPerDay` — and the cron, the console and every screen that quotes a rate all
+derive from it, in minutes rather than hours so any number of sessions a day divides cleanly.
+
+**Never the same argument twice.** The URL ledger only ever stopped the same *page* being
+minted twice, and the open web writes one story twenty times in a morning. Every question now
+carries a key: the subject with the punctuation, the casing, the function words and the word
+order thrown away. A session reads every recent key once, holds them in memory, and checks
+each draft against them by word overlap before it spends anything on minting — and the mint
+re-checks against an index inside its own transaction, so two sessions racing cannot both get
+through. Anything already asked is recorded as a duplicate rather than silently dropped, and
+the count is on the overview. `convex/lib/dedupe.ts`.
+
+**The picture comes with the question.** The model names the Wikipedia article in the same
+call that writes the question, while it has the story in front of it, and the session resolves
+those names into images before it finishes. A wave of new questions no longer sits pictureless
+until somebody runs a backfill by hand.
+
+**The queue is organised by the wave it arrived in.** A session has a number that counts up —
+a document id is unique and unsayable, and "everything from 47" is a sentence. Drafts are
+grouped under their session with what it found, what it minted and what it dropped, rows can
+be picked in batches, and a whole wave can be published or archived in one press. One
+mutation, so twelve either move or none do, with each decision still checked and recorded on
+its own. `convex/adminQueue.ts`.
+
+**A settings page, and the cadence stopped being a schedule.** Eight numbers that used to
+need a deploy are now editable from the console: sessions a day, questions a session,
+searches a session, results a search, the polarizing floor, the sameness threshold, and the
+two that bound the daily mail. A cron interval is fixed when the code is deployed, so the
+crawler now ticks hourly and asks whether a session is due from the setting — turning six a
+day into twelve is felt within the hour rather than on the next build.
+
+What is stored is an **override**, never a copy: clearing one forgets it and the deployment
+goes back to what the repository says, so an untouched settings table behaves exactly like
+the code. Every row shows its default and its range beside the value, because a console that
+changes a number without telling you what it was is a console you cannot undo. Bounds are
+enforced on the server, not by the field — a crawler set to run two thousand times a day
+would spend the search quota before breakfast, and the page that asked for it is not what
+should stop it. Each change writes a line in the record naming the setting, what it was and
+what it became.
+
+**Prices are deliberately not on it.** The pack catalogue and the cost of a spark stay
+server-side constants: a wallet that can be repriced from a web page is a wallet with two
+sources of truth. `convex/lib/tunables.ts`, `convex/tunables.ts`.
+
+**The console's pages, redrawn without the boxes.** The first version of every admin page was
+a grid of bordered tiles, which is what every dashboard is made of and reads as a dashboard
+before it reads as anything about this product. The frame stayed; the pages were rebuilt as
+sheets. The overview is figures on the canvas in the product's own display type and colours,
+and its one chart is the crawler's heartbeat — a bar per session, violet for what it minted,
+yellow for what it dropped as already asked, grey for what nobody would argue about. Topic
+rows lead with the picture at a size a face is recognised at, and carry their status as a
+solid block of colour on the edge so a long list sorts itself by colour before a word is
+read. Each session in the queue is a violet-numbered bar with its tally as chips and a
+progress bar of how much of the wave has been decided. The record became a day-by-day
+timeline with the actor's avatar and, instead of a document id, the question the line was
+about, resolved on the server and linked to the site. Settings rows put the value in display
+type over a track that shows where it sits between its bounds, with a notch at the
+repository's default. `src/components/admin/`.
+
+**Flags are drawn, not typed.** The emoji flag was the one exception to the no-emoji rule and
+a poor one: Windows renders the pair of letters it is built from, every platform draws a
+different flag, and none at the size the row asked for. Every flag is now the `flag-icons`
+SVG, the same on every machine, at 4:3, at whatever size the row needs. The 271 files are
+shipped as assets fetched only when a flag is on screen — kept out of Vite's inline limit on
+purpose, since two hundred small SVGs pasted into the bundle as base64 would be a megabyte
+downloaded to show one of them. `src/ui/Flag.tsx`.
+
+**A shared link opens the product, not a page about it.** `/t/<slug>` is registered ahead of
+the static site so a crawler gets real markup — and for a while that meant *everybody* got it.
+A link out of the daily mail opened four lines of Times New Roman with a blue "Open bi-polar"
+underneath that led back to the page you were already on. The route now fetches the app's own
+deployed shell from the hosting component, splices the live tags into its head, and puts the
+readable summary inside the root element where React replaces it the moment the bundle boots.
+One page: a crawler reads the tags, a person gets the app. And it is no longer a separate
+screen — the link opens the console with that question in the middle column, the same three
+columns and the same run underneath, so the most-shared address in the product is the product.
+`convex/seo.ts`, `src/App.tsx`.
+
+**The crawler has a button and a window.** A Crawl tab on the topics screen fires a session on
+demand and watches it happen: the run row is opened before the action is scheduled, so a
+session appears the instant it is pressed, and every step writes a line from inside the loop —
+which search, which page, what the model said, why a story was dropped. A bar tracks the
+session against its own target, the stage says what it is doing right now, a clock runs while
+it runs, and every question it mints is a link that opens on the site. One at a time: a second
+press while a session is out is refused, because it would spend the same searches twice.
+`convex/ingestSession.ts`, `src/components/admin/Crawl.tsx`.
+
+**Flags are drawn, and they lead.** Every flag is now the `flag-icons` SVG rather than an
+emoji — the same flag on every machine, at the size the row asks for. And in every list a flag
+is the first thing on its line, with a globe standing in for "everywhere", because anything of
+variable length in front of it puts it somewhere different on every row. Admin rows reserve
+the picture slot whether or not there is a picture, for the same reason.
+
+**Answer forty, or study one.** An account can now skip the result and go straight to the next
+question. The vote is identical either way — cast, counted, and still retractable — so the
+undo simply moves to the foot of the next question, orange beside the skip, on the same `U`.
+The size of the room moved with it: how many people have already voted was a 12px chip between
+a hashtag and a source link, and it is the whole reason to have an opinion, so it is now its
+own band under the question at a size that says so.
+
+**145 tests.** Six cover the retraction: the spark returned and the counters left exactly as they were found, the country counters with them, a retracted vote recast the other way, the streak restored from its snapshot, the window closing, and one voter unable to take back another's vote. Five more cover reclaiming: an emptied wallet taking another pack with both grants left in the ledger, a wallet one spark above empty refused, the two currencies emptying independently, the daily ceiling, and the ceiling lifting the next day. Three more cover the record: a moderator refused, an admin served, and the rows bounded and newest-first. Nine more cover discovery's promise that a question is new: rewordings, reorderings and repunctuations collapsing to one key, genuinely different arguments staying apart, the threshold behaving as a threshold, the mint refusing a repeat inside its transaction, and sessions counting up and stamping what they mint. Four more cover the button: a moderator refused, the row open and attributed before the session wakes, one session at a time, and a session with no API keys saying so in a line rather than never returning. Ten more cover the settings: every default inside its own range, an out-of-range value clamped on arrival rather than at the field, an untouched table reading as the code, an unknown key refused, a moderator refused and an admin recorded, a reset forgetting rather than rewriting, and the cadence deciding that a three-hour-old session is due at twelve a day but not at six.
