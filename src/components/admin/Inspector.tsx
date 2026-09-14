@@ -46,8 +46,7 @@ export function Inspector({
   const [confirming, setConfirming] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  /* A new selection is a new subject: a half-finished confirmation must never
-     carry across to a different topic. */
+  // A new subject: a half-finished confirmation never carries across topics.
   useEffect(() => {
     setConfirming(false);
     setError("");
@@ -61,8 +60,7 @@ export function Inspector({
     lock: permissions.includes("topics:lock") && topic.mine,
     publish: permissions.includes("topics:publish") && topic.mine,
   };
-  const id = topic._id as Id<"topics">;
-  const link = `${window.location.origin}/t/${topic.slug}`;
+  const id = topic._id as Id<"topics">, link = `${window.location.origin}/t/${topic.slug}`;
 
   async function run(work: () => Promise<unknown>) {
     setBusy(true);
@@ -77,25 +75,42 @@ export function Inspector({
   }
 
   return (
-    <div className={cn("rise p-4", busy && "pointer-events-none opacity-60")}>
+    <div className={cn("rise", busy && "pointer-events-none opacity-60")}>
+      {/* The status as a band, in its own colour: whether the public can see
+          this is the first thing a moderator wants to know, and a chip is too
+          small to carry it. */}
+      <div
+        className={cn(
+          "flex flex-wrap items-center gap-1.5 px-4 py-2",
+          status.block,
+          topic.status === "draft" ? "text-on-coin" : topic.status === "archived" ? "text-on-love" : "text-on-go",
+        )}
+      >
+        <span className="text-[11px] font-extrabold tracking-[0.1em] uppercase">
+          {status.label}
+          {topic.status === "active" ? " on the site" : topic.status === "draft" ? " · off the site" : " · taken down"}
+        </span>
+        <span className="flex-1" />
+        {topic.isFeatured ? <Star weight="fill" className="size-3.5" /> : null}
+        {topic.isLocked ? <Lock weight="fill" className="size-3.5" /> : null}
+        {topic.isSensitive ? <Warning weight="fill" className="size-3.5" /> : null}
+      </div>
+
+      <div className="p-4">
       <Thumb
         src={topic.imageUrl}
         alt=""
         rounded="rounded-[var(--r-card)]"
         fit="object-contain"
         fill
-        className="aspect-[16/10] w-full border-2 border-line-2"
+        className="aspect-[4/3] w-full border border-line-2"
       />
 
-      <p className="mt-3 flex flex-wrap items-center gap-1.5">
-        <span
-          className={cn(
-            "rounded-[5px] px-2 py-0.5 text-[10.5px] font-extrabold tracking-[0.06em] uppercase",
-            status.chip,
-          )}
-        >
-          {status.label}
-        </span>
+      <h3 className="display mt-3.5 text-[clamp(1.15rem,1.4vw,1.45rem)] text-balance">
+        {topic.question}
+      </h3>
+
+      <p className="mt-2 flex flex-wrap items-center gap-1.5">
         {topic.isFeatured ? (
           <span className="chip !bg-coin-fill/15 !text-coin">
             <Star weight="fill" className="size-3" /> Featured
@@ -113,11 +128,7 @@ export function Inspector({
         ) : null}
       </p>
 
-      <h3 className="display mt-2.5 text-[clamp(1.05rem,1.3vw,1.35rem)] text-balance">
-        {topic.question}
-      </h3>
-
-      <dl className="mt-3.5 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-[12px]">
+      <dl className="mt-3.5 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 border-t border-line pt-3.5 text-[12px]">
         <Fact label="Category">
           <span className="capitalize">{topic.categorySlug}</span>
         </Fact>
@@ -138,6 +149,11 @@ export function Inspector({
         {topic.wikipediaTitle ? (
           <Fact label="Picture">
             <span className="truncate">{topic.wikipediaTitle}</span>
+          </Fact>
+        ) : null}
+        {topic.runSeq ? (
+          <Fact label="From">
+            <span className="num">Crawling session {topic.runSeq}</span>
           </Fact>
         ) : null}
         <Fact label="Slug">
@@ -258,6 +274,7 @@ export function Inspector({
           </p>
         ) : null}
       </div>
+      </div>
     </div>
   );
 }
@@ -275,8 +292,8 @@ function Fact({ label, children }: { label: string; children: React.ReactNode })
 
 function Figure({ label, value }: { label: string; value: number }) {
   return (
-    <span className="rounded-[var(--r-btn)] bg-surface-2 px-3 py-2">
-      <span className="display num block text-[20px]">{fmtInt(value)}</span>
+    <span className="border-l-2 border-line-2 pl-3">
+      <span className="display num block text-[22px]">{fmtInt(value)}</span>
       <span className="label text-[11px]">{label}</span>
     </span>
   );

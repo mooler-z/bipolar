@@ -1,15 +1,14 @@
 import { useQuery } from "convex/react";
 import {
+  ArrowRight,
   ArrowSquareOut,
-  Check,
   ChatCircle,
   Globe,
-  Robot,
   Scroll,
   Star,
   UserCircleMinus,
   Users,
-  X,
+  Warning,
 } from "@phosphor-icons/react";
 
 import { api } from "../../../convex/_generated/api";
@@ -17,25 +16,24 @@ import { cn } from "../../lib/cn";
 import { fmtInt, fmtMoney } from "../../lib/format";
 import { useCountUp } from "../../lib/motion";
 import { Button } from "../../ui/Button";
-import { Label } from "../../ui/Label";
+import { Thumb } from "../../ui/Thumb";
 import { AuditRecord } from "./AuditRecord";
-import { Discovery } from "./Discovery";
+import { ModeSwitch } from "./ModeSwitch";
 import { Aside, Empty, Work } from "./panes";
+import { SessionChart } from "./SessionChart";
 
 /**
- * What the house is doing, in one screen.
+ * What the house is doing, as a sheet rather than a grid of boxes.
  *
- * Six identical tiles in a row is a dashboard that has decided nothing. These
- * figures are not equal: three of them are the product — how much there is to
- * vote on, how much voting happened, how much of it was paid for — and the rest
- * are context. So the three lead in type large enough to read across a room,
- * the paid share gets the one bar on the screen because it is the number the
- * business turns on, and everything else sits in a quiet strip underneath.
+ * The first version of this page was six bordered tiles. Bordered tiles are
+ * what every dashboard is made of, and a page made of them reads as a
+ * dashboard before it reads as anything about this product. So the boxes are
+ * gone: figures sit on the canvas in the product's own display type and accent
+ * colours, sections are separated by space and a coloured label, and the one
+ * chart on the page is the crawler's own heartbeat rather than a decoration.
  *
  * Every figure is a **bounded** count — the server looks at a capped number of
- * rows and says so. A console that needs a table scan to render is a console
- * that stops rendering exactly when the numbers get interesting, so the cap is
- * honest rather than hidden: when it bites, the figure says "at least".
+ * rows and says so. When the cap bites, the label says "at least".
  */
 export function Overview({
   permissions,
@@ -45,174 +43,158 @@ export function Overview({
   onGo: (path: string) => void;
 }) {
   const data = useQuery(api.admin.dashboard);
+  const discovery = useQuery(api.settings.discovery);
+  const sessions = useQuery(api.adminQueue.sessions, { limit: 14 });
 
   const votes = data ? data.votes.free + data.votes.paid : 0;
-  const paidShare = votes === 0 ? 0 : Math.round((data!.votes.paid / votes) * 100);
+  const backed = votes === 0 ? 0 : Math.round((data!.votes.paid / votes) * 100);
 
-  /* Hoisted, and unconditional. These are hooks: reading them inside the
-     branch that waits for the query would change how many run between the
-     loading render and the loaded one, which React counts and React breaks on. */
+  /* Hoisted, and unconditional. These are hooks. */
   const liveTopics = useCountUp(data?.topics.active ?? 0, 700);
   const allVotes = useCountUp(votes, 700);
+  const backedPct = useCountUp(backed, 700);
   const staked = useCountUp(data?.stakedCents ?? 0, 700);
+
+  const last = sessions?.[0];
 
   return (
     <>
       <Work>
         {data === undefined ? (
-          <div className="space-y-3">
-            <span className="shimmer block h-28 rounded-[var(--r-card)]" />
-            <span className="shimmer block h-20 rounded-[var(--r-card)]" />
+          <div className="space-y-6">
+            <span className="shimmer block h-24 rounded-[var(--r-card)]" />
             <span className="shimmer block h-40 rounded-[var(--r-card)]" />
+            <span className="shimmer block h-28 rounded-[var(--r-card)]" />
           </div>
         ) : (
-          <div className="space-y-3">
-            <section className="tile tile-in grid gap-px overflow-hidden !p-0 sm:grid-cols-3">
-              <Headline
-                label={data.topics.capped ? "Live topics, at least" : "Live topics"}
-                value={fmtInt(liveTopics)}
-                hint={`${fmtInt(data.topics.draft)} draft · ${fmtInt(data.topics.archived)} archived`}
-                tone="text-go"
-              />
-              <Headline
-                label="Votes cast"
-                value={fmtInt(allVotes)}
-                hint={`${fmtInt(data.votes.free)} free · ${fmtInt(data.votes.paid)} backed`}
-                tone="text-love"
-              />
-              <Headline
-                label="Staked"
-                value={fmtMoney(staked)}
-                hint="Simulated — no card is charged"
-                tone="text-coin"
-              />
-            </section>
-
-            {/* The one bar on the screen, because this is the one ratio the
-                whole product turns on: how much of the crowd paid to be counted. */}
-            <section className="tile tile-in" style={{ animationDelay: "80ms" }}>
-              <p className="flex items-baseline gap-2">
-                <span className="display num text-[22px] text-coin">{paidShare}%</span>
-                <span className="text-[13px] font-bold">
-                  of votes are backed with a spark
-                </span>
-              </p>
-              <span className="bar mt-2.5 block">
-                <span
-                  className="bar-fill !bg-coin-fill"
-                  style={{ width: `${paidShare}%` }}
+          <div className="rise space-y-8">
+            <Section label="Right now" tone="text-go">
+              <div className="grid grid-cols-2 gap-x-6 gap-y-5 lg:grid-cols-4">
+                <Big
+                  value={fmtInt(liveTopics)}
+                  label={data.topics.capped ? "live topics, at least" : "live topics"}
+                  hint={`${fmtInt(data.topics.draft)} draft · ${fmtInt(data.topics.archived)} archived`}
+                  tone="text-go"
                 />
-              </span>
-              <p className="mt-2 text-[11.5px] text-mute">
-                Free votes are the crowd. A spark is what somebody paid to be
-                counted, and the two-layer aggregate is the difference.
-              </p>
-            </section>
+                <Big
+                  value={fmtInt(allVotes)}
+                  label="votes cast"
+                  hint={`${fmtInt(data.votes.free)} free · ${fmtInt(data.votes.paid)} backed`}
+                  tone="text-love"
+                />
+                <Big
+                  value={`${backedPct}%`}
+                  label="backed with a spark"
+                  hint="the committed, as a share of the crowd"
+                  tone="text-coin"
+                />
+                <Big
+                  value={fmtMoney(staked)}
+                  label="staked"
+                  hint="simulated — no card is charged"
+                  tone="text-coin"
+                />
+              </div>
+            </Section>
 
-            <Discovery permissions={permissions} onShowQueue={() => onGo("/admin/queue")} />
+            <Section
+              label="The crawler"
+              tone="text-hate"
+              action={<ModeSwitch permissions={permissions} compact />}
+            >
+              {discovery ? (
+                <p className="text-[13.5px] leading-snug text-ink-2">
+                  <span className="num font-extrabold text-ink">{fmtInt(discovery.runsPerDay)}</span>{" "}
+                  {discovery.runsPerDay === 1 ? "session" : "sessions"} a day, every{" "}
+                  <span className="num font-extrabold text-ink">{discovery.everyHours}</span>{" "}
+                  hours, each going after{" "}
+                  <span className="num font-extrabold text-ink">{fmtInt(discovery.topicsPerRun)}</span>{" "}
+                  new questions.{" "}
+                  <span className="text-mute">
+                    {discovery.mode === "review"
+                      ? "They land as drafts and wait for a moderator."
+                      : "Anything clearing the floor goes straight into the feed."}
+                  </span>
+                </p>
+              ) : null}
 
-            <div className="grid gap-3 lg:grid-cols-2">
-              <section className="tile tile-in" style={{ animationDelay: "160ms" }}>
-                <h2 className="mb-3 flex items-center gap-1.5 text-[11px] font-extrabold tracking-[0.06em] text-coin uppercase">
-                  <Star weight="fill" className="size-3.5" /> Featured topic
-                </h2>
-                {data.featured ? (
-                  <>
-                    <p className="display text-[clamp(1.05rem,1.4vw,1.35rem)] leading-snug">
+              <div className="mt-4">
+                {sessions === undefined ? (
+                  <span className="shimmer block h-24 rounded-[var(--r-btn)]" />
+                ) : (
+                  <SessionChart sessions={sessions} />
+                )}
+              </div>
+
+              {last ? (
+                <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line pt-3.5 text-[12.5px]">
+                  <span className="font-extrabold">
+                    {last.seq ? `Session ${last.seq}` : "Last session"}
+                  </span>
+                  <span className="num text-mute">
+                    {fmtInt(last.minted)} minted · {fmtInt(last.duplicate)} already asked ·{" "}
+                    {fmtInt(last.rejected)} too dull
+                  </span>
+                  {last.error ? (
+                    <span className="flex items-center gap-1 font-semibold text-love">
+                      <Warning weight="fill" className="size-3.5" /> {last.error}
+                    </span>
+                  ) : null}
+                  <span className="flex-1" />
+                  {discovery && discovery.pending > 0 ? (
+                    <Button variant="go" size="sm" onClick={() => onGo("/admin/queue")}>
+                      {fmtInt(discovery.pending)} waiting <ArrowRight className="size-4" />
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
+            </Section>
+
+            <Section label="Featured" tone="text-coin">
+              {data.featured ? (
+                <div className="flex items-center gap-4">
+                  <Thumb
+                    src={data.featured.imageUrl ?? undefined}
+                    alt=""
+                    rounded="rounded-[var(--r-card)]"
+                    className="size-24 shrink-0 border-2 border-coin-fill/60"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="display text-[clamp(1.2rem,1.8vw,1.7rem)] text-balance">
                       {data.featured.question}
                     </p>
-                    <p className="mt-3 flex flex-wrap items-center gap-2">
+                    <p className="mt-2 flex flex-wrap items-center gap-2">
                       <span className="rounded-[6px] bg-ink px-2 py-0.5 text-[10.5px] font-extrabold tracking-[0.06em] text-canvas uppercase">
                         {data.featured.categorySlug}
                       </span>
+                      <span className="num text-[12px] text-mute">/{data.featured.slug}</span>
                       <Button variant="ghost" size="sm" asChild>
-                        <a
-                          href={`/t/${data.featured.slug}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
+                        <a href={`/t/${data.featured.slug}`} target="_blank" rel="noopener noreferrer">
                           Open <ArrowSquareOut className="size-3.5" />
                         </a>
                       </Button>
                     </p>
-                  </>
-                ) : (
-                  <p className="text-[13.5px] leading-relaxed text-mute">
-                    Nothing is featured. The ranker still weights it — a topic
-                    set here rides the top of every feed.
-                  </p>
-                )}
-              </section>
+                  </div>
+                </div>
+              ) : (
+                <p className="flex items-center gap-2 text-[13.5px] text-mute">
+                  <Star className="size-4" /> Nothing is featured. A topic set here rides the
+                  top of every feed.
+                </p>
+              )}
+            </Section>
 
-              <section className="tile tile-in" style={{ animationDelay: "220ms" }}>
-                <h2 className="mb-3 flex items-center gap-1.5 text-[11px] font-extrabold tracking-[0.06em] text-ink-3 uppercase">
-                  <Robot weight="fill" className="size-3.5" /> Last discovery run
-                </h2>
-                {data.lastIngest ? (
-                  <>
-                    <p className="flex items-center gap-2">
-                      <span
-                        className={cn(
-                          "grid size-6 shrink-0 place-items-center rounded-full",
-                          data.lastIngest.error
-                            ? "bg-love-fill text-on-love"
-                            : "bg-go-fill text-on-go",
-                        )}
-                      >
-                        {data.lastIngest.error ? (
-                          <X weight="bold" className="size-3.5" />
-                        ) : (
-                          <Check weight="bold" className="size-3.5" />
-                        )}
-                      </span>
-                      <span className="truncate text-[13.5px] font-bold">
-                        {data.lastIngest.query}
-                      </span>
-                    </p>
-                    <div className="mt-3 grid grid-cols-3 gap-2">
-                      <Small label="Found" value={data.lastIngest.found} />
-                      <Small label="Minted" value={data.lastIngest.minted} tone="text-go" />
-                      <Small label="Rejected" value={data.lastIngest.rejected} tone="text-mute" />
-                    </div>
-                    {data.lastIngest.error ? (
-                      <p className="mt-3 rounded-[var(--r-sm)] border border-love-fill/40 bg-love-fill/12 px-3 py-2 text-[12.5px] font-semibold text-love">
-                        {data.lastIngest.error}
-                      </p>
-                    ) : null}
-                    {data.lastIngest.finishedAt ? (
-                      <p className="mt-2.5">
-                        <Label>
-                          {new Date(data.lastIngest.finishedAt).toLocaleString()}
-                        </Label>
-                      </p>
-                    ) : null}
-                  </>
-                ) : (
-                  <p className="text-[13.5px] text-mute">
-                    Discovery has not run on this deployment yet.
-                  </p>
-                )}
-              </section>
-            </div>
-
-            {/* Context, not headlines. One quiet strip, deliberately smaller. */}
-            <section
-              className="tile tile-in flex flex-wrap items-center gap-x-6 gap-y-3"
-              style={{ animationDelay: "280ms" }}
-            >
-              <Quiet icon={<Users weight="fill" className="size-3.5" />} label="Accounts" value={fmtInt(data.users.total)} />
-              <Quiet icon={<Users className="size-3.5" />} label="New this week" value={fmtInt(data.users.last7d)} />
-              <Quiet icon={<ChatCircle weight="fill" className="size-3.5" />} label="Comments" value={fmtInt(data.comments)} />
-              <Quiet icon={<Globe weight="fill" className="size-3.5" />} label="Countries voting" value={fmtInt(data.countries)} />
-              {data.users.banned > 0 ? (
-                <Quiet
-                  icon={<UserCircleMinus weight="fill" className="size-3.5" />}
-                  label="Suspended"
-                  value={fmtInt(data.users.banned)}
-                  tone="text-love"
-                />
-              ) : null}
-            </section>
+            <Section label="The house" tone="text-ink-3">
+              <div className="flex flex-wrap items-center gap-x-7 gap-y-3">
+                <Quiet icon={<Users weight="fill" className="size-4" />} value={fmtInt(data.users.total)} label="accounts" />
+                <Quiet icon={<Users className="size-4" />} value={fmtInt(data.users.last7d)} label="new this week" />
+                <Quiet icon={<ChatCircle weight="fill" className="size-4" />} value={fmtInt(data.comments)} label="comments" />
+                <Quiet icon={<Globe weight="fill" className="size-4" />} value={fmtInt(data.countries)} label="countries voting" />
+                {data.users.banned > 0 ? (
+                  <Quiet icon={<UserCircleMinus weight="fill" className="size-4" />} value={fmtInt(data.users.banned)} label="suspended" tone="text-love" />
+                ) : null}
+              </div>
+            </Section>
           </div>
         )}
       </Work>
@@ -231,55 +213,70 @@ export function Overview({
   );
 }
 
-function Headline({
+/** A coloured label, a rule, and whatever belongs under it. No box. */
+function Section({
   label,
+  tone,
+  action,
+  children,
+}: {
+  label: string;
+  tone: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <div className="mb-3 flex items-center gap-3 border-b border-line pb-2">
+        <h2 className={cn("text-[11px] font-extrabold tracking-[0.12em] uppercase", tone)}>
+          {label}
+        </h2>
+        <span className="flex-1" />
+        {action}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Big({
   value,
+  label,
   hint,
   tone,
 }: {
-  label: string;
   value: string;
+  label: string;
   hint: string;
   tone: string;
 }) {
   return (
-    <span className="bg-surface px-4 py-3.5">
-      <span className="block text-[11px] font-extrabold tracking-[0.08em] text-mute uppercase">
-        {label}
-      </span>
-      <span className={cn("display num mt-1 block text-[clamp(1.9rem,3.2vw,2.6rem)]", tone)}>
+    <span className="block">
+      <span className={cn("display num block text-[clamp(2.2rem,3.6vw,3.2rem)]", tone)}>
         {value}
       </span>
-      <span className="mt-0.5 block text-[11.5px] text-mute">{hint}</span>
-    </span>
-  );
-}
-
-function Small({ label, value, tone }: { label: string; value: number; tone?: string }) {
-  return (
-    <span className="rounded-[var(--r-sm)] bg-surface-2 px-3 py-2">
-      <span className={cn("display num block text-[20px]", tone)}>{fmtInt(value)}</span>
-      <Label>{label}</Label>
+      <span className="mt-0.5 block text-[12.5px] font-extrabold text-ink-2">{label}</span>
+      <span className="block text-[11.5px] text-mute">{hint}</span>
     </span>
   );
 }
 
 function Quiet({
   icon,
-  label,
   value,
+  label,
   tone,
 }: {
   icon: React.ReactNode;
-  label: string;
   value: string;
+  label: string;
   tone?: string;
 }) {
   return (
-    <span className="flex items-center gap-2">
+    <span className="flex items-center gap-2.5">
       <span className={cn("text-mute", tone)}>{icon}</span>
       <span className="leading-tight">
-        <span className={cn("num block text-[15px] font-extrabold", tone)}>{value}</span>
+        <span className={cn("display num block text-[18px]", tone)}>{value}</span>
         <span className="block text-[11px] text-mute">{label}</span>
       </span>
     </span>

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 
 import { query } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { requirePermission } from "./admin";
 
 /**
@@ -31,6 +32,11 @@ export const recent = query({
       /** Who did it. The name as it stands now, not as it was then. */
       actor: v.string(),
       actorRole: v.string(),
+      /**
+       * What it was done to, in words. A topic id is a fact; the question it
+       * asks is what somebody scanning the record is actually looking for.
+       */
+      target: v.union(v.null(), v.object({ label: v.string(), slug: v.string() })),
       metadata: v.optional(v.any()),
     }),
   ),
@@ -54,9 +60,24 @@ export const recent = query({
       });
     }
 
+    /* One read per distinct topic touched, not one per line: a batch decision
+       on a wave of fifteen writes fifteen lines about fifteen topics, and a
+       moderator archiving the same topic twice writes two about one. */
+    const targets = new Map<string, { label: string; slug: string } | null>();
+    for (const row of rows) {
+      if (row.targetType !== "topic" && row.targetType !== "topics") continue;
+      if (!row.targetId || targets.has(row.targetId)) continue;
+      const topic = await ctx.db.get("topics", row.targetId as Id<"topics">);
+      targets.set(
+        row.targetId,
+        topic ? { label: topic.question, slug: topic.slug } : null,
+      );
+    }
+
     return rows.map((row) => {
       const actor = actors.get(row.actorId)!;
       return {
+        target: row.targetId ? (targets.get(row.targetId) ?? null) : null,
         _id: row._id,
         at: row._creationTime,
         action: row.action,
