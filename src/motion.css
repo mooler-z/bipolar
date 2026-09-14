@@ -17,6 +17,12 @@
   to { opacity: 1; transform: none; }
 }
 
+/* The result coming in over the question it answers. */
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(100%); }
+  to { opacity: 1; transform: none; }
+}
+
 @keyframes slide-up {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: none; }
@@ -111,10 +117,7 @@
 @keyframes slam-flash { from { opacity: 0.9; } to { opacity: 0; } }
 
 /* A row that just landed: lit for five seconds, then the light dissolves. */
-@keyframes fresh {
-  0%, 71% { opacity: 1; }
-  100% { opacity: 0; }
-}
+@keyframes fresh { 0%, 71% { opacity: 1; } 100% { opacity: 0; } }
 .fresh-glow { animation: fresh 7s ease-out both; pointer-events: none; }
 
 /* The nudge under the first deck panel: there is something below this. */
@@ -173,6 +176,7 @@
 @utility bolt-strike { animation: bolt-strike 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
 @utility jolt { animation: jolt 0.46s ease-out both; }
 @utility slide-up { animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@utility slide-in { animation: slide-in-right 0.44s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
 /** Loading: a band of light travelling across a placeholder. */
 @utility shimmer {
