@@ -6,11 +6,13 @@ import {
   useState,
   type PointerEvent,
 } from "react";
-import { Heart, Lightning, HeartBreak } from "@phosphor-icons/react";
+import { ArrowUUpLeft, Heart, HeartBreak, Lightning } from "@phosphor-icons/react";
 
 import { cn } from "../lib/cn";
 import type { Side } from "../lib/format";
 import { Button } from "../ui/Button";
+
+import "./arena.css";
 
 /**
  * The arena. The signature control, and the entire product.
@@ -22,6 +24,13 @@ import { Button } from "../ui/Button";
  * chosen colour spreads across the whole arena in a third of a second while
  * the other card collapses, and the result opens in the same frame. Nothing
  * is said — it is obvious what was pressed.
+ *
+ * **Undoing is this run backwards.** A card that comes back from a retraction
+ * mounts still holding the whole board and gives the width up over 670ms while
+ * the other grows in beside it, with the undo arrow spinning counter-clockwise
+ * where its icon was. Nothing else announces it: the takeover reversed *is* the
+ * announcement. At twice the takeover's 340ms, going forward stays decisive and
+ * coming back reads as letting go — and lasts long enough to be watched.
  *
  * **The word is the watermark, and only the watermark.** LOVE and HATE are
  * already set across each card at nine times the size; printing them a second
@@ -50,26 +59,51 @@ export const Arena = forwardRef<
     armed: boolean;
     busy: boolean;
     onPick: (side: Side) => void;
-    /** Which answer the cursor is over, so the ground can take a side too. */
-    onLean?: (side: Side | null) => void;
+    /** Which answer the cursor is over, and whether it has been pressed, so
+        the ground can take a side too — and then flood with it. */
+    onLean?: (side: Side | null, pressed?: boolean) => void;
+    /** A side just retracted. The board comes back held, then lets go. */
+    restoring?: Side | null;
     className?: string;
   }
->(function Arena({ armed, busy, onPick, onLean, className }, ref) {
+>(function Arena({ armed, busy, onPick, onLean, restoring = null, className }, ref) {
   const [hover, setHover] = useState<Side | null>(null);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
-  const [slam, setSlam] = useState<Side | null>(null);
+  /* Mounting already held, when this is a card coming back from a retraction.
+     The board then lets go on the next frame and the transition does the rest. */
+  const [slam, setSlam] = useState<Side | null>(restoring);
+  const [rewinding, setRewinding] = useState(restoring !== null);
   const timers = useRef<number[]>([]);
 
   useEffect(() => () => timers.current.forEach((t) => window.clearTimeout(t)), []);
 
+  useEffect(() => {
+    if (restoring === null) return;
+    // Two frames: one to paint the held state, one to leave it. A single frame
+    // lands in the same style recalculation and the transition never runs.
+    const frame = requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        setSlam(null);
+        timers.current.push(window.setTimeout(() => setRewinding(false), 755));
+      }),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [restoring]);
+
   function press(side: Side) {
     if (busy || slam) return;
     setSlam(side);
-    onLean?.(side);
+    onLean?.(side, true);
     timers.current.push(window.setTimeout(() => onPick(side), PICK_MS));
-    // If nothing replaced the cards (a refused vote, a sign-in prompt), the
-    // board resets so the next press is possible.
-    timers.current.push(window.setTimeout(() => setSlam(null), 1800));
+    // If nothing replaced the cards — a refused vote, a sign-in prompt, or a
+    // pending vote the reader took back — the board resets so the next press
+    // is possible, and the ground stops flooding with a colour nobody chose.
+    timers.current.push(
+      window.setTimeout(() => {
+        setSlam(null);
+        onLean?.(null);
+      }, 1800),
+    );
   }
 
   useImperativeHandle(ref, () => ({ press }));
@@ -90,15 +124,16 @@ export const Arena = forwardRef<
         perspective: "1400px",
         gridTemplateColumns:
           slam === "love" ? "1fr 0fr" : slam === "hate" ? "0fr 1fr" : "1fr 1fr",
-        transition: "grid-template-columns 340ms cubic-bezier(0.16, 1, 0.3, 1)",
+        transition: `grid-template-columns ${rewinding ? 670 : 340}ms cubic-bezier(0.16, 1, 0.3, 1)`,
       }}
     >
       {(["love", "hate"] as const).map((side) => (
         <Card
           key={side}
           side={side}
-          lit={hover === side && !slam}
-          chosen={slam === side}
+          lit={hover === side && !slam && !rewinding}
+          chosen={slam === side && !rewinding}
+          rewinding={rewinding && restoring === side}
           dim={(hover !== null && hover !== side && !slam) || (slam !== null && slam !== side)}
           tilt={tilt}
           armed={armed}
@@ -120,11 +155,13 @@ export const Arena = forwardRef<
 });
 
 function Card({
-  side, lit, chosen, dim, tilt, armed, onEnter, onMove, onLeave, onPress,
+  side, lit, chosen, rewinding, dim, tilt, armed, onEnter, onMove, onLeave, onPress,
 }: {
   side: Side;
   lit: boolean;
   chosen: boolean;
+  /** This card is giving the board back. */
+  rewinding: boolean;
   dim: boolean;
   tilt: { x: number; y: number };
   armed: boolean;
@@ -134,7 +171,7 @@ function Card({
   onPress: () => void;
 }) {
   const love = side === "love";
-  const Icon = love ? Heart : HeartBreak;
+  const Icon = rewinding ? ArrowUUpLeft : love ? Heart : HeartBreak;
   return (
     <Button
       bare
@@ -170,16 +207,26 @@ function Card({
           style={{ transform: "translateZ(34px)" }}
         >
           <Icon
-            weight={lit || armed || chosen ? "fill" : "bold"}
+            weight={rewinding || lit || armed || chosen ? "fill" : "bold"}
             className={cn(
               "size-[clamp(4.5rem,8vw,7.5rem)] transition-transform duration-200",
-              chosen ? "pop-in" : lit ? (love ? "heartbeat" : "wiggle") : love ? "idle-beat" : "idle-wiggle",
+              rewinding
+                ? "rewind-spin"
+                : chosen
+                  ? "pop-in"
+                  : lit
+                    ? love
+                      ? "heartbeat"
+                      : "wiggle"
+                    : love
+                      ? "idle-beat"
+                      : "idle-wiggle",
             )}
           />
           <span
             className={cn(
               "key !bg-current/15 !text-current !shadow-none transition-opacity duration-200",
-              chosen ? "opacity-0" : lit ? "opacity-90" : "opacity-45",
+              chosen || rewinding ? "opacity-0" : lit ? "opacity-90" : "opacity-45",
             )}
           >
             {love ? "L" : "H"}

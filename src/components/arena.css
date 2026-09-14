@@ -1,0 +1,29 @@
+/* ============================================================
+   The arena's two long moves.
+
+   Casting: the chosen card's colour takes the whole board while
+   the other collapses to nothing.
+
+   Undoing: **exactly that, run backwards.** The card comes back
+   holding the full width and gives it up, the other one grows
+   in beside it, and the icon on the face spins
+   counter-clockwise where the heart was. Nothing else announces
+   it — the reversal is the announcement.
+
+   The collapse runs at 670ms against the takeover's 340 — twice
+   as long, on purpose. Going forward should feel decisive;
+   coming back should feel like something being let go of, and
+   you should have time to watch it happen.
+   ============================================================ */
+
+/* Counter-clockwise into place. Clockwise would read as "again", which is the
+   opposite of what just happened. */
+@keyframes rewind-spin {
+  0% { transform: rotate(200deg) scale(0.5); opacity: 0; }
+  45% { transform: rotate(0deg) scale(1.12); opacity: 1; }
+  100% { transform: rotate(0deg) scale(1); opacity: 1; }
+}
+
+.rewind-spin {
+  animation: rewind-spin 670ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
