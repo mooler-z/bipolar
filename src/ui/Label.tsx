@@ -39,11 +39,11 @@ export function Chip({
     <span
       className={cn(
         "chip",
-        tone === "love" && "!bg-love/15 !text-love",
-        tone === "hate" && "!bg-hate/15 !text-hate",
-        tone === "coin" && "!bg-coin/15 !text-coin",
-        tone === "go" && "!bg-go/15 !text-go",
-        tone === "streak" && "!bg-streak/15 !text-streak",
+        tone === "love" && "!bg-love-fill/15 !text-love",
+        tone === "hate" && "!bg-hate-fill/15 !text-hate",
+        tone === "coin" && "!bg-coin-fill/15 !text-coin",
+        tone === "go" && "!bg-go-fill/15 !text-go",
+        tone === "streak" && "!bg-streak-fill/15 !text-streak",
         className,
       )}
     >

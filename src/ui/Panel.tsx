@@ -40,40 +40,43 @@ export function Panel({
 }
 
 /**
- * A probability bar, in the prediction-market idiom: one track, two shares,
- * the numbers on the ends, and the widths easing rather than jumping so a
- * moving market reads as movement instead of a glitch.
+ * A split bar, in the prediction-market idiom: one track, two shares, a hard
+ * seam between them, the numbers on the ends. The widths ease rather than
+ * jump so a moving market reads as movement instead of a glitch, and both
+ * shares grow from nothing on first paint.
+ *
  */
 export function Split({
   love,
   hate,
   height = 10,
   labels = false,
+  className,
 }: {
   love: number;
   hate: number;
   height?: number;
   labels?: boolean;
+  className?: string;
 }) {
   const total = love + hate;
   const l = total === 0 ? 50 : Math.round((love / total) * 100);
-  // One frame at zero width, so the transition has something to run from.
   const grown = useGrow();
 
   return (
-    <div>
+    <div className={className}>
       <div
-        className="flex w-full overflow-hidden rounded-[var(--r-pill)] bg-surface-3"
+        className="relative flex w-full overflow-hidden rounded-[var(--r-pill)] bg-surface-3"
         style={{ height }}
       >
         {total === 0 ? null : (
           <>
             <span
-              className="bg-love transition-[width] duration-[900ms] ease-out"
+              className="relative z-10 bg-love-fill transition-[width] duration-[900ms] ease-out"
               style={{ width: grown ? `${l}%` : "0%" }}
             />
             <span
-              className="bg-hate transition-[width] duration-[900ms] ease-out"
+              className="absolute inset-y-0 right-0 bg-hate-fill transition-[width] duration-[900ms] ease-out"
               style={{ width: grown ? `${100 - l}%` : "100%" }}
             />
           </>

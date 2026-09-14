@@ -37,7 +37,7 @@ export function Field({
         className={cn(
           "block h-12 w-full rounded-[var(--r-btn)] border-2 border-line bg-surface-2 px-3.5",
           "text-[15px] font-medium text-ink outline-none transition-colors",
-          "placeholder:text-mute focus-visible:border-hate",
+          "placeholder:text-mute focus-visible:border-hate-fill",
           className,
         )}
         {...rest}

@@ -3,7 +3,9 @@ import {
   cloneElement,
   forwardRef,
   isValidElement,
+  useState,
   type ButtonHTMLAttributes,
+  type PointerEvent,
   type ReactElement,
 } from "react";
 
@@ -12,10 +14,11 @@ import { cn } from "../lib/cn";
 /**
  * The canonical Button, and the only file allowed to write a `<button>`.
  *
- * A slab on a 4px edge of its own darker tone. Pressing moves it down onto the
- * edge and the edge vanishes, so it behaves like a key rather than a rectangle
- * that changed colour — Duolingo's trick, and the reason its controls feel
- * worth touching a hundred times a day.
+ * A solid rounded block that answers the hand: hover lifts it and runs a
+ * band of light across it; a press cocks it down and small, and release
+ * springs it back past centre while a ring of its own colour bursts out from
+ * the edge. The coloured variants speak in capitals because they are the
+ * ones that do something; steel is for the rest.
  */
 
 type Variant =
@@ -31,27 +34,29 @@ type Size = "sm" | "md" | "lg";
 
 const VARIANTS: Record<Variant, string> = {
   none: "",
-  go: "slab bg-go text-black shadow-[0_4px_0_0_var(--go-deep)]",
-  love: "slab bg-love text-white shadow-[0_4px_0_0_var(--love-deep)]",
-  hate: "slab bg-hate text-black shadow-[0_4px_0_0_var(--hate-deep)]",
-  coin: "slab bg-coin text-black shadow-[0_4px_0_0_var(--coin-deep)]",
-  steel: "slab bg-surface-3 text-ink-2 hover:text-ink",
-  ghost: "rounded-[var(--r-btn)] text-mute hover:bg-surface-3 hover:text-ink",
+  go: "snap rounded-[var(--r-btn)] bg-go-fill text-on-go uppercase tracking-[0.04em] [--ring:var(--go-fill)]",
+  love: "snap rounded-[var(--r-btn)] bg-love-fill text-on-love uppercase tracking-[0.04em] [--ring:var(--love-fill)]",
+  hate: "snap rounded-[var(--r-btn)] bg-hate-fill text-on-hate uppercase tracking-[0.04em] [--ring:var(--hate-fill)]",
+  coin: "snap rounded-[var(--r-btn)] bg-coin-fill text-on-coin uppercase tracking-[0.04em] [--ring:var(--coin-fill)]",
+  steel:
+    "snap rounded-[var(--r-btn)] bg-surface-3 text-ink-2 hover:bg-surface-4 hover:text-ink [--ring:var(--ink-3)]",
+  ghost:
+    "rounded-[var(--r-sm)] text-mute transition-colors hover:bg-surface-2 hover:text-ink",
   link: "text-mute underline underline-offset-4 hover:text-ink",
 };
 
-// Nothing under 44px. This is a phone product before it is anything else.
+// Nothing under 40px tall.
 const SIZES: Record<Size, string> = {
-  sm: "min-h-11 gap-1.5 px-3.5 text-[13px]",
-  md: "min-h-12 gap-2 px-5 text-[14px]",
-  lg: "min-h-14 gap-2 px-7 text-[15px]",
+  sm: "min-h-10 gap-1.5 px-4 text-[12.5px]",
+  md: "min-h-11 gap-2 px-5 text-[13.5px]",
+  lg: "min-h-[3.25rem] gap-2 px-7 text-[14.5px]",
 };
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: Variant;
   size?: Size;
   block?: boolean;
-  /** Behaviour and focus only — for regions that are clickable but not slabs. */
+  /** Behaviour and focus only — for regions that are clickable but not blocks. */
   bare?: boolean;
   asChild?: boolean;
 };
@@ -65,20 +70,22 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
     asChild = false,
     className,
     children,
+    onPointerDown,
     ...rest
   },
   ref,
 ) {
   const chosen = variant ?? (bare ? "none" : "steel");
-  const slab = chosen !== "none" && chosen !== "ghost" && chosen !== "link";
+  const springs = chosen !== "none" && chosen !== "ghost" && chosen !== "link";
+  // The ring is keyed so every press draws a fresh one.
+  const [ring, setRing] = useState(0);
 
   const classes = cn(
     "group relative inline-flex items-center justify-center font-bold",
     "tracking-[-0.01em] outline-none select-none",
-    "focus-visible:ring-2 focus-visible:ring-coin focus-visible:ring-offset-2 focus-visible:ring-offset-canvas",
+    "focus-visible:ring-2 focus-visible:ring-coin-fill focus-visible:ring-offset-2 focus-visible:ring-offset-canvas",
     "disabled:pointer-events-none disabled:opacity-40",
     bare ? "" : SIZES[size],
-    slab && "hover:brightness-110 active:slab-press",
     VARIANTS[chosen],
     block && "flex w-full",
     className,
@@ -90,8 +97,26 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
     return cloneElement(only, { className: cn(classes, only.props.className) });
   }
 
+  function down(e: PointerEvent<HTMLButtonElement>) {
+    if (springs) setRing((n) => n + 1);
+    onPointerDown?.(e);
+  }
+
   return (
-    <button ref={ref} type="button" className={classes} {...rest}>
+    <button ref={ref} type="button" className={classes} onPointerDown={down} {...rest}>
+      {springs ? (
+        <>
+          <span aria-hidden className="gleam overflow-hidden rounded-[inherit]" />
+          {ring > 0 ? (
+            <span
+              key={ring}
+              aria-hidden
+              className="ping-ring pointer-events-none absolute inset-0 rounded-[inherit]"
+              style={{ color: "var(--ring)" }}
+            />
+          ) : null}
+        </>
+      ) : null}
       {children}
     </button>
   );

@@ -1,0 +1,132 @@
+/* ============================================================
+   The house shapes: the card, the tile, the stamp, the key cap,
+   the watermark, the progress bar, the chip, and the type
+   utilities. Tokens live in index.css.
+   ============================================================ */
+
+/** Polymarket's card: a border, a dark surface, nothing louder. */
+@utility card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+}
+
+/**
+ * Duolingo's stat tile: a bordered box with its label in colour and one big
+ * number. Four of them in a row is how a lesson ends, and how a run ends here.
+ */
+@utility tile {
+  background: var(--surface);
+  border: 2px solid var(--line-2);
+  border-radius: var(--r-card);
+  padding: 10px 12px 12px;
+}
+
+/** A rubber stamp: the verdict, pressed onto the result at an angle. */
+@utility stamp {
+  display: inline-block;
+  padding: 3px 11px;
+  border: 3px solid currentColor;
+  border-radius: 7px;
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  transform: rotate(-5deg);
+}
+
+/** A key cap, for the keyboard path. */
+@utility key {
+  display: inline-grid;
+  place-items: center;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  border-radius: 5px;
+  background: var(--surface-3);
+  box-shadow: inset 0 -2px 0 0 rgba(0, 0, 0, 0.35);
+  color: var(--ink-3);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/** A huge word at low opacity, bleeding out of a corner. */
+@utility watermark {
+  position: absolute;
+  font-weight: 900;
+  letter-spacing: -0.06em;
+  line-height: 0.78;
+  /* Inherits the fill's own foreground, so it is dark on a pale block and
+     pale on a deep one without either being spelled out. */
+  color: color-mix(in srgb, currentColor 13%, transparent);
+  pointer-events: none;
+  user-select: none;
+}
+
+/** Duolingo's lesson bar: a track, a fill, and a lighter strip on the fill. */
+@utility bar {
+  position: relative;
+  height: 12px;
+  overflow: hidden;
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+}
+@utility bar-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: var(--r-pill);
+  background: var(--go-fill);
+  transition: width 700ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.bar-fill::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  right: 8px;
+  left: 8px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+@utility chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+@utility label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--mute);
+}
+
+@utility num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  letter-spacing: -0.02em;
+}
+
+/** Big and confident. Duolingo never whispers, and neither does a result. */
+@utility display {
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+}
+

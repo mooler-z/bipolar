@@ -1,0 +1,294 @@
+/* Motion. Short, and only where something happened. Transform and
+   opacity only — no layout property is animated. */
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes burst {
+  0% { transform: scale(0.7); opacity: 0; }
+  60% { transform: scale(1.06); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes roll {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes flicker {
+  0%, 100% { transform: scale(1) rotate(-2deg); }
+  50% { transform: scale(1.12) rotate(2deg); }
+}
+
+/* The heart on the answer being considered. */
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  22% { transform: scale(1.24); }
+  42% { transform: scale(1); }
+  62% { transform: scale(1.14); }
+}
+
+/* The thumb on the other one. */
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-14deg); }
+  75% { transform: rotate(12deg); }
+}
+
+/* A win sweeps a band of light across itself, once. */
+@keyframes sweep { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+.sweep::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.28) 50%,
+    transparent 70%
+  );
+  animation: sweep 0.9s ease-out 0.1s 1 both;
+}
+
+/* Confetti: each bit carries its own vector in custom properties. */
+@keyframes fly {
+  0% { transform: translate(-50%, -50%) scale(0.4); opacity: 1; }
+  70% { opacity: 1; }
+  100% {
+    transform: translate(calc(-50% + var(--fx)), calc(-50% + var(--fy)))
+      rotate(var(--fr)) scale(0.9);
+    opacity: 0;
+  }
+}
+
+/* A miss shakes, briefly, and does not repeat. */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-7px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(2px); }
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 currentColor; opacity: 0.55; }
+  100% { box-shadow: 0 0 0 18px currentColor; opacity: 0; }
+}
+
+@keyframes shimmer { from { background-position: -200% 0; } to { background-position: 200% 0; } }
+
+@keyframes pop-in {
+  0% { transform: scale(0.5); opacity: 0; }
+  70% { transform: scale(1.18); }  100% { transform: scale(1); opacity: 1; }
+}
+
+/* A number that just changed flashes once rather than swapping silently. */
+@keyframes flash {
+  0% { color: var(--coin-fill); transform: scale(1.25); }  100% { color: inherit; transform: scale(1); }
+}
+
+/* The verdict, stamped onto the result: big, then pressed down at an angle. */
+@keyframes stamp-in {
+  0% { transform: scale(2.3) rotate(-12deg); opacity: 0; }
+  55% { transform: scale(0.92) rotate(-5deg); opacity: 1; }
+  100% { transform: scale(1) rotate(-5deg); opacity: 1; }
+}
+
+/* A stat tile arriving: one after another, never all at once. */
+@keyframes tile-in {
+  from { opacity: 0; transform: translateY(18px) scale(0.94); }
+  to { opacity: 1; transform: none; }
+}
+
+/* The result panel's white flash as the colour floods in. */
+@keyframes slam-flash { from { opacity: 0.9; } to { opacity: 0; } }
+
+/* A row that just landed: lit for five seconds, then the light dissolves. */
+@keyframes fresh {
+  0%, 71% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.fresh-glow { animation: fresh 7s ease-out both; pointer-events: none; }
+
+/* The nudge under the first deck panel: there is something below this. */
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(3px); }
+}
+@utility bob { animation: bob 1.7s ease-in-out infinite; }
+
+/* A live dot, breathing. */
+@keyframes pulse-dot {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--go-fill) 65%, transparent); }
+  70% { box-shadow: 0 0 0 7px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* The bolt snapping to charged. */
+@keyframes bolt-strike {
+  0% { transform: scale(0.35) rotate(-28deg); opacity: 0; }
+  55% { transform: scale(1.4) rotate(9deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+/* Money going on the line: the control jolts once, and only once. */
+@keyframes jolt {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  14% { transform: translate3d(-4px, 1px, 0) rotate(-0.7deg); }
+  32% { transform: translate3d(4px, -1px, 0) rotate(0.7deg); }
+  52% { transform: translate3d(-3px, 0, 0) rotate(-0.4deg); }
+  74% { transform: translate3d(2px, 0, 0) rotate(0.2deg); }
+}
+
+/* A gold band crossing a face, once, when it arms. */
+@keyframes gold-wash {
+  from { transform: translateX(-110%) skewX(-16deg); }
+  to { transform: translateX(240%) skewX(-16deg); }
+}
+
+/* ── The utilities that name them ─────────────────────────────────────── */
+
+@utility rise { animation: rise 0.36s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@utility burst { animation: burst 0.34s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@utility roll { animation: roll 0.25s ease-out both; }
+@utility stagger { animation: roll 0.3s ease-out both; }
+@utility flicker { animation: flicker 1.4s ease-in-out infinite; }
+@utility shake { animation: shake 0.42s ease-out both; }
+@utility pop-in { animation: pop-in 0.42s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@utility flash { animation: flash 0.45s ease-out both; }
+@utility ping-ring { animation: pulse-ring 0.7s ease-out both; }
+@utility heartbeat { animation: heartbeat 0.9s ease-in-out infinite; }
+@utility wiggle { animation: wiggle 0.5s ease-in-out infinite; }
+@utility stamp-in { animation: stamp-in 0.42s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@utility tile-in { animation: tile-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@utility slam-flash { animation: slam-flash 0.55s ease-out both; pointer-events: none; }
+@utility pulse-dot { animation: pulse-dot 1.6s ease-out infinite; }
+@utility bolt-strike { animation: bolt-strike 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@utility jolt { animation: jolt 0.46s ease-out both; }
+@utility slide-up { animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/** Loading: a band of light travelling across a placeholder. */
+@utility shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--surface-2) 25%,
+    var(--surface-3) 37%,
+    var(--surface-2) 63%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+/** A win sweeps a band of light across itself, once. */
+@utility sweep {
+  position: relative;
+  overflow: hidden;
+}
+
+/** A gold band crossing a face, once, when it arms. */
+@utility gold-wash {
+  position: absolute;
+  inset: -30% -40%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 200, 0, 0.55),
+    transparent
+  );
+  animation: gold-wash 0.7s ease-out both;
+  pointer-events: none;
+}
+
+/* ── Hover rules that need a selector, not a keyframe ─────────────────── */
+
+/* The spring. Lift on hover, cock on press, spring back on release. */
+.snap:hover { transform: translateY(-2px) scale(1.03); filter: brightness(1.07); }
+.snap:active { transform: translateY(1px) scale(0.94); filter: brightness(0.94); transition-duration: 60ms; }
+.snap:disabled, .snap:disabled:hover, .snap:disabled:active { transform: none; filter: none; }
+/* A band of light crossing the face as the cursor arrives, once. */
+@keyframes gleam {
+  from { transform: translateX(-140%) skewX(-18deg); }
+  to { transform: translateX(240%) skewX(-18deg); }
+}
+.snap > .gleam {
+  position: absolute;
+  inset: -20% -40%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.22),
+    transparent
+  );
+  transform: translateX(-140%) skewX(-18deg);
+  opacity: 0;
+  pointer-events: none;
+}
+.snap:hover > .gleam {
+  opacity: 1;
+  animation: gleam 0.6s ease-out;
+}
+
+/* ── The two answer cards ──────────────────────────────────────────────── */
+
+/* A card in 3D: tilts toward the cursor, punches on press. */
+.card-3d {
+  transform-style: preserve-3d;
+  will-change: transform;
+  transition:
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    filter 240ms ease-out,
+    opacity 240ms ease-out;
+}
+.card-3d:active { transform: scale(0.95) !important; transition-duration: 70ms; }
+.card-dim { transform: scale(0.95); opacity: 0.42; filter: saturate(0.25); } /* not being considered */
+
+/* Pressing punches the card: down, then up past centre, then settled. */
+@keyframes punch {
+  0% { transform: scale(1); }
+  30% { transform: scale(0.93); }
+  70% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+.punch { animation: punch 0.34s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* At rest the icons are alive: a beat every few seconds, never in sync. */
+@keyframes idle-beat {
+  0%, 88%, 100% { transform: scale(1); }
+  91% { transform: scale(1.12); }
+  94% { transform: scale(1); }
+  97% { transform: scale(1.08); }
+}
+@keyframes idle-wiggle {
+  0%, 86%, 100% { transform: rotate(0); }
+  90% { transform: rotate(-12deg); }  95% { transform: rotate(9deg); }
+}
+.idle-beat { animation: idle-beat 4.2s ease-in-out infinite; }
+.idle-wiggle { animation: idle-wiggle 5.1s ease-in-out 1.3s infinite; }
+
+.lift:hover { transform: translateY(-2px); }  .lift:active { transform: translateY(0); }
+
+.card-hover:hover {
+  border-color: color-mix(in srgb, var(--ink) 22%, var(--line));
+}
+
+@media (max-width: 1279px) {
+  .col-scroll { overscroll-behavior: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-3d, .card-dim { transform: none !important; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
