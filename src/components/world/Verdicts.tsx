@@ -56,17 +56,24 @@ export function Verdicts({ rows }: { rows: Verdict[] }) {
               <Country code={r.about} />
             </span>
 
-            <span className="min-w-0 flex-1 text-[12.5px] text-ink-3">
-              {/* The sentence, so the bar is never the only thing saying it. */}
+            <span className="min-w-0 flex-1 text-[13px] text-ink-3">
+              {/* The word is the sentence; the bar is the evidence for it. */}
               {self ? "on itself — " : ""}
-              <span className="font-bold text-ink">{verdictWord(r.lovePct)}</span>
+              <span
+                className={cn(
+                  "font-extrabold",
+                  r.lovePct >= 50 ? "text-love" : "text-hate",
+                )}
+              >
+                {verdictWord(r.lovePct)}
+              </span>
               <span className="text-mute">
                 {" "}
                 · {fmtInt(r.topics)} {r.topics === 1 ? "question" : "questions"}
               </span>
             </span>
 
-            <Lean lovePct={r.lovePct} votes={r.votes} className="w-full sm:w-[12rem]" />
+            <Lean lovePct={r.lovePct} votes={r.votes} bare className="w-full sm:w-[9rem]" />
           </li>
         );
       })}

@@ -85,7 +85,7 @@ function Side({ title, tone, rows }: { title: string; tone: string; rows: Subjec
           >
             <Country code={s.code} />
             <span className="flex-1" />
-            <Lean lovePct={s.lovePct} votes={s.votes} className="w-[10rem]" />
+            <Lean lovePct={s.lovePct} votes={s.votes} className="w-[13rem]" />
           </li>
         ))}
       </ul>

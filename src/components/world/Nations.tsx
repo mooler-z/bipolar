@@ -3,7 +3,8 @@ import { ArrowRight } from "@phosphor-icons/react";
 import { cn } from "../../lib/cn";
 import { fmtInt } from "../../lib/format";
 import { Flag } from "../../ui/Flag";
-import { Country, Lean, verdictWord } from "./bars";
+import { agreeWord, leanWord, moodWord, sideOf, strengthOf } from "../../lib/words";
+import { Country, Lean } from "./bars";
 import type { Pair } from "./Rivals";
 import type { Subject } from "./SubjectsTab";
 import type { Verdict } from "./Verdicts";
@@ -69,10 +70,20 @@ export function NationCard({
           <p className="display truncate text-[clamp(1.4rem,2.2vw,2rem)] text-ink">
             {nameOf(nation.code)}
           </p>
-          <p className="text-[13px] text-ink-3">
-            <span className="font-bold text-ink">{verdictWord(nation.lovePct)}</span> what it has
-            been shown
-            <span className="text-mute"> · {fmtInt(nation.topics)} questions</span>
+          <p className="text-[13.5px] text-ink-3">
+            is{" "}
+            <span
+              className={cn(
+                "font-extrabold",
+                sideOf(nation.lovePct) === "love" ? "text-love" : "text-hate",
+              )}
+            >
+              {moodWord(nation.lovePct)}
+            </span>
+            <span className="text-mute">
+              {" "}
+              · {strengthOf(nation.lovePct)}% · {fmtInt(nation.topics)} questions
+            </span>
           </p>
         </div>
       </div>
@@ -80,17 +91,24 @@ export function NationCard({
       <Lean lovePct={nation.lovePct} votes={nation.votes} />
 
       <div className="grid grid-cols-2 gap-2">
-        <Figure label="against the world" value={`${nation.contrary}%`} tone="text-streak" />
+        <Figure
+          label="goes against the world"
+          value={contraryWord(nation.contrary)}
+          note={`${nation.contrary}%`}
+          tone="text-streak"
+        />
         <Figure label="questions answered" value={fmtInt(nation.topics)} />
         <Figure
-          label="best friend"
-          value={friend ? `${friend.agreement}%` : "—"}
+          label="gets on best with"
+          value={friend ? agreeWord(friend.agreement) : "—"}
+          note={friend ? `${friend.agreement}%` : undefined}
           who={friend?.other}
           tone="text-love"
         />
         <Figure
-          label="worst enemy"
-          value={enemy ? `${enemy.agreement}%` : "—"}
+          label="gets on worst with"
+          value={enemy ? agreeWord(enemy.agreement) : "—"}
+          note={enemy ? `${enemy.agreement}%` : undefined}
           who={enemy?.other}
           tone="text-hate"
         />
@@ -135,11 +153,14 @@ function Rows({ title, tone, rows }: { title: string; tone: string; rows: Verdic
             <span className="flex-1" />
             <span
               className={cn(
-                "num text-[12.5px] font-extrabold",
-                v.lovePct >= 50 ? "text-love" : "text-hate",
+                "truncate text-[12px] font-extrabold",
+                sideOf(v.lovePct) === "love" ? "text-love" : "text-hate",
               )}
             >
-              {v.lovePct}%
+              {leanWord(v.lovePct)}
+            </span>
+            <span className="num shrink-0 text-[10px] font-bold text-mute">
+              {strengthOf(v.lovePct)}%
             </span>
           </li>
         ))}
@@ -160,10 +181,8 @@ function Tags({ title, tone, rows }: { title: string; tone: string; rows: Subjec
             className="flex items-center gap-1.5 rounded-[var(--r-pill)] border border-line bg-surface-2/40 px-2.5 py-1 text-[12px]"
           >
             <span className="font-bold text-ink capitalize">{s.slug}</span>
-            <span
-              className={cn("num font-extrabold", s.lovePct >= 50 ? "text-love" : "text-hate")}
-            >
-              {s.lovePct >= 50 ? s.lovePct : 100 - s.lovePct}%
+            <span className="num text-[10px] font-bold text-mute">
+              {strengthOf(s.lovePct)}%
             </span>
           </li>
         ))}
@@ -172,27 +191,39 @@ function Tags({ title, tone, rows }: { title: string; tone: string; rows: Subjec
   );
 }
 
+/** How often a country breaks from everyone else, as a word. */
+export function contraryWord(pct: number): string {
+  if (pct >= 60) return "always";
+  if (pct >= 45) return "often";
+  if (pct >= 30) return "sometimes";
+  if (pct >= 15) return "rarely";
+  return "hardly ever";
+}
+
 export function Figure({
   label,
   value,
+  note,
   who,
   tone = "text-ink",
 }: {
   label: string;
   value: string;
+  /** The number the word came from. Small, beside it. */
+  note?: string;
   /** A country the figure is about, shown as its flag. */
   who?: string;
   tone?: string;
 }) {
   return (
     <span className="rounded-[var(--r-btn)] border border-line bg-surface-2 px-3 py-2">
-      <span className="label block">{label}</span>
-      <span className="flex items-center gap-2">
-        {who ? <Flag code={who} /> : null}
-        <span className={`num text-[clamp(1.1rem,1.8vw,1.5rem)] font-extrabold ${tone}`}>
+      <span className="label block truncate">{label}</span>
+      <span className="flex items-baseline gap-1.5">
+        {who ? <Flag code={who} className="self-center" /> : null}
+        <span className={cn("truncate text-[clamp(0.95rem,1.5vw,1.2rem)] font-extrabold", tone)}>
           {value}
         </span>
-        {who ? <span className="num text-[11px] font-bold text-mute">{who}</span> : null}
+        {note ? <span className="num text-[10px] font-bold text-mute">{note}</span> : null}
       </span>
     </span>
   );

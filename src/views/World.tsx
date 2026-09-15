@@ -4,7 +4,8 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { fmtInt } from "../lib/format";
 import { Button } from "../ui/Button";
-import { Country, verdictWord } from "../components/world/bars";
+import { agreeWord, leanWord, moodWord, sideOf, strengthOf } from "../lib/words";
+import { Country } from "../components/world/bars";
 import { NationCard, nationFill, type Nation } from "../components/world/Nations";
 import { RecordCards, records } from "../components/world/Records";
 import { RivalryCard, agreementWith } from "../components/world/Rivalries";
@@ -113,17 +114,17 @@ export function World({ onDone }: { onDone: () => void }) {
     if (tab === "rivalries" && active !== pick) {
       const p = agreement.get(active);
       return p
-        ? `${nameOf(pick!)} and ${nameOf(active)} agree ${p.agreement}% of the time, over ${fmtInt(p.shared)} shared questions.`
+        ? `${nameOf(pick!)} and ${nameOf(active)} are ${agreeWord(p.agreement)} — ${p.agreement}% of the time, over ${fmtInt(p.shared)} shared questions.`
         : `${nameOf(active)} has not answered enough of the same questions as ${nameOf(pick!)} yet.`;
     }
     if (tab === "subjects") {
       const s = subjectLean.get(active);
       return s
-        ? `${nameOf(active)} ${verdictWord(s.lovePct)} ${chosenSubject} — ${s.lovePct}% love over ${fmtInt(s.votes)} votes.`
+        ? `${nameOf(active)} ${leanWord(s.lovePct)} ${chosenSubject} — ${strengthOf(s.lovePct)}% over ${fmtInt(s.votes)} votes.`
         : `${nameOf(active)} has not answered enough about ${chosenSubject} yet.`;
     }
     return n
-      ? `${nameOf(active)} ${verdictWord(n.lovePct)} what it is shown — ${n.lovePct}% love over ${fmtInt(n.votes)} votes.`
+      ? `${nameOf(active)} is ${moodWord(n.lovePct)} — ${strengthOf(n.lovePct)}% ${sideOf(n.lovePct)} over ${fmtInt(n.votes)} votes.`
       : `${nameOf(active)} has not voted yet.`;
   })();
 
@@ -133,15 +134,15 @@ export function World({ onDone }: { onDone: () => void }) {
         <div>
           <p className="label mb-1">The world so far</p>
           <p className="flex flex-wrap items-baseline gap-x-3">
-            <span
-              className={`num display text-[clamp(2.4rem,5vw,4rem)] ${t.lovePct < 50 ? "text-hate" : "text-love"}`}
-            >
-              {t.lovePct}%
+            <span className="display text-[clamp(1.5rem,3vw,2.4rem)] text-ink">
+              The world is{" "}
+              <span className={t.lovePct < 50 ? "text-hate" : "text-love"}>
+                {moodWord(t.lovePct)}
+              </span>
             </span>
-            <span className="display text-[clamp(1.1rem,1.8vw,1.5rem)] text-ink">in love</span>
-            <span className="text-[13px] text-mute">
-              · {fmtInt(t.votes)} votes · {fmtInt(t.countries)} countries · {fmtInt(t.topics)}{" "}
-              questions
+            <span className="num text-[13px] font-bold text-mute">
+              {strengthOf(t.lovePct)}% {sideOf(t.lovePct)} · {fmtInt(t.votes)} votes ·{" "}
+              {fmtInt(t.countries)} countries · {fmtInt(t.topics)} questions
             </span>
           </p>
         </div>

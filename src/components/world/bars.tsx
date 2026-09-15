@@ -1,5 +1,6 @@
 import { cn } from "../../lib/cn";
 import { fmtInt } from "../../lib/format";
+import { leanWord, sideOf, strengthOf } from "../../lib/words";
 import { Flag } from "../../ui/Flag";
 
 /**
@@ -7,20 +8,27 @@ import { Flag } from "../../ui/Flag";
  *
  * A lean is a bar split at its own percentage — love from the left, hate from
  * the right — so every board on the page is read the same way and a row can be
- * compared to a row three sections down without thinking. The number sits on
- * whichever side is winning, because a percentage floating over a seam belongs
- * to neither.
+ * compared to a row three sections down without thinking.
+ *
+ * **The word is the headline and the number is the evidence.** "Despises" is
+ * a thing somebody repeats; "8%" is a thing nobody does, and they say the
+ * same thing. So the word is set in the winning side's colour at reading size
+ * and the percentage sits after it, small, agreeing with it rather than
+ * contradicting it — the number beside "despises" is the share *against*.
  */
 export function Lean({
   lovePct,
   votes,
+  /** Drop the word where the row already says it. */
+  bare = false,
   className,
 }: {
   lovePct: number;
   votes: number;
+  bare?: boolean;
   className?: string;
 }) {
-  const loves = lovePct >= 50;
+  const loves = sideOf(lovePct) === "love";
   return (
     <span className={cn("flex items-center gap-2.5", className)}>
       <span className="relative h-2.5 min-w-0 flex-1 overflow-hidden rounded-full bg-hate-fill">
@@ -29,31 +37,28 @@ export function Lean({
           style={{ width: `${lovePct}%` }}
         />
       </span>
-      <span
-        className={cn(
-          "num w-11 shrink-0 text-right text-[12.5px] font-extrabold",
-          loves ? "text-love" : "text-hate",
-        )}
-      >
-        {loves ? lovePct : 100 - lovePct}%
+      {bare ? null : (
+        <span
+          className={cn(
+            "w-[6.5rem] shrink-0 truncate text-[12.5px] font-extrabold",
+            loves ? "text-love" : "text-hate",
+          )}
+        >
+          {leanWord(lovePct)}
+        </span>
+      )}
+      <span className="num w-7 shrink-0 text-right text-[10.5px] font-bold text-mute">
+        {strengthOf(lovePct)}%
       </span>
-      <span className="num w-10 shrink-0 text-right text-[11px] text-mute">
+      <span className="num w-8 shrink-0 text-right text-[10px] text-mute">
         {fmtInt(votes)}
       </span>
     </span>
   );
 }
 
-/** The word for which way a room went. Said out loud, not inferred from colour. */
-export function verdictWord(lovePct: number): string {
-  if (lovePct >= 80) return "adored";
-  if (lovePct >= 62) return "liked";
-  if (lovePct > 55) return "warm to";
-  if (lovePct >= 45) return "split on";
-  if (lovePct > 38) return "cool on";
-  if (lovePct > 20) return "dislike";
-  return "can't stand";
-}
+/** The word for which way a room went, from the one scale the page uses. */
+export { leanWord as verdictWord } from "../../lib/words";
 
 /** A country, named. The flag alone is a guess on half the world. */
 export function Country({ code, className }: { code: string; className?: string }) {

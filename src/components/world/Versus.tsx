@@ -1,9 +1,9 @@
-import { ArrowRight, Lightning } from "@phosphor-icons/react";
+import { ArrowRight } from "@phosphor-icons/react";
 
 import { cn } from "../../lib/cn";
 import { fmtInt } from "../../lib/format";
 import { Flag } from "../../ui/Flag";
-import { verdictWord } from "./bars";
+import { agreeWord, leanWord, moodWord, sideOf, strengthOf } from "../../lib/words";
 import type { Nation } from "./Nations";
 import type { Pair } from "./Rivals";
 import type { Subject } from "./SubjectsTab";
@@ -62,11 +62,17 @@ export function Versus({
         <div className="text-center">
           {pair ? (
             <>
-              <span className="num display block text-[clamp(2rem,4vw,3.2rem)] leading-none text-ink">
-                {pair.agreement}%
+              <span
+                className={cn(
+                  "display block text-[clamp(1.1rem,2.2vw,1.7rem)] leading-tight",
+                  pair.agreement >= 56 ? "text-love" : pair.agreement >= 44 ? "text-ink" : "text-hate",
+                )}
+              >
+                {agreeWord(pair.agreement)}
               </span>
-              <span className="label block">agree</span>
-              <span className="num block text-[11px] text-mute">{fmtInt(pair.shared)} shared</span>
+              <span className="num block text-[11px] font-bold text-mute">
+                {pair.agreement}% · {fmtInt(pair.shared)} shared
+              </span>
             </>
           ) : (
             <>
@@ -101,16 +107,16 @@ export function Versus({
 }
 
 function Side({ n, tone, right = false }: { n: Nation; tone: string; right?: boolean }) {
-  const loves = n.lovePct >= 50;
+  const loves = sideOf(n.lovePct) === "love";
   return (
     <div className={cn("min-w-0", right && "text-right")}>
       <Flag code={n.code} size="h-9 w-12" className={cn(right && "flex-row-reverse")} />
       <p className={cn("mt-1.5 truncate text-[14px] font-extrabold", tone)}>{nameOf(n.code)}</p>
-      <p className="text-[12px] text-ink-3">
-        <span className={cn("num font-extrabold", loves ? "text-love" : "text-hate")}>
-          {loves ? n.lovePct : 100 - n.lovePct}% {loves ? "love" : "hate"}
+      <p className="text-[12.5px]">
+        <span className={cn("font-extrabold", loves ? "text-love" : "text-hate")}>
+          {moodWord(n.lovePct)}
         </span>
-        <span className="text-mute"> · {n.contrary}% contrary</span>
+        <span className="num text-[10px] font-bold text-mute"> {strengthOf(n.lovePct)}%</span>
       </p>
     </div>
   );
@@ -135,14 +141,19 @@ function Says({
         <span className="text-ink-3">{about.code}</span>
       </p>
       {v ? (
-        <p className="mt-1 text-[13px] text-ink-3">
-          <span className="font-bold text-ink">{verdictWord(v.lovePct)}</span>{" "}
+        <p className="mt-1 text-[13.5px]">
           <span
-            className={cn("num font-extrabold", v.lovePct >= 50 ? "text-love" : "text-hate")}
+            className={cn(
+              "font-extrabold",
+              sideOf(v.lovePct) === "love" ? "text-love" : "text-hate",
+            )}
           >
-            {v.lovePct}%
+            {leanWord(v.lovePct)}
           </span>
-          <span className="text-mute"> · {fmtInt(v.topics)} q</span>
+          <span className="num text-[10.5px] font-bold text-mute">
+            {" "}
+            {strengthOf(v.lovePct)}% · {fmtInt(v.topics)} q
+          </span>
         </p>
       ) : (
         <p className="mt-1 text-[12px] text-mute">no verdict yet</p>
@@ -174,11 +185,15 @@ function Subjects({
             key={s.slug}
             className="flex items-center gap-2 rounded-[var(--r-btn)] border border-line bg-surface-2/40 px-2.5 py-1.5 text-[12px]"
           >
-            <span className="w-20 shrink-0 truncate font-bold text-ink capitalize">{s.slug}</span>
+            <span className="w-16 shrink-0 truncate font-bold text-ink capitalize">{s.slug}</span>
             <span className="flex-1" />
-            <span className="num font-extrabold text-coin" title={a}>{s.a}%</span>
-            <Lightning weight="fill" className="size-3 text-mute" />
-            <span className="num font-extrabold text-go" title={b}>{s.b}%</span>
+            <span className="truncate text-[11px] font-extrabold text-coin" title={a}>
+              {leanWord(s.a)}
+            </span>
+            <span className="text-[10px] text-mute">vs</span>
+            <span className="truncate text-[11px] font-extrabold text-go" title={b}>
+              {leanWord(s.b)}
+            </span>
           </li>
         ))}
       </ul>
