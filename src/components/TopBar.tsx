@@ -1,5 +1,5 @@
 import { useQuery } from "convex/react";
-import { Globe, Lightning, Moon, Plus, Sun } from "@phosphor-icons/react";
+import { Globe, Lightning, Plus } from "@phosphor-icons/react";
 
 import { api } from "../../convex/_generated/api";
 import { openAsk } from "../lib/ask";
@@ -7,9 +7,8 @@ import { AskButton } from "../ui/AskButton";
 import { cn } from "../lib/cn";
 import { fmtInt, fmtMoney } from "../lib/format";
 import { Notifications } from "./Notifications";
+import { UserMenu } from "./UserMenu";
 import { Search } from "./Search";
-import { useTheme } from "../lib/theme";
-import { Avatar } from "../ui/Avatar";
 import { Button } from "../ui/Button";
 import { Wordmark } from "../ui/Wordmark";
 
@@ -74,7 +73,10 @@ export function TopBar({
   const me = useQuery(api.users.me);
   const global = useQuery(api.stats.global);
   const sparks = me?.sparks ?? 0;
-  const [theme, toggleTheme] = useTheme();
+  /* Read here as well as inside `Notifications`, because on a phone the bell
+     is not rendered and the avatar is what has to carry the count. Convex
+     dedupes the subscription, so the second reader costs nothing. */
+  const unread = useQuery(api.notifications.unread) ?? 0;
 
   return (
     <header className="topbar sticky top-0 z-40 flex h-[var(--bar)] shrink-0 items-center gap-2 border-b border-line/70 px-3 sm:gap-3 sm:px-5">
@@ -128,13 +130,17 @@ export function TopBar({
         World
       </Button>
 
+      {/* Gone from a phone. The wallet has a home on the account screen and
+          the balance is on the question itself, beside the switch that spends
+          it — which is the only place a reader is deciding about it. Up here it
+          was the loudest thing in a bar that is meant to be furniture. */}
       {me ? (
         <Button
           bare
           aria-label={`${sparks} sparks — get more`}
           onClick={onAccount}
           className={cn(
-            "snap flex min-h-9 items-center gap-1.5 rounded-[var(--r-btn)] px-3 sm:min-h-10 sm:gap-2 sm:pr-1.5 sm:pl-3.5",
+            "snap hidden min-h-9 items-center gap-1.5 rounded-[var(--r-btn)] px-3 sm:flex sm:min-h-10 sm:gap-2 sm:pr-1.5 sm:pl-3.5",
             sparks > 0 ? "bg-coin-fill text-on-coin" : "bg-surface-3 text-coin hover:bg-surface-4",
           )}
         >
@@ -158,38 +164,25 @@ export function TopBar({
       {/* ── you ─────────────────────────────────────────────────────────── */}
       {signedIn ? <span aria-hidden className="mx-1 hidden h-6 w-px bg-line sm:block" /> : null}
 
-      {/* The bell stays on a phone: it is the only thing up here that is
-          about something that happened rather than something to press. */}
-      {signedIn ? <Notifications /> : null}
-
-      {/* Both of these have a home on the account screen, so the phone drops
-          them rather than shrinking them. */}
-      <Button
-        bare
-        aria-label={theme === "light" ? "Switch to dark" : "Switch to light"}
-        title={theme === "light" ? "Dark" : "Light"}
-        onClick={toggleTheme}
-        className="hidden size-10 place-items-center rounded-[var(--r-btn)] text-mute transition-colors hover:bg-surface-2 hover:text-ink sm:grid"
-      >
-        {theme === "light" ? (
-          <Moon key="moon" weight="fill" className="pop-in size-4" />
-        ) : (
-          <Sun key="sun" weight="fill" className="pop-in size-4" />
-        )}
-      </Button>
+      {/* The bell is a desk control now. On a phone the header is cut to the
+          bone and a second icon beside the avatar is a second thing to aim a
+          thumb at; the count moves onto the avatar instead, which is where
+          somebody already goes to find their own things. */}
+      {signedIn ? (
+        <span className="hidden sm:block">
+          <Notifications />
+        </span>
+      ) : null}
 
       {signedIn ? (
-        <Button
-          bare
-          aria-label="Your account"
-          onClick={onAccount}
-          className="lift flex min-h-9 items-center gap-2 rounded-[var(--r-pill)] pr-0 pl-0 hover:bg-surface-2 sm:min-h-10 sm:pr-3 sm:pl-1"
-        >
-          <Avatar name={me?.displayName ?? "?"} />
-          <span className="hidden text-[13px] font-bold sm:block">
-            {(me?.displayName?.split(" ")[0] ?? "You").slice(0, 12)}
-          </span>
-        </Button>
+        <UserMenu
+          name={me?.displayName ?? "You"}
+          sparks={sparks}
+          role={me?.role ?? "user"}
+          unread={unread}
+          onAccount={onAccount}
+          onWorld={onWorld}
+        />
       ) : atAccount ? null : (
         <Button variant="go" size="sm" onClick={onAccount}>
           Sign in

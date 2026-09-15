@@ -41,6 +41,13 @@ import { Settings } from "./Settings";
  *
  * Not a 512px column. This is reached from a desktop console, and a phone
  * screen dropped into the middle of one is exactly the complaint.
+ *
+ * On a phone it folds rather than shrinks: the face and the name stack with
+ * the way back pinned above them, and the wallet's three figures become a row
+ * of three columns with the one button that changes them underneath at full
+ * width. Laid out for a desk and squeezed, the three balances wrapped into a
+ * ragged two-and-one and the header's two buttons pushed the name onto its
+ * own line — a page about one person that opened with furniture.
  */
 export function Profile({ onDone }: { onDone: () => void }) {
   const me = useQuery(api.users.me);
@@ -74,13 +81,28 @@ export function Profile({ onDone }: { onDone: () => void }) {
   return (
     <div className="min-h-[calc(100dvh-var(--bar))]">
       {/* Who. */}
-      <header className={cn("flex flex-wrap items-center gap-x-5 gap-y-4 pt-[clamp(1.25rem,3vh,2.25rem)] pb-5", PAD)}>
+      <header className={cn("pt-[clamp(1.25rem,3vh,2.25rem)] pb-5", PAD)}>
+        {/* The way back, on its own line on a phone — in the header's row it
+            was competing with the name for a width neither of them had. */}
+        <div className="mb-4 flex items-center gap-2 sm:hidden">
+          <Button variant="ghost" size="sm" onClick={onDone}>
+            <ArrowLeft className="size-4" /> Back to voting
+          </Button>
+          <span className="flex-1" />
+          <Button variant="ghost" size="sm" onClick={() => void signOut()}>
+            <SignOut className="size-4" /> Sign out
+          </Button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-4">
         <Avatar
           name={name}
-          className="size-[clamp(3.5rem,5.5vw,5.5rem)] text-[clamp(1.5rem,2.4vw,2.4rem)]"
+          className="size-14 text-[1.4rem] sm:size-[clamp(3.5rem,5.5vw,5.5rem)] sm:text-[clamp(1.5rem,2.4vw,2.4rem)]"
         />
         <span className="min-w-0 flex-1">
-          <h1 className="display text-[clamp(1.7rem,3vw,2.8rem)]">{name}</h1>
+          <h1 className="display text-[clamp(1.5rem,7vw,2.8rem)] sm:text-[clamp(1.7rem,3vw,2.8rem)]">
+            {name}
+          </h1>
           <span className="mt-2 flex flex-wrap items-center gap-1.5">
             {/* The flag leads, always. */}
             {me.countryCode ? (
@@ -99,20 +121,22 @@ export function Profile({ onDone }: { onDone: () => void }) {
             </Chip>
           </span>
         </span>
-        <span className="flex shrink-0 items-center gap-2">
+        {/* The bar carries no sign-out at all any more, so this page is the
+            only place it lives. */}
+        <span className="hidden shrink-0 items-center gap-2 sm:flex">
           <Button variant="ghost" onClick={onDone}>
             <ArrowLeft className="size-4" /> Back to voting
           </Button>
-          {/* The bar drops this on a phone, so it has to live somewhere. */}
-          <Button variant="ghost" onClick={() => void signOut()} className="sm:hidden">
+          <Button variant="ghost" onClick={() => void signOut()}>
             <SignOut className="size-4" /> Sign out
           </Button>
         </span>
+        </div>
       </header>
 
       {/* What you have. One band, three figures, one button. */}
-      <div className={cn("border-y border-line bg-surface/50 py-5", PAD)}>
-        <div className="flex flex-wrap items-center gap-x-10 gap-y-4">
+      <div className={cn("border-y border-line bg-surface/50 py-4 sm:py-5", PAD)}>
+        <div className="grid grid-cols-3 gap-x-3 gap-y-4 sm:flex sm:flex-wrap sm:items-center sm:gap-x-10">
           <Balance
             icon={<Lightning weight="fill" className="size-5" />}
             value={fmtInt(me.sparks)}
@@ -135,8 +159,8 @@ export function Profile({ onDone }: { onDone: () => void }) {
             hint="what the sparks are worth"
             tone="text-ink"
           />
-          <span className="flex-1" />
-          <Button variant="coin" size="md" asChild>
+          <span className="hidden flex-1 sm:block" />
+          <Button variant="coin" size="md" asChild className="col-span-3 sm:col-auto">
             <a href="#packs">
               Get sparks <ArrowRight weight="bold" className="size-4" />
             </a>
@@ -203,16 +227,29 @@ function Balance({
   flash?: number;
 }) {
   return (
-    <span className="flex items-center gap-3">
+    /* A column on a phone, a row on a desk. Side by side in a third of a small
+       screen the icon and the figure left the label nowhere to go. */
+    <span className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
       <span className={cn("shrink-0", tone)}>{icon}</span>
-      <span className="leading-none">
+      <span className="min-w-0 leading-none">
         <span className="flex items-baseline gap-1.5">
-          <span key={flash} className={cn("display num text-[clamp(1.8rem,2.6vw,2.5rem)]", tone, flash !== undefined && "flash inline-block")}>
+          <span
+            key={flash}
+            className={cn(
+              "display num text-[clamp(1.35rem,6vw,2.5rem)] sm:text-[clamp(1.8rem,2.6vw,2.5rem)]",
+              tone,
+              flash !== undefined && "flash inline-block",
+            )}
+          >
             {value}
           </span>
-          <span className="text-[11px] font-extrabold tracking-[0.1em] text-mute uppercase">{label}</span>
+          <span className="text-[10px] font-extrabold tracking-[0.1em] text-mute uppercase sm:text-[11px]">
+            {label}
+          </span>
         </span>
-        <span className="mt-1.5 block text-[11.5px] text-mute">{hint}</span>
+        {/* The small print is a desk's luxury; three of them under three
+            figures on a phone is a paragraph nobody asked for. */}
+        <span className="mt-1.5 hidden text-[11.5px] text-mute sm:block">{hint}</span>
       </span>
     </span>
   );
