@@ -1,6 +1,8 @@
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 
 import { mutation, query } from "./_generated/server";
+import { pageOf } from "./lib/page";
 import type { Doc, Id } from "./_generated/dataModel";
 import { ROLE_RANK, ROLES, type Role } from "./lib/rbac";
 import { audit, requirePermission } from "./admin";
@@ -25,9 +27,6 @@ import { audit, requirePermission } from "./admin";
  * Rule 8 holds throughout: every write here lands an `auditLog` row in the
  * same mutation, naming who did it, to whom, and what it was before.
  */
-
-/** A bounded scan. This console is for finding somebody, not for exporting. */
-const SCAN = 800;
 
 const row = v.object({
   _id: v.id("users"),
@@ -60,46 +59,50 @@ function actionableBy(me: Doc<"users">, target: Doc<"users">): boolean {
 
 export const list = query({
   args: {
+    paginationOpts: paginationOptsValidator,
     search: v.optional(v.string()),
     role: v.optional(v.string()),
     /** "banned" or "active". Absent means everybody. */
     standing: v.optional(v.string()),
-    limit: v.optional(v.number()),
   },
-  returns: v.object({ rows: v.array(row), total: v.number(), scanned: v.number() }),
+  returns: pageOf(row),
   handler: async (ctx, args) => {
     const me = await requirePermission(ctx, "users:read");
 
-    const all = await ctx.db.query("users").order("desc").take(SCAN);
+    const result = await ctx.db.query("users").order("desc").paginate(args.paginationOpts);
     const needle = (args.search ?? "").trim().toLowerCase();
 
-    const matched = all.filter((u) => {
-      if (args.role && u.role !== args.role) return false;
-      if (args.standing === "banned" && !u.isBanned) return false;
-      if (args.standing === "active" && u.isBanned) return false;
-      if (!needle) return true;
-      return (
-        u.displayName.toLowerCase().includes(needle) ||
-        u.email.toLowerCase().includes(needle)
-      );
-    });
+    /* Filtered after the page rather than before it. Convex paginates over an
+       index, and none of these three are one — so a page can come back short
+       when a filter is on, and the reader's next scroll simply fetches the
+       next. That is the honest trade: a short page, never a missing row. */
+    const page = result.page
+      .filter((u) => {
+        if (args.role && u.role !== args.role) return false;
+        if (args.standing === "banned" && !u.isBanned) return false;
+        if (args.standing === "active" && u.isBanned) return false;
+        if (!needle) return true;
+        return (
+          u.displayName.toLowerCase().includes(needle) ||
+          u.email.toLowerCase().includes(needle)
+        );
+      })
+      .map((u) => ({
+        _id: u._id,
+        displayName: u.displayName,
+        email: u.email,
+        avatarUrl: u.avatarUrl ?? null,
+        role: u.role,
+        isBanned: u.isBanned,
+        countryCode: u.countryCode ?? null,
+        walletBalanceCents: u.walletBalanceCents,
+        quillBalance: u.quillBalance,
+        topicsBacked: u.topicsBacked,
+        joinedAt: u._creationTime,
+        actionable: actionableBy(me, u),
+      }));
 
-    const rows = matched.slice(0, Math.min(args.limit ?? 60, 200)).map((u) => ({
-      _id: u._id,
-      displayName: u.displayName,
-      email: u.email,
-      avatarUrl: u.avatarUrl ?? null,
-      role: u.role,
-      isBanned: u.isBanned,
-      countryCode: u.countryCode ?? null,
-      walletBalanceCents: u.walletBalanceCents,
-      quillBalance: u.quillBalance,
-      topicsBacked: u.topicsBacked,
-      joinedAt: u._creationTime,
-      actionable: actionableBy(me, u),
-    }));
-
-    return { rows, total: matched.length, scanned: all.length };
+    return { ...result, page };
   },
 });
 

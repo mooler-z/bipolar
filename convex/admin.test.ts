@@ -200,18 +200,20 @@ describe("the record", () => {
 
     // `audit:read` is the one capability no moderator inherits: the record is
     // what a moderator is accountable to.
-    await expect(as(t, "mod").query(api.auditLog.recent, {})).rejects.toThrow(
+    await expect(as(t, "mod").query(api.auditLog.recent, { paginationOpts: { numItems: 20, cursor: null } })).rejects.toThrow(
       /audit read/i,
     );
-    const rows = await as(t, "boss").query(api.auditLog.recent, {});
-    expect(rows).toHaveLength(1);
-    expect(rows[0]!.action).toBe("topic.archive");
-    expect(rows[0]!.actor).toBe("boss");
+    const { page } = await as(t, "boss").query(api.auditLog.recent, {
+      paginationOpts: { numItems: 20, cursor: null },
+    });
+    expect(page).toHaveLength(1);
+    expect(page[0]!.action).toBe("topic.archive");
+    expect(page[0]!.actor).toBe("boss");
   });
 
   test("a signed-out reader gets nothing at all", async () => {
     const t = convexTest(schema, modules);
-    await expect(t.query(api.auditLog.recent, {})).rejects.toThrow();
+    await expect(t.query(api.auditLog.recent, { paginationOpts: { numItems: 20, cursor: null } })).rejects.toThrow();
   });
 
   test("newest first, and bounded", async () => {
@@ -227,7 +229,9 @@ describe("the record", () => {
       }
     });
 
-    const rows = await as(t, "boss").query(api.auditLog.recent, { limit: 3 });
-    expect(rows.map((r) => r.action)).toEqual(["step.4", "step.3", "step.2"]);
+    const { page } = await as(t, "boss").query(api.auditLog.recent, {
+      paginationOpts: { numItems: 3, cursor: null },
+    });
+    expect(page.map((r) => r.action)).toEqual(["step.4", "step.3", "step.2"]);
   });
 });

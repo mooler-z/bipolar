@@ -236,7 +236,7 @@ export function Overview({
 
       <Aside title="The record" icon={<Scroll weight="fill" className="size-4 text-mute" />}>
         {permissions.includes("audit:read") ? (
-          <AuditRecord limit={30} dense />
+          <AuditRecord dense />
         ) : (
           <Empty
             title="Admins only"

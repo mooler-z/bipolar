@@ -1,3 +1,4 @@
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 
 import {
@@ -7,6 +8,7 @@ import {
   type MutationCtx,
 } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
+import { pageOf } from "./lib/page";
 import { currentUser, requireUser } from "./users";
 
 /**
@@ -80,17 +82,20 @@ export const unread = query({
 });
 
 export const list = query({
-  args: { limit: v.optional(v.number()) },
-  returns: v.array(row),
+  args: { paginationOpts: paginationOptsValidator },
+  returns: pageOf(row),
   handler: async (ctx, args) => {
     const me = await currentUser(ctx);
-    if (!me) return [];
+    // Signed out still answers with the paginated shape, or the panel waits
+    // on a page that is never coming.
+    if (!me) return { page: [], isDone: true, continueCursor: "" };
 
-    const rows = await ctx.db
+    const result = await ctx.db
       .query("notifications")
       .withIndex("by_user", (q) => q.eq("userId", me._id))
       .order("desc")
-      .take(Math.min(args.limit ?? 30, 60));
+      .paginate(args.paginationOpts);
+    const rows = result.page;
 
     const names = new Map<string, string>();
     const topics = new Map<string, Doc<"topics"> | null>();
@@ -115,7 +120,7 @@ export const list = query({
         read: n.readAt !== undefined,
       });
     }
-    return out;
+    return { ...result, page: out };
   },
 });
 

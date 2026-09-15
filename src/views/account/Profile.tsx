@@ -1,4 +1,4 @@
-import { useQuery } from "convex/react";
+import { usePaginatedQuery, useQuery } from "convex/react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -11,6 +11,9 @@ import {
 } from "@phosphor-icons/react";
 
 import { api } from "../../../convex/_generated/api";
+import { PAGE } from "../../../convex/lib/page";
+import { useAutoLoad } from "../../lib/useAutoLoad";
+import { More } from "../../ui/More";
 import { PackShelf } from "../../components/PackShelf";
 import { signOut } from "../../lib/auth-client";
 import { cn } from "../../lib/cn";
@@ -42,7 +45,12 @@ import { Settings } from "./Settings";
 export function Profile({ onDone }: { onDone: () => void }) {
   const me = useQuery(api.users.me);
   const calls = useQuery(api.calls.me);
-  const history = useQuery(api.wallet.history, { limit: 14 });
+  const {
+    results: history,
+    status: ledger,
+    loadMore,
+  } = usePaginatedQuery(api.wallet.history, {}, { initialNumItems: PAGE });
+  const sentinel = useAutoLoad(ledger, loadMore, PAGE);
 
   // The row is created by `App`, which reconciles the session wherever the
   // reader lands. Rendering is not the place to cause a write.
@@ -158,9 +166,18 @@ export function Profile({ onDone }: { onDone: () => void }) {
             <PackShelf />
           </Section>
 
-          {history?.length ? (
+          {history.length > 0 ? (
             <Section label="Ledger" tone="text-ink-3">
               <Ledger rows={history} />
+              {/* The ledger is append-only and only grows, so it is the one
+                  list here that genuinely needs an end somebody can reach. */}
+              <More
+                sentinel={sentinel}
+                status={ledger}
+                onMore={() => loadMore(PAGE)}
+                count={history.length}
+                noun="entries"
+              />
             </Section>
           ) : null}
         </div>

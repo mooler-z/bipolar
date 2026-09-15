@@ -1,7 +1,10 @@
-import { useQuery } from "convex/react";
+import { usePaginatedQuery } from "convex/react";
 import { ArrowSquareOut, Scroll } from "@phosphor-icons/react";
 
 import { api } from "../../../convex/_generated/api";
+import { PAGE } from "../../../convex/lib/page";
+import { useAutoLoad } from "../../lib/useAutoLoad";
+import { More } from "../../ui/More";
 import { cn } from "../../lib/cn";
 import { fmtShortDate } from "../../lib/format";
 import { Avatar } from "../../ui/Avatar";
@@ -73,17 +76,18 @@ function dayOf(ms: number): string {
   return fmtShortDate(ms);
 }
 
-export function AuditRecord({
-  limit = 60,
-  dense = false,
-}: {
-  limit?: number;
+export function AuditRecord({ dense = false }: {
   /** The aside's shape: narrower, tighter, no target column. */
   dense?: boolean;
 }) {
-  const rows = useQuery(api.auditLog.recent, { limit });
+  const { results: rows, status, loadMore } = usePaginatedQuery(
+    api.auditLog.recent,
+    {},
+    { initialNumItems: PAGE },
+  );
+  const sentinel = useAutoLoad(status, loadMore, PAGE);
 
-  if (rows === undefined) {
+  if (status === "LoadingFirstPage") {
     return (
       <ul className={cn("space-y-2", dense ? "p-3" : "")}>
         {Array.from({ length: dense ? 8 : 12 }, (_, i) => (
@@ -183,6 +187,14 @@ export function AuditRecord({
           </ol>
         </section>
       ))}
+
+      <More
+        sentinel={sentinel}
+        status={status}
+        onMore={() => loadMore(PAGE)}
+        count={rows.length}
+        noun="entries"
+      />
     </div>
   );
 }
@@ -196,7 +208,7 @@ export function RecordSection() {
   return (
     <>
       <Work>
-        <AuditRecord limit={120} />
+        <AuditRecord />
       </Work>
 
       <Aside title="What this is" icon={<Scroll weight="fill" className="size-4 text-mute" />}>

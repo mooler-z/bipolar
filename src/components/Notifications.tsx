@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import {
   ArrowBendUpLeft,
   At,
@@ -9,6 +9,9 @@ import {
 } from "@phosphor-icons/react";
 
 import { api } from "../../convex/_generated/api";
+import { PAGE } from "../../convex/lib/page";
+import { useAutoLoad } from "../lib/useAutoLoad";
+import { More } from "../ui/More";
 import { cn } from "../lib/cn";
 import { fmtInt } from "../lib/format";
 import { ago } from "../lib/motion";
@@ -57,7 +60,12 @@ function says(kind: string, actor: string | null): string {
 export function Notifications() {
   const count = useQuery(api.notifications.unread) ?? 0;
   const [open, setOpen] = useState(false);
-  const rows = useQuery(api.notifications.list, open ? { limit: 30 } : "skip");
+  const { results: rows, status, loadMore } = usePaginatedQuery(
+    api.notifications.list,
+    open ? {} : "skip",
+    { initialNumItems: PAGE },
+  );
+  const sentinel = useAutoLoad(status, loadMore, PAGE);
   const markRead = useMutation(api.notifications.markRead);
   const box = useRef<HTMLDivElement>(null);
 
@@ -113,7 +121,7 @@ export function Notifications() {
           </p>
 
           <ul className="col-scroll max-h-[22rem]">
-            {rows === undefined ? (
+            {status === "LoadingFirstPage" ? (
               Array.from({ length: 4 }, (_, i) => (
                 <li key={i} className="flex gap-3 px-4 py-3">
                   <span className="shimmer size-7 shrink-0 rounded-full" />
@@ -180,6 +188,16 @@ export function Notifications() {
               })
             )}
           </ul>
+          {rows.length > 0 ? (
+            <More
+              sentinel={sentinel}
+              status={status}
+              onMore={() => loadMore(PAGE)}
+              count={rows.length}
+              noun="notices"
+              className="!py-2"
+            />
+          ) : null}
         </div>
       ) : null}
     </div>

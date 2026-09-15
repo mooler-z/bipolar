@@ -23,6 +23,9 @@ import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.ts");
 
+/** One page big enough to hold every account these tests make. */
+const ALL = { paginationOpts: { numItems: 50, cursor: null } };
+
 /** The rate limiter is a component, and a vote goes through it. */
 function harness() {
   const t = convexTest(schema, modules);
@@ -67,14 +70,14 @@ describe("who may look", () => {
 
     // The most important shape in this file: the server refuses, rather than
     // the client hiding a link.
-    await expect(as(t, "reader").query(api.adminUsers.list, {})).rejects.toThrow();
-    expect((await as(t, "mod").query(api.adminUsers.list, {})).rows.length).toBeGreaterThan(0);
+    await expect(as(t, "reader").query(api.adminUsers.list, ALL)).rejects.toThrow();
+    expect((await as(t, "mod").query(api.adminUsers.list, ALL)).page.length).toBeGreaterThan(0);
   });
 
   test("a creator can enter the console but not this section", async () => {
     const t = harness();
     await account(t, "maker", "creator");
-    await expect(as(t, "maker").query(api.adminUsers.list, {})).rejects.toThrow(/users read/i);
+    await expect(as(t, "maker").query(api.adminUsers.list, ALL)).rejects.toThrow(/users read/i);
   });
 });
 
@@ -131,7 +134,7 @@ describe("never yourself, never upward", () => {
     await account(t, "boss", "admin");
     await account(t, "reader", "user");
 
-    const rows = (await as(t, "mod").query(api.adminUsers.list, {})).rows;
+    const rows = (await as(t, "mod").query(api.adminUsers.list, ALL)).page;
     const by = new Map(rows.map((r) => [r.displayName, r.actionable]));
     expect(by.get("reader")).toBe(true);
     expect(by.get("mod")).toBe(false);
@@ -218,14 +221,14 @@ describe("what actually happens, and what it leaves behind", () => {
     const bob = await account(t, "bob", "creator");
     await as(t, "mod").mutation(api.adminUsers.setBanned, { userId: bob, banned: true });
 
-    const byName = await as(t, "mod").query(api.adminUsers.list, { search: "ali" });
-    expect(byName.rows.map((r) => r.displayName)).toEqual(["alice"]);
+    const byName = await as(t, "mod").query(api.adminUsers.list, { ...ALL, search: "ali" });
+    expect(byName.page.map((r) => r.displayName)).toEqual(["alice"]);
 
-    const banned = await as(t, "mod").query(api.adminUsers.list, { standing: "banned" });
-    expect(banned.rows.map((r) => r.displayName)).toEqual(["bob"]);
+    const banned = await as(t, "mod").query(api.adminUsers.list, { ...ALL, standing: "banned" });
+    expect(banned.page.map((r) => r.displayName)).toEqual(["bob"]);
 
-    const creators = await as(t, "mod").query(api.adminUsers.list, { role: "creator" });
-    expect(creators.rows.map((r) => r.displayName)).toEqual(["bob"]);
+    const creators = await as(t, "mod").query(api.adminUsers.list, { ...ALL, role: "creator" });
+    expect(creators.page.map((r) => r.displayName)).toEqual(["bob"]);
   });
 });
 

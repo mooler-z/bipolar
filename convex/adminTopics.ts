@@ -1,3 +1,4 @@
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 
 import { CATEGORIES } from "./config";
@@ -5,6 +6,7 @@ import { mutation, query } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { canManageAllContent, type Role } from "./lib/rbac";
 import { audit, requirePermission } from "./admin";
+import { pageOf } from "./lib/page";
 
 /**
  * The topic console.
@@ -70,24 +72,21 @@ async function ownedOrRefuse(
 
 export const list = query({
   args: {
+    paginationOpts: paginationOptsValidator,
     search: v.optional(v.string()),
     status: v.optional(v.string()),
-    limit: v.optional(v.number()),
   },
-  returns: v.object({
-    rows: v.array(row),
-    total: v.number(),
-    capped: v.boolean(),
-  }),
+  returns: pageOf(row),
   handler: async (ctx, args) => {
     const user = await requirePermission(ctx, "topics:update");
 
-    // No search index on `topics`, and adding one for an admin list nobody
-    // paginates past a few hundred rows would be paying for the wrong thing.
-    const all = await ctx.db.query("topics").order("desc").take(SCAN);
+    const result = await ctx.db.query("topics").order("desc").paginate(args.paginationOpts);
     const needle = args.search?.trim().toLowerCase() ?? "";
 
-    const matched = all.filter((t) => {
+    /* Filtered after the page is read: `topics` carries no search index, and
+       neither filter here is one. A page can therefore come back short and
+       the next scroll fetches another — short pages, never missing rows. */
+    const wanted = result.page.filter((t) => {
       if (args.status && t.status !== args.status) return false;
       if (!needle) return true;
       return (
@@ -96,8 +95,6 @@ export const list = query({
         (t.wikipediaTitle?.toLowerCase().includes(needle) ?? false)
       );
     });
-
-    const wanted = matched.slice(0, Math.min(args.limit ?? 60, 120));
 
     /* One read per distinct session rather than one per row: a wave of fifteen
        drafts would otherwise fetch the same run fifteen times. */
@@ -137,7 +134,7 @@ export const list = query({
       });
     }
 
-    return { rows, total: matched.length, capped: all.length >= SCAN };
+    return { ...result, page: rows };
   },
 });
 

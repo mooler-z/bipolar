@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { ClipboardText, Robot, Scroll, Stack, Warning } from "@phosphor-icons/react";
 
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import { PAGE } from "../../../convex/lib/page";
 import { fmtInt } from "../../lib/format";
+import { useAutoLoad } from "../../lib/useAutoLoad";
+import { More } from "../../ui/More";
 import { AuditRecord } from "./AuditRecord";
 import { CrawlPanel } from "./Crawl";
 import { CrawlFeed } from "./CrawlFeed";
@@ -23,7 +26,7 @@ import { TopicToolbar } from "./TopicToolbar";
  * the queue as its own screen would have meant two lists, two selection models
  * and two sets of actions drifting apart.
  *
- * **Two kinds of selection, deliberately.** Opening a row fills the aside;
+ * **Two kinds of selection.** Opening a row fills the aside;
  * picking a row puts it in a batch. They are different jobs — one is "what is
  * this", the other is "these fifteen, yes" — and a list where they are the same
  * gesture makes the second one dangerous.
@@ -51,23 +54,18 @@ export function TopicList({
   const queue = fixedStatus === "draft";
   const crawl = !fixedStatus && status === "crawl"; // its own tab, not a filter
   const [session, setSession] = useState<Id<"ingestRuns"> | null>(null);
-  const data = useQuery(
-    api.adminTopics.list,
-    crawl
-      ? "skip"
-      : {
-          search: search.trim() || undefined,
-          status: fixedStatus ?? status ?? undefined,
-          limit: 80,
-        },
-  );
+  const q = { search: search.trim() || undefined, status: fixedStatus ?? status ?? undefined };
+  const filter = crawl ? ("skip" as const) : q;
+  const list = usePaginatedQuery(api.adminTopics.list, filter, { initialNumItems: PAGE });
+  const { status: paging, loadMore } = list;
+  const sentinel = useAutoLoad(paging, loadMore, PAGE);
   const sessions = useQuery(
     api.adminQueue.sessions,
     queue || crawl ? { limit: crawl ? 30 : 20 } : "skip",
   );
   const decide = useMutation(api.adminQueue.decideMany);
 
-  const rows = useMemo(() => (data?.rows ?? []) as AdminTopic[], [data]);
+  const rows = useMemo(() => list.results as AdminTopic[], [list.results]);
   const current = rows.find((r) => r._id === open) ?? null;
   const waves = useMemo(
     () => (queue ? groupBySession(rows) : [{ seq: null, rows }]),
@@ -162,7 +160,7 @@ export function TopicList({
       status={status}
       onStatus={setStatus}
       fixed={fixedStatus}
-      total={data?.total}
+      total={rows.length}
       permissions={permissions}
     />
   );
@@ -209,9 +207,9 @@ export function TopicList({
           </p>
         ) : null}
 
-        {data === undefined ? (
+        {paging === "LoadingFirstPage" ? (
           <ul className="space-y-1.5">
-            {Array.from({ length: 10 }, (_, i) => (
+            {Array.from({ length: PAGE }, (_, i) => (
               <li key={i} className="shimmer h-14 rounded-[var(--r-btn)]" />
             ))}
           </ul>
@@ -266,13 +264,15 @@ export function TopicList({
           })
         )}
 
-        {/* The list is bounded. Say so, rather than presenting a cap as a total. */}
-        {data?.capped ? (
-          <p className="pt-4 text-center text-[12px] text-mute">
-            Showing the most recent {fmtInt(rows.length)}. Narrow the search to
-            reach older topics.
-          </p>
-        ) : null}
+        {crawl ? null : (
+          <More
+            sentinel={sentinel}
+            status={paging}
+            onMore={() => loadMore(PAGE)}
+            count={rows.length}
+            noun="topics"
+          />
+        )}
       </Work>
 
       <Aside
@@ -287,7 +287,7 @@ export function TopicList({
           /* Nothing open, so the column shows what the console has been used
              for. It is the one screen that makes "every action here is
              recorded" something you can see rather than something you are told. */
-          <AuditRecord limit={30} dense />
+          <AuditRecord dense />
         ) : (
           <Empty
             title="Pick a topic"

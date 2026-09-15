@@ -1,8 +1,10 @@
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 
 import { query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { requirePermission } from "./admin";
+import { pageOf } from "./lib/page";
 
 /**
  * The record: every privileged write, newest first.
@@ -21,8 +23,8 @@ import { requirePermission } from "./admin";
  * than a scan of it, and the actor lookup is one read per distinct actor.
  */
 export const recent = query({
-  args: { limit: v.optional(v.number()) },
-  returns: v.array(
+  args: { paginationOpts: paginationOptsValidator },
+  returns: pageOf(
     v.object({
       _id: v.id("auditLog"),
       at: v.number(),
@@ -43,10 +45,8 @@ export const recent = query({
   handler: async (ctx, args) => {
     await requirePermission(ctx, "audit:read");
 
-    const rows = await ctx.db
-      .query("auditLog")
-      .order("desc")
-      .take(Math.min(args.limit ?? 60, 200));
+    const result = await ctx.db.query("auditLog").order("desc").paginate(args.paginationOpts);
+    const rows = result.page;
 
     const actors = new Map<string, { name: string; role: string }>();
     for (const row of rows) {
@@ -74,7 +74,7 @@ export const recent = query({
       );
     }
 
-    return rows.map((row) => {
+    const page = rows.map((row) => {
       const actor = actors.get(row.actorId)!;
       return {
         target: row.targetId ? (targets.get(row.targetId) ?? null) : null,
@@ -88,5 +88,7 @@ export const recent = query({
         metadata: row.metadata,
       };
     });
+
+    return { ...result, page };
   },
 });

@@ -39,6 +39,7 @@ import type * as lib_firecrawl from "../lib/firecrawl.js";
 import type * as lib_ink from "../lib/ink.js";
 import type * as lib_mentions from "../lib/mentions.js";
 import type * as lib_openai from "../lib/openai.js";
+import type * as lib_page from "../lib/page.js";
 import type * as lib_png from "../lib/png.js";
 import type * as lib_rank from "../lib/rank.js";
 import type * as lib_rbac from "../lib/rbac.js";
@@ -114,6 +115,7 @@ declare const fullApi: ApiFromModules<{
   "lib/ink": typeof lib_ink;
   "lib/mentions": typeof lib_mentions;
   "lib/openai": typeof lib_openai;
+  "lib/page": typeof lib_page;
   "lib/png": typeof lib_png;
   "lib/rank": typeof lib_rank;
   "lib/rbac": typeof lib_rbac;

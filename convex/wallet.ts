@@ -1,4 +1,6 @@
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
+import { pageOf } from "./lib/page";
 
 import { PACKS, SPARK_CENTS, packById } from "./config";
 import { mutation, query } from "./_generated/server";
@@ -89,8 +91,8 @@ export const balance = query({
 
 /** The ledger, newest first. Append-only upstream, so this is the whole truth. */
 export const history = query({
-  args: { limit: v.optional(v.number()) },
-  returns: v.array(
+  args: { paginationOpts: paginationOptsValidator },
+  returns: pageOf(
     v.object({
       at: v.number(),
       type: v.string(),
@@ -101,19 +103,26 @@ export const history = query({
   ),
   handler: async (ctx, args) => {
     const user = await currentUser(ctx);
-    if (!user) return [];
-    const rows = await ctx.db
+    /* Signed out is an empty ledger, not an error — and it still has to answer
+       with the paginated shape, or the client waits for a page forever. */
+    if (!user) return { page: [], isDone: true, continueCursor: "" };
+
+    const result = await ctx.db
       .query("creditTransactions")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .order("desc")
-      .take(Math.min(args.limit ?? 50, 100));
-    return rows.map((r) => ({
-      at: r._creationTime,
-      type: r.type,
-      amountCents: r.amountCents,
-      topicId: r.topicId ?? null,
-      packId: r.packId ?? null,
-    }));
+      .paginate(args.paginationOpts);
+
+    return {
+      ...result,
+      page: result.page.map((r) => ({
+        at: r._creationTime,
+        type: r.type,
+        amountCents: r.amountCents,
+        topicId: r.topicId ?? null,
+        packId: r.packId ?? null,
+      })),
+    };
   },
 });
 

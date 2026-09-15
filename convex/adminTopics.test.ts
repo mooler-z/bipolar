@@ -21,6 +21,9 @@ import schema from "./schema";
  */
 
 const modules = import.meta.glob("./**/*.ts");
+
+/** One page wide enough for every topic these tests make. */
+const ALL = { paginationOpts: { numItems: 50, cursor: null } };
 type T = ReturnType<typeof convexTest>;
 
 async function account(t: T, subject: string, role: Role): Promise<Id<"users">> {
@@ -83,7 +86,7 @@ describe("who may reach the console", () => {
   test("a plain user cannot even list", async () => {
     const t = convexTest(schema, modules);
     await account(t, "reader", "user");
-    await expect(as(t, "reader").query(api.adminTopics.list, {})).rejects.toThrow(
+    await expect(as(t, "reader").query(api.adminTopics.list, ALL)).rejects.toThrow(
       /staff/i,
     );
   });
@@ -93,7 +96,7 @@ describe("who may reach the console", () => {
     const id = await account(t, "maker", "creator");
     const topicId = await topic(t, id, "pineapple");
 
-    await expect(as(t, "maker").query(api.adminTopics.list, {})).resolves.toBeTruthy();
+    await expect(as(t, "maker").query(api.adminTopics.list, ALL)).resolves.toBeTruthy();
     await expect(
       as(t, "maker").mutation(api.adminTopics.setStatus, {
         topicId,
