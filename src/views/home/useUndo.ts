@@ -22,11 +22,19 @@ import type { Card } from "./useRun";
  * the twelfth question that would retract the first. Nine seconds is about as
  * long as "wait, no" takes.
  *
- * **It only ever offers the vote it is holding.** `undoableId` is what the
- * caller matches against the topic actually on screen, so stepping back to an
- * old result, or pulling one out of the room, shows nothing to undo — those
- * votes are long final, and an Undo button over them would have retracted a
- * different topic entirely.
+ * **It only ever offers the vote it is holding**, and the two shapes are
+ * reported separately because they are answerable in different places.
+ * `answeredId` is the vote under the reveal on screen — the caller matches it
+ * against the topic actually showing, so stepping back to an old result shows
+ * nothing to undo, those votes being long final. `skippedId` is the one with
+ * no reveal to sit under: it is already bounded by its own nine seconds, so it
+ * follows the reader to the foot of the *next* question, which is the whole
+ * reason it exists.
+ *
+ * Folding those two into one id is what broke it. The skipped vote is by
+ * definition never the topic on screen — banking it is what put the next
+ * question there — so matching it against that topic was always false, and the
+ * button never appeared at all.
  */
 
 /** How long an undo stands when there is no countdown to measure it against. */
@@ -99,11 +107,17 @@ export function useUndo(run: {
     undone,
     undo,
     /**
-     * The topic whose vote can still be pulled back, or null. The caller
-     * matches it against what is on screen: an old result revisited, or a
-     * topic pulled from a rail, is not this one.
+     * The vote under the reveal on screen, or null. The caller matches it
+     * against what is showing: an old result revisited is not this one.
      */
-    undoableId: (run.answer?.topic._id ?? lastCast?.topic._id ?? null) as string | null,
+    answeredId: (run.answer?.topic._id ?? null) as string | null,
+    /**
+     * A vote whose result was skipped past, still inside its nine seconds.
+     * Never the topic on screen — banking it is what put the next question
+     * there — so the caller bounds it by where the reader is, not by which
+     * card it names.
+     */
+    skippedId: (lastCast?.topic._id ?? null) as string | null,
     /** Remember a vote whose result was skipped past. */
     noteCast,
   };

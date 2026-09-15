@@ -195,11 +195,20 @@ export const Decide = forwardRef<
           </>
         )}
 
-        <div className={cn("mt-2.5 flex items-center justify-between gap-3", pending && "hidden")}>
+        {/* Wraps, because a phone can be carrying four things here at once —
+            the deck's nudge, Undo, Back and Skip — and a row that cannot wrap
+            pushes the leftmost of them off the side of the screen, which is
+            exactly where Undo sits. */}
+        <div
+          className={cn(
+            "mt-2.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-2",
+            pending && "hidden",
+          )}
+        >
             {/* The desk's path through a run, one step at a time. */}
           {tour ? <KeyTutor tour={tour} /> : <span />}
           <span className="xl:hidden">{hint}</span>
-          <span className="flex items-center gap-1">
+          <span className="ml-auto flex shrink-0 items-center gap-1">
             {/* The vote just cast, for a reader who skipped past its result.
                 There is no reveal to put this under, so it stands here — left
                 of Skip, orange against the violet, on the same key. */}

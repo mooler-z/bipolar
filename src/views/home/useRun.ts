@@ -241,7 +241,7 @@ export function useRun({ startWith }: { startWith?: string } = {}) {
     else void commit(side);
   }
 
-  const { undone, undo, undoableId, noteCast } = useUndo({
+  const { undone, undo, answeredId, skippedId, noteCast } = useUndo({
     answer,
     asking,
     busy,
@@ -275,10 +275,10 @@ export function useRun({ startWith }: { startWith?: string } = {}) {
     setError,
     /** Whether there is anything behind you in the run. */
     canGoBack: history.any,
-    /** A vote cast this sitting, still inside its window, **and** the topic
-        on screen — a past vote stepped back to is final, and an undo over it
-        would retract a different topic. */
-    canUndo: !!topic && undoableId === topic._id,
+    /** A vote cast this sitting that can still be pulled back. Under a reveal
+        it must *be* the topic on screen; skipped, the next one is already up,
+        so nine seconds bound it — never over a rail's topic. See `useUndo`. */
+    canUndo: !!topic && (answeredId === topic._id || (!!skippedId && !pulled)),
     /** The side a retraction just pulled back. Drives the rewind. */
     undone,
     restart: () => {
