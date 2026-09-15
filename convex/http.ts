@@ -5,6 +5,7 @@ import { components, internal } from "./_generated/api";
 import { authComponent, createAuth } from "./auth";
 import { httpAction } from "./_generated/server";
 import { robots, sitemap, topicPage } from "./seo";
+import { card } from "./shareImage";
 
 /**
  * Route order is the whole point. Exact and prefixed routes are matched first,
@@ -20,6 +21,9 @@ authComponent.registerRoutes(http, createAuth, { cors: true });
 http.route({ path: "/robots.txt", method: "GET", handler: robots });
 http.route({ path: "/sitemap.xml", method: "GET", handler: sitemap });
 http.route({ pathPrefix: "/t/", method: "GET", handler: topicPage });
+/* The picture the topic page's own tags point at. Its own prefix rather than
+   a path under `/t/`, which the topic page already claims whole. */
+http.route({ pathPrefix: "/card/", method: "GET", handler: card });
 
 /**
  * Where a voter's country comes from.

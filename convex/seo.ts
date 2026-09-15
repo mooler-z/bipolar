@@ -89,18 +89,26 @@ export const topicPage = httpAction(async (ctx, request) => {
     .join("");
 
   /*
-   * The link-preview picture.
+   * The link-preview picture, which is the vote itself.
    *
-   * A pasted bipolar link used to unfurl as bare text. `summary_large_image`
-   * was already declared and there was never an image to go with it, which is
-   * the worst of both — the card renders, empty. Topics without a picture are
-   * left alone: a card with no image beats a card with a broken one.
+   * A pasted bipolar link unfurled as bare text for a long time.
+   * `summary_large_image` was declared with nothing to go with it, so the card
+   * rendered empty — and waiting on the topic's own photograph was never going
+   * to fix it, because no topic has one and the crawler that fills them in has
+   * never had a source title to look one up from.
+   *
+   * So the picture is drawn from the thing the product is actually about: the
+   * room split in two at the real proportion. Every topic has that from its
+   * first vote, and the ones with none say so. `/card/<slug>.png` renders it
+   * per request — see `shareImage.ts`.
    */
-  const image = topic.imageUrl;
-  const imageTags = image
-    ? `\n<meta property="og:image" content="${escape(image)}">` +
-      `\n<meta name="twitter:image" content="${escape(image)}">`
-    : "";
+  const image = `${site}/card/${escape(topic.slug)}.png`;
+  const imageTags =
+    `\n<meta property="og:image" content="${image}">` +
+    `\n<meta property="og:image:width" content="800">` +
+    `\n<meta property="og:image:height" content="418">` +
+    `\n<meta property="og:image:alt" content="${title} — how the room voted">` +
+    `\n<meta name="twitter:image" content="${image}">`;
 
   const head =
     `<meta name="description" content="${description}">` +
@@ -109,7 +117,7 @@ export const topicPage = httpAction(async (ctx, request) => {
     `<meta property="og:title" content="${title}">` +
     `<meta property="og:description" content="${description}">` +
     `<meta property="og:url" content="${site}/t/${escape(topic.slug)}">` +
-    `<meta name="twitter:card" content="${image ? "summary_large_image" : "summary"}">` +
+    `<meta name="twitter:card" content="summary_large_image">` +
     imageTags;
 
   /* What a machine reads, and what a person sees for the half second before
