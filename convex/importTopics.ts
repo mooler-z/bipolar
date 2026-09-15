@@ -4,7 +4,6 @@ import { CATEGORIES } from "./config";
 import { internalMutation, type MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { slugify, suffix } from "./lib/slug";
-import { WORLD_TOPICS } from "./seedWorldTopics";
 
 /**
  * Bulk import of topics written elsewhere.
@@ -13,6 +12,9 @@ import { WORLD_TOPICS } from "./seedWorldTopics";
  * applies exactly the same rules the model is held to — every check in
  * `lib/openai.ts` runs again here — because a topic arriving through a side
  * door is still a topic, and "it came from a file" is not a reason to trust it.
+ *
+ * The prepared batches that ship with the repository live in `seedBatches.ts`
+ * and come back through `ingest` below, so every rule here applies to them too.
  *
  * Idempotent by slug, so the same batch can be re-run after a partial failure
  * without doubling anything. Rejections are returned with a reason rather than
@@ -97,7 +99,7 @@ type Outcome = {
 };
 
 /** The import itself, so the batch endpoint and the seeder cannot drift. */
-async function ingest(ctx: MutationCtx, topics: Incoming[]): Promise<Outcome> {
+export async function ingest(ctx: MutationCtx, topics: Incoming[]): Promise<Outcome> {
   const args = { topics };
   {
     const by = await author(ctx);
@@ -222,43 +224,4 @@ export const batch = internalMutation({
     rejected: v.array(v.object({ q: v.string(), why: v.string() })),
   }),
   handler: async (ctx, args) => await ingest(ctx, args.topics),
-});
-
-/**
- * The written hundred, through the same door.
- *
- * `seedWorldTopics.ts` is a prepared batch, so it gets no shortcut: it runs
- * through `batch` above, which means every rule the model is held to runs
- * against it too. A topic arriving from a file is still a topic.
- *
- * Sliced, because a hundred inserts with their tags and sources is more than
- * one transaction should carry. Re-runnable: the slug check above skips
- * anything already here.
- */
-export const seedWorld = internalMutation({
-  args: { from: v.optional(v.number()), size: v.optional(v.number()) },
-  returns: v.object({
-    added: v.number(),
-    skipped: v.number(),
-    rejected: v.array(v.object({ q: v.string(), why: v.string() })),
-    nextFrom: v.union(v.number(), v.null()),
-  }),
-  handler: async (ctx, args) => {
-    const from = Math.max(0, args.from ?? 0);
-    const size = Math.min(args.size ?? 25, 40);
-    const slice = WORLD_TOPICS.slice(from, from + size);
-
-    const rows = slice.map((row) => ({
-      q: row.q,
-      category: row.c,
-      country: row.k,
-      description: row.d,
-      tags: [...row.t],
-      wikipediaTitle: row.w,
-    }));
-
-    const result = await ingest(ctx, rows);
-    const next = from + size;
-    return { ...result, nextFrom: next < WORLD_TOPICS.length ? next : null };
-  },
 });
