@@ -1,8 +1,7 @@
-import { ArrowRight, Fire, Lightning, Target, TrendUp } from "@phosphor-icons/react";
+import { Fire, Target, TrendUp } from "@phosphor-icons/react";
 
 import { cn } from "../../lib/cn";
 import { fmtInt, rankOf } from "../../lib/format";
-import { Button } from "../../ui/Button";
 
 /**
  * What you have, in one card.
@@ -25,21 +24,17 @@ export function Record({
   bestStreak,
   made,
   accuracy,
-  sparks,
   backed,
   bumped,
-  onGetSparks,
 }: {
   streak: number;
   bestStreak: number;
   /** Calls graded so far. Five of them earns a rank. */
   made: number;
   accuracy: number;
-  sparks: number;
   backed: number;
   /** The streak just went up. Pop it once. */
   bumped: boolean;
-  onGetSparks: () => void;
 }) {
   const ranked = made >= 5;
   const alight = streak > 0;
@@ -135,27 +130,6 @@ export function Record({
         </div>
       </div>
 
-      {/* The only thing on this rail you can spend. It looks like it. */}
-      <Button
-        bare
-        onClick={onGetSparks}
-        style={{ animationDelay: "90ms" }}
-        className="tile-in lift flex w-full items-center gap-3 rounded-[var(--r-card)] border-2 border-coin-fill/45 bg-coin-fill/[0.07] px-3.5 py-2.5 text-left hover:border-coin-fill/70 hover:bg-coin-fill/[0.12]"
-      >
-        <Lightning weight="fill" className="size-5 shrink-0 text-coin" />
-        <span className="display num text-[clamp(1.2rem,1.6vw,1.6rem)] leading-none text-coin">
-          <span key={sparks} className="flash inline-block">
-            {fmtInt(sparks)}
-          </span>
-        </span>
-        <span className="text-[10.5px] font-extrabold tracking-[0.1em] text-coin/80 uppercase">
-          {sparks === 1 ? "spark" : "sparks"}
-        </span>
-        <span className="flex-1" />
-        <span className="flex items-center gap-1 text-[11.5px] font-bold text-mute">
-          get more <ArrowRight weight="bold" className="size-3.5" />
-        </span>
-      </Button>
     </div>
   );
 }

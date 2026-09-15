@@ -46,12 +46,16 @@ export function RunRail({
           at all at zero, where a three-percent nub used to sit looking like a
           rendering fault rather than a start. */}
       <div>
-        <div className="flex items-baseline gap-2 px-0.5">
+        {/* The dock control sits on the outside edge, which is the edge the
+            rail folds away towards — between the heading and the count it was
+            a third thing in a row of two, and readers read it as part of the
+            number. */}
+        <div className="flex items-center gap-2 px-0.5">
+          {onHide ? <RailToggle side="left" label="your run" onToggle={onHide} /> : null}
           <h2 className="text-[11px] font-extrabold tracking-[0.1em] text-mute uppercase">
             Your run
           </h2>
           <span className="flex-1" />
-          {onHide ? <RailToggle side="left" label="your run" onToggle={onHide} /> : null}
           <span className="num text-[13px] font-extrabold text-ink">
             {fmtInt(answered)}
           </span>
@@ -70,10 +74,8 @@ export function RunRail({
           bestStreak={calls?.bestStreak ?? 0}
           made={Math.min(calls?.made ?? 0, 5)}
           accuracy={calls?.accuracy ?? 0}
-          sparks={me.sparks}
           backed={me.topicsBacked}
           bumped={extended}
-          onGetSparks={onAccount}
         />
       ) : (
         <div className="tile tile-in border-go-fill/40">
