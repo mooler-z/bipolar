@@ -12,7 +12,7 @@ import { publicSite } from "./config";
  *
  * **And then a person clicks it.** For a while this route answered everybody
  * with the crawler's markup: a link out of the daily mail opened four lines of
- * Times New Roman with a blue "Open bi-polar" underneath that led back to the
+ * Times New Roman with a blue "Open bipolar" underneath that led back to the
  * page you were already on. The address was a dead end for the only audience
  * that matters.
  *
@@ -91,7 +91,7 @@ export const topicPage = httpAction(async (ctx, request) => {
   /*
    * The link-preview picture.
    *
-   * A pasted bi-polar link used to unfurl as bare text. `summary_large_image`
+   * A pasted bipolar link used to unfurl as bare text. `summary_large_image`
    * was already declared and there was never an image to go with it, which is
    * the worst of both — the card renders, empty. Topics without a picture are
    * left alone: a card with no image beats a card with a broken one.
@@ -129,14 +129,14 @@ export const topicPage = httpAction(async (ctx, request) => {
     ? shell
         // The shell's own title and description describe the whole product;
         // at this address the topic is the subject.
-        .replace(/<title>[\s\S]*?<\/title>/i, `<title>${title} — bi-polar</title>`)
+        .replace(/<title>[\s\S]*?<\/title>/i, `<title>${title} — bipolar</title>`)
         .replace(/<meta\s+name="description"[^>]*>/i, "")
         .replace("</head>", `${head}</head>`)
         .replace(/<div id="root">\s*<\/div>/, `<div id="root">${summary}</div>`)
     : /* No site deployed: the preview still has to work. */
       `<!doctype html><html lang="en"><head><meta charset="utf-8">` +
       `<meta name="viewport" content="width=device-width, initial-scale=1">` +
-      `<title>${title} — bi-polar</title>${head}</head><body>${summary}</body></html>`;
+      `<title>${title} — bipolar</title>${head}</head><body>${summary}</body></html>`;
 
   return new Response(html, {
     headers: {

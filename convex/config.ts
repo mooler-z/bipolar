@@ -1,7 +1,7 @@
 /**
  * THE ONE FILE TO EDIT.
  *
- * Every tunable in bi-polar lives here: prices, pack catalogue, model names,
+ * Every tunable in bipolar lives here: prices, pack catalogue, model names,
  * third-party endpoints, ingestion prompts and cadence. Nothing else in the
  * backend hard-codes a number or a URL, so changing how the product behaves is
  * a change to this file and nothing else.
@@ -281,7 +281,7 @@ export function publicSite(): string {
  */
 export const WIKI = {
   api: "https://en.wikipedia.org/w/api.php",
-  userAgent: "bi-polar/1.0 (hackathon build; topic enrichment)",
+  userAgent: "bipolar/1.0 (hackathon build; topic enrichment)",
   timeoutMs: 10_000,
   /** Wikipedia renders the thumbnail server-side at whatever width we ask. */
   thumbWidth: 640,

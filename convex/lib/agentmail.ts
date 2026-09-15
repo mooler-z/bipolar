@@ -1,7 +1,7 @@
 import { AGENTMAIL, keys } from "../config";
 
 /**
- * AgentMail: the only way bi-polar reaches somebody who is not on the page.
+ * AgentMail: the only way bipolar reaches somebody who is not on the page.
  *
  * A voting app is a habit or it is nothing. The daily mail is what turns a
  * person who voted once into a person who votes every morning, and the welcome

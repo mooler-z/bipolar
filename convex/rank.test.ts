@@ -1,18 +1,14 @@
 import { describe, expect, test } from "vitest";
 
 import {
-  JITTER,
   MIN_VOLUME,
   TASTE_PRIOR,
   ema,
-  hashSeed,
-  interleave,
-  jitter,
   score,
-  seededShuffle,
   type Candidate,
   type Context,
 } from "./lib/rank";
+import { JITTER, hashSeed, interleave, jitter, seededShuffle } from "./lib/serve";
 
 /**
  * The ranker is pure arithmetic, so it is tested as arithmetic — no database,
@@ -31,6 +27,7 @@ function topic(over: Partial<Candidate> = {}): Candidate {
     isLocked: false,
     closesAtMs: null,
     scopeCountry: null,
+    tagSlugs: [],
     freeLove: 0,
     freeHate: 0,
     paidLove: 0,
@@ -50,6 +47,8 @@ function context(over: Partial<Context> = {}): Context {
     countryLean: new Map(),
     categoryLean: new Map(),
     skips: new Map(),
+    learned: new Map(),
+    recentSkips: [],
     ...over,
   };
 }

@@ -1,4 +1,5 @@
-import { useQuery } from "convex/react";
+import { useAction, useQuery } from "convex/react";
+import { useState } from "react";
 import {
   ArrowRight,
   ArrowSquareOut,
@@ -17,7 +18,9 @@ import { fmtInt, fmtMoney } from "../../lib/format";
 import { useCountUp } from "../../lib/motion";
 import { Button } from "../../ui/Button";
 import { Thumb } from "../../ui/Thumb";
+import { Section } from "../../ui/Section";
 import { AuditRecord } from "./AuditRecord";
+import { Replay } from "./Replay";
 import { ModeSwitch } from "./ModeSwitch";
 import { Aside, Empty, Work } from "./panes";
 import { SessionChart } from "./SessionChart";
@@ -45,6 +48,9 @@ export function Overview({
   const data = useQuery(api.admin.dashboard);
   const discovery = useQuery(api.settings.discovery);
   const sessions = useQuery(api.adminQueue.sessions, { limit: 14 });
+  const report = useQuery(api.recommend.latest);
+  const replay = useAction(api.recommend.run);
+  const [replaying, setReplaying] = useState(false);
 
   const votes = data ? data.votes.free + data.votes.paid : 0;
   const backed = votes === 0 ? 0 : Math.round((data!.votes.paid / votes) * 100);
@@ -150,6 +156,35 @@ export function Overview({
               ) : null}
             </Section>
 
+            <Section
+              label="The recommender"
+              tone="text-go"
+              action={
+                permissions.includes("maintenance:run") ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={replaying}
+                    onClick={() => {
+                      setReplaying(true);
+                      void replay({}).finally(() => setReplaying(false));
+                    }}
+                  >
+                    {replaying ? "Replaying…" : "Replay now"}
+                  </Button>
+                ) : null
+              }
+            >
+              {report ? (
+                <Replay report={report} />
+              ) : (
+                <p className="text-[13px] leading-relaxed text-mute">
+                  No replay yet. Every reader's real acts are replayed against the ranker
+                  nightly; the first report appears after the first run.
+                </p>
+              )}
+            </Section>
+
             <Section label="Featured" tone="text-coin">
               {data.featured ? (
                 <div className="flex items-center gap-4">
@@ -210,32 +245,6 @@ export function Overview({
         )}
       </Aside>
     </>
-  );
-}
-
-/** A coloured label, a rule, and whatever belongs under it. No box. */
-function Section({
-  label,
-  tone,
-  action,
-  children,
-}: {
-  label: string;
-  tone: string;
-  action?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <section>
-      <div className="mb-3 flex items-center gap-3 border-b border-line pb-2">
-        <h2 className={cn("text-[11px] font-extrabold tracking-[0.12em] uppercase", tone)}>
-          {label}
-        </h2>
-        <span className="flex-1" />
-        {action}
-      </div>
-      {children}
-    </section>
   );
 }
 

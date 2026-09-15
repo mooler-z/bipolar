@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 
 import { query, type QueryCtx } from "./_generated/server";
-import type { Doc, Id } from "./_generated/dataModel";
+import type { Doc } from "./_generated/dataModel";
 import {
   aggregateFor,
   aggregateValidator,
@@ -10,17 +10,9 @@ import {
   hasAccess,
 } from "./stats";
 import { currentUser } from "./users";
-import {
-  JITTER,
-  VELOCITY_WINDOW_MS,
-  hashSeed,
-  interleave,
-  jitter,
-  score,
-  seededShuffle,
-  type Candidate,
-  type Context,
-} from "./lib/rank";
+import { score, type Candidate } from "./lib/rank";
+import { JITTER, hashSeed, interleave, jitter, seededShuffle } from "./lib/serve";
+import { contextFor } from "./feedContext";
 
 /**
  * Reading topics. Every public shape in here passes through the gate in
@@ -318,105 +310,12 @@ export const feed = query({
       return await Promise.all(served.map((t) => toCard(ctx, t)));
     }
 
-    // Already answered, and therefore not a candidate at all.
-    const answered = new Set<Id<"topics">>();
-    for (const vote of await ctx.db
-      .query("votes")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .order("desc")
-      .take(400)) {
-      answered.add(vote.topicId);
-    }
-    const candidates = pool.filter((t) => !answered.has(t._id));
-    if (candidates.length === 0) return [];
-
     // The clock is an argument so the query stays cacheable and reruns when the
     // caller says time moved, rather than going stale holding a reading nobody
     // refreshed.
     const nowMs = args.now ?? 0;
-
-    const interests = new Set<string>();
-    for (const row of await ctx.db
-      .query("userInterests")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .take(30)) {
-      interests.add(row.categoryId);
-    }
-
-    const taste = new Map<string, number>();
-    for (const row of await ctx.db
-      .query("userTaste")
-      .withIndex("by_user_category", (q) => q.eq("userId", user._id))
-      .take(60)) {
-      taste.set(row.categoryId, row.weight);
-    }
-
-    const categoryLean = new Map<string, { love: number; total: number }>();
-    for (const row of await ctx.db
-      .query("userCategoryStats")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .take(60)) {
-      categoryLean.set(row.categoryId, {
-        love: row.love,
-        total: row.love + row.hate,
-      });
-    }
-
-    const skips = new Map<string, number>();
-    for (const row of await ctx.db
-      .query("topicSkips")
-      .withIndex("by_user_topic", (q) => q.eq("userId", user._id))
-      .take(300)) {
-      skips.set(row.topicId, row.count);
-    }
-
-    // Velocity from one bounded read of the newest votes, bucketed by topic —
-    // rather than a per-candidate query, which would be sixty reads to learn
-    // the same thing.
-    const velocity = new Map<string, number>();
-    if (nowMs > 0) {
-      for (const vote of await ctx.db.query("votes").order("desc").take(600)) {
-        if (nowMs - vote._creationTime > VELOCITY_WINDOW_MS) break;
-        velocity.set(vote.topicId, (velocity.get(vote.topicId) ?? 0) + 1);
-      }
-    }
-
-    const countryLean = new Map<string, { love: number; hate: number }>();
-    const statsByTopic = new Map<string, Doc<"topicStats">>();
-    for (const topic of candidates) {
-      const totals = await ctx.db
-        .query("topicStats")
-        .withIndex("by_topic", (q) => q.eq("topicId", topic._id))
-        .unique();
-      if (totals) statsByTopic.set(topic._id, totals);
-
-      if (user.countryCode) {
-        const cc = await ctx.db
-          .query("countryTopicStats")
-          .withIndex("by_topic_country", (q) =>
-            q.eq("topicId", topic._id).eq("countryCode", user.countryCode!),
-          )
-          .unique();
-        if (cc) {
-          countryLean.set(topic._id, {
-            love: cc.freeLove + cc.paidLove,
-            hate: cc.freeHate + cc.paidHate,
-          });
-        }
-      }
-    }
-
-    const context: Context = {
-      nowMs: nowMs || candidates[0]._creationTime,
-      userCountry: user.countryCode ?? null,
-      interests,
-      taste,
-      velocity,
-      countryLean,
-      categoryLean,
-      skips,
-    };
-
+    const { candidates, context, statsByTopic } = await contextFor(ctx, user, pool, nowMs);
+    if (candidates.length === 0) return [];
     const scored = candidates.map((topic) => {
       const totals = statsByTopic.get(topic._id);
       const candidate: Candidate = {
@@ -427,6 +326,7 @@ export const feed = query({
         isLocked: topic.isLocked,
         closesAtMs: topic.closesAt ?? null,
         scopeCountry: topic.scopeCountry ?? null,
+        tagSlugs: topic.tagSlugs ?? [],
         freeLove: totals?.freeLove ?? 0,
         freeHate: totals?.freeHate ?? 0,
         paidLove: totals?.paidLove ?? 0,

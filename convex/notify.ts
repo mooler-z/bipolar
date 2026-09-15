@@ -105,7 +105,7 @@ export const welcome = internalAction({
 
     const text =
       `${to.name},\n\n` +
-      "bi-polar is one question at a time: LOVE it or HATE it.\n\n" +
+      "bipolar is one question at a time: LOVE it or HATE it.\n\n" +
       "A free vote is your everyday opinion. A paid vote costs one spark — " +
       "50 cents of real money — and it is one per person per topic, so it " +
       "buys no extra volume. It only proves you meant it.\n\n" +
@@ -130,6 +130,7 @@ export const hottest = internalQuery({
   args: { limit: v.number() },
   returns: v.array(
     v.object({
+      topicId: v.id("topics"),
       slug: v.string(),
       question: v.string(),
       stakedCents: v.number(),
@@ -146,6 +147,7 @@ export const hottest = internalQuery({
       const topic = await ctx.db.get("topics", row.topicId);
       if (topic && topic.status === "active") {
         out.push({
+          topicId: topic._id,
           slug: topic.slug,
           question: topic.question,
           stakedCents: row.stakedCents,
@@ -206,6 +208,16 @@ export const digest = internalAction({
     if (topics.length === 0) return { sent: 0 };
 
     const day = new Date().toISOString().slice(0, 10);
+
+    /* In the app first, and for everybody — the mail below only reaches the
+       people who asked for mail, and somebody who comes back to nothing is
+       somebody who stops coming back. */
+    await ctx.runMutation(internal.notifications.announceHot, {
+      topicId: topics[0].topicId,
+      question: topics[0].question,
+      day,
+    });
+
     const audience = await ctx.runQuery(internal.notify.digestAudience, {
       limit: cfg["digest.maxRecipients"] ?? DIGEST.maxRecipients,
     });
@@ -219,7 +231,7 @@ export const digest = internalAction({
 
     let sent = 0;
     for (const person of audience) {
-      const subject = `Today on bi-polar: ${topics[0].question}`;
+      const subject = `Today on bipolar: ${topics[0].question}`;
       const logId: Id<"mailLog"> | null = await ctx.runMutation(
         internal.notify.claim,
         {

@@ -31,4 +31,8 @@ crons.cron(
   {},
 );
 
+// The recommender's report card, nightly. A replay of every reader's real
+// acts against the ranker, so "better" stays a number rather than a memory.
+crons.cron("recommender replay", "0 4 * * *", internal.recommend.evaluate, {});
+
 export default crons;

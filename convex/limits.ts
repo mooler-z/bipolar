@@ -22,6 +22,8 @@ export const limiter = new RateLimiter(components.rateLimiter, {
   },
   /** A quill is spent either way; this is about flooding a topic, not cost. */
   comment: { kind: "token bucket", rate: LIMITS.commentsPerHour, period: HOUR },
+  /** Liking is free and one tap, so the only thing to stop is a script. */
+  like: { kind: "token bucket", rate: 60, period: MINUTE, capacity: 60 },
   /** Checkout attempts, so a stolen session cannot hammer Stripe. */
   checkout: { kind: "fixed window", rate: 10, period: HOUR },
   /**

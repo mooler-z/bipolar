@@ -77,7 +77,7 @@ function Door({ onGo }: { onGo: (path: string) => void }) {
         </span>
         <h1 className="display mt-5 text-[clamp(1.5rem,3vw,2rem)]">Staff only.</h1>
         <p className="mt-2.5 text-[14px] leading-relaxed text-mute">
-          This console is for the people who run bi-polar. If that should be
+          This console is for the people who run bipolar. If that should be
           you, someone with the keys has to say so.
         </p>
         <p className="mt-5 flex items-center justify-center gap-1.5">
@@ -88,7 +88,7 @@ function Door({ onGo }: { onGo: (path: string) => void }) {
         </p>
         <div className="mt-7 flex justify-center">
           <Button variant="go" onClick={() => onGo("/")}>
-            Back to bi-polar
+            Back to bipolar
           </Button>
         </div>
       </div>

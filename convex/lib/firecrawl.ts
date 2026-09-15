@@ -3,7 +3,7 @@ import { DISCOVERY, FIRECRAWL, keys } from "../config";
 /**
  * Firecrawl: what the world is arguing about right now.
  *
- * bi-polar has no editorial staff and no topic queue. Every question in the
+ * bipolar has no editorial staff and no topic queue. Every question in the
  * feed starts as a page somebody published in the last day or two, and this is
  * the only thing that goes and finds them. Remove it and the feed stops
  * refilling — the app still runs, on whatever was minted before.

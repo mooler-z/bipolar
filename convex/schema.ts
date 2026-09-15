@@ -194,6 +194,15 @@ export default defineSchema({
     isLocked: v.boolean(),
     isFeatured: v.boolean(),
     /**
+     * What the topic is about, finer than its category, as tag slugs.
+     *
+     * Denormalised from `topicTags` at write time so the ranker can read a
+     * candidate's tags without a join per candidate — a feed that joined
+     * tags for two hundred candidates on every load would be two hundred
+     * reads to learn what one field can carry.
+     */
+    tagSlugs: v.optional(v.array(v.string())),
+    /**
      * The crawling session that minted this, when a crawler did.
      *
      * What makes the review queue triageable: drafts arrive in waves of
@@ -208,6 +217,69 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_category", ["categoryId"])
     .index("by_question_key", ["questionKey"]),
+
+  /**
+   * Every act a reader takes on a topic, one row each, append-only.
+   *
+   * The recommender is only as good as what it can see, and until this
+   * existed it could see votes and skips. Pulling a topic out of the room by
+   * hand, writing about it, paying to see it, taking a vote back — each says
+   * something a tap does not, and none of it was written down. What the topic
+   * was made of is stamped on the row, so the learner and the replay never
+   * join back to a topic that may since have changed.
+   */
+  interactions: defineTable({
+    userId: v.id("users"),
+    topicId: v.id("topics"),
+    kind: v.union(
+      v.literal("vote"),
+      v.literal("spark"),
+      v.literal("skip"),
+      v.literal("undo"),
+      v.literal("pull"),
+      v.literal("comment"),
+      v.literal("reply"),
+      v.literal("like"),
+      v.literal("unlike"),
+      v.literal("peek"),
+    ),
+    choice: v.optional(v.union(v.literal("love"), v.literal("hate"))),
+    categoryId: v.id("categories"),
+    tagSlugs: v.array(v.string()),
+    scopeCountry: v.optional(v.string()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_topic", ["userId", "topicId"]),
+
+  /**
+   * What the acts add up to: one weight in [0,1] per reader and key, where a
+   * key is a tag, a category or a country. A derived cache, rebuildable from
+   * `interactions` — never a source of truth.
+   */
+  userAffinity: defineTable({
+    userId: v.id("users"),
+    key: v.string(),
+    weight: v.number(),
+    /** Acts that have moved it. Confidence, for the console. */
+    n: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_key", ["userId", "key"]),
+
+  /**
+   * The recommender's own report card: a replay of every reader's real acts
+   * against the ranker, scored two ways, so "better" is a number on a screen
+   * rather than a claim in a document.
+   */
+  recommendReports: defineTable({
+    readers: v.number(),
+    acts: v.number(),
+    baseline: v.object({ mrr: v.number(), hitAtK: v.number(), medianRank: v.number() }),
+    learned: v.object({ mrr: v.number(), hitAtK: v.number(), medianRank: v.number() }),
+    /** Mean score gap, learned ranker, between later-engaged and later-skipped topics. */
+    separation: v.number(),
+    k: v.number(),
+  }),
 
   topicTags: defineTable({
     topicId: v.id("topics"),
@@ -303,10 +375,67 @@ export default defineSchema({
     topicId: v.id("topics"),
     userId: v.id("users"),
     body: v.string(),
+    /**
+     * The line this answers, when it answers one. One level only: a reply to
+     * a reply is filed under the same parent, because a thread that nests
+     * without limit is a thread nobody can read on a phone.
+     */
+    parentId: v.optional(v.id("comments")),
+    /**
+     * Running total of likes. Denormalised because a thread of fifty lines
+     * would otherwise be fifty counting queries, and the count is on screen
+     * next to every one of them.
+     */
+    likes: v.optional(v.number()),
     deletedAt: v.optional(v.number()),
   })
     .index("by_topic", ["topicId"])
+    .index("by_parent", ["parentId"])
     .index("by_user", ["userId"]),
+
+  /**
+   * Who liked what. One row per person per comment — the row *is* the rule,
+   * read before every write, so a second tap takes the like back rather than
+   * adding another.
+   */
+  commentLikes: defineTable({
+    userId: v.id("users"),
+    commentId: v.id("comments"),
+    /** Denormalised so the like can teach the ranker without a second read. */
+    topicId: v.id("topics"),
+  })
+    .index("by_user_comment", ["userId", "commentId"])
+    .index("by_comment", ["commentId"]),
+
+  /**
+   * What happened while you were not looking.
+   *
+   * The daily mail reaches people who are somewhere else; this reaches the
+   * ones who came back. A row is written in the same mutation as the thing it
+   * announces, so a notice cannot exist for something that did not happen —
+   * and never for your own act, because being told what you just did is noise.
+   *
+   * `readAt` is the only field that is ever updated. Everything else is a
+   * record of a moment.
+   */
+  notifications: defineTable({
+    userId: v.id("users"),
+    kind: v.union(
+      v.literal("reply"),
+      v.literal("like"),
+      v.literal("mention"),
+      v.literal("hot"),
+    ),
+    /** Who did it. Absent when nobody did — the daily hot topic. */
+    actorId: v.optional(v.id("users")),
+    topicId: v.optional(v.id("topics")),
+    commentId: v.optional(v.id("comments")),
+    /** The line quoted back, so the notice means something without a fetch. */
+    excerpt: v.optional(v.string()),
+    readAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_read", ["userId", "readAt"]),
 
   /** Append-only. Never updated, never deleted. */
   creditTransactions: defineTable({

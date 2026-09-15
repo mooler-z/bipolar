@@ -60,7 +60,7 @@ export function Rail({
         <Button
           bare
           onClick={() => onGo("/")}
-          aria-label="Back to bi-polar"
+          aria-label="Back to bipolar"
           className="lift"
         >
           <Wordmark markOnly={collapsed} className={collapsed ? "" : "max-md:hidden"} />

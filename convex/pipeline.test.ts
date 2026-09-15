@@ -190,7 +190,7 @@ describe("nobody is mailed the same thing twice", () => {
       kind: "digest" as const,
       dedupeKey: `digest:${userId}:2026-09-13`,
       to: "reader@example.test",
-      subject: "Today on bi-polar",
+      subject: "Today on bipolar",
     };
 
     expect(await t.mutation(internal.notify.claim, args)).not.toBeNull();
@@ -224,7 +224,7 @@ describe("nobody is mailed the same thing twice", () => {
       userId,
       kind: "digest" as const,
       to: "reader2@example.test",
-      subject: "Today on bi-polar",
+      subject: "Today on bipolar",
     };
 
     expect(

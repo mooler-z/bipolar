@@ -4,12 +4,13 @@ import { PEEK_CENTS, SPARK_CENTS } from "./config";
 import { mutation } from "./_generated/server";
 import { record as recordCall, verdictValidator } from "./calls";
 import { noteCategoryLean, nudgeTaste } from "./interests";
+import { note } from "./interactions";
 import { aggregateValidator, aggregateFor, bumpCounters } from "./stats";
 import { limiter } from "./limits";
 import { requireUser } from "./users";
 
 /**
- * The vote. Everything else in bi-polar exists to get somebody to this
+ * The vote. Everything else in bipolar exists to get somebody to this
  * mutation and to show them what happened after.
  *
  * Postgres enforced the product's central rule with
@@ -141,6 +142,7 @@ export const cast = mutation({
     //    very next feed reflects the tap that just happened.
     await nudgeTaste(ctx, user._id, topic.categoryId, "vote");
     await noteCategoryLean(ctx, user._id, topic.categoryId, args.choice);
+    await note(ctx, user._id, topic, args.voteType === "paid" ? "spark" : "vote", args.choice);
 
     // 8 & 9. Both sets of running totals.
     await bumpCounters(
@@ -212,6 +214,7 @@ export const peek = mutation({
       topicId: args.topicId,
       amountCents: PEEK_CENTS,
     });
+    await note(ctx, user._id, topic, "peek");
     await ctx.db.insert("creditTransactions", {
       userId: user._id,
       type: "peek",
@@ -261,6 +264,9 @@ export const skip = mutation({
     if (totals) {
       await ctx.db.patch("topicStats", totals._id, { skips: totals.skips + 1 });
     }
+
+    const skipped = await ctx.db.get("topics", args.topicId);
+    if (skipped) await note(ctx, user._id, skipped, "skip");
 
     // A skip is a signal, not an absence of one: it pulls the category's taste
     // weight down, which is the whole reason skipping is worth recording.

@@ -174,6 +174,7 @@ export const mint = internalMutation({
       slug: await freeSlug(ctx, args.question),
       question: args.question,
       questionKey: key,
+      tagSlugs: args.tags,
       wikipediaTitle: args.wikipediaTitle,
       categoryId: await categoryId(ctx, args.category),
       // `review` holds everything as a draft until a moderator says otherwise.

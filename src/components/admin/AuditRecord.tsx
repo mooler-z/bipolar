@@ -202,7 +202,7 @@ export function RecordSection() {
       <Aside title="What this is" icon={<Scroll weight="fill" className="size-4 text-mute" />}>
         <div className="space-y-3 p-4 text-[13px] leading-relaxed text-ink-3">
           <p>
-            Every privileged write in bi-polar lands here, in the{" "}
+            Every privileged write in bipolar lands here, in the{" "}
             <strong className="text-ink">same transaction</strong> as the thing
             it describes. There is no code path that changes something
             privileged and leaves no line.

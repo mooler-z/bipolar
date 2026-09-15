@@ -5,6 +5,7 @@ import { mutation } from "./_generated/server";
 import { audit } from "./admin";
 import { retract as retractCall } from "./calls";
 import { noteCategoryLean } from "./interests";
+import { note } from "./interactions";
 import { bumpCounters } from "./stats";
 import { requireUser } from "./users";
 
@@ -82,6 +83,7 @@ export const vote = mutation({
     const topic = await ctx.db.get("topics", args.topicId);
     if (topic) {
       await noteCategoryLean(ctx, user._id, topic.categoryId, vote.choice, -1);
+      await note(ctx, user._id, topic, "undo", vote.choice);
     }
 
     // 4. The money. The spend row stays; a refund row joins it.

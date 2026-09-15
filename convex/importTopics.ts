@@ -182,6 +182,9 @@ async function ingest(ctx: MutationCtx, topics: Incoming[]): Promise<Outcome> {
         });
       }
 
+      await ctx.db.patch("topics", topicId, {
+        tagSlugs: (row.tags ?? []).slice(0, 4).map((t) => slugify(t)).filter(Boolean),
+      });
       for (const raw of (row.tags ?? []).slice(0, 4)) {
         const slug = raw.trim().toLowerCase().replace(/[^a-z0-9-]/g, "");
         if (!slug) continue;
