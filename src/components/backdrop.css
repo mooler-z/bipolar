@@ -50,19 +50,54 @@
   --blob-blend: multiply;
 }
 
+/*
+ * It reaches past its own column.
+ *
+ * A docked rail keeps its track and goes transparent, and this is what is left
+ * running underneath it — so the two read as one surface instead of a lit
+ * middle with a dark slab bolted to the side of it. `--bleed-*` is set by the
+ * layout, which is the only thing that knows a rail is away and how wide its
+ * track is; at zero, which is every other case, this is `inset: 0`.
+ */
 .backdrop {
   position: absolute;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  left: calc(-1 * var(--bleed-l, 0px));
+  right: calc(-1 * var(--bleed-r, 0px));
   z-index: -10;
   overflow: hidden;
   pointer-events: none;
   contain: strict;
 }
 
+/*
+ * The fields stay centred on the question, whichever rail is away.
+ *
+ * The box above is lopsided by design — it reaches into whichever column has
+ * been docked and not into the one that has not. The art inside it must not
+ * be. Sized to that box, the red and the blue slide sideways with it, and
+ * docking one rail handed the question a screen where one answer was winning
+ * before anybody had voted. On a product whose entire claim is that the two
+ * sides are drawn even, that is not a cosmetic bug.
+ *
+ * So each side of the field extends by the *other* side's bleed: the field
+ * ends up symmetric about the middle's own centre no matter how lopsided the
+ * box around it is, and the half hanging off the un-docked side is clipped,
+ * which costs nothing because there is nothing to show there. `--ground-over`
+ * is the overshoot on top of that, so the fields are still at full strength
+ * where the column ends rather than tapering into it.
+ */
 .backdrop-field {
   position: absolute;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  left: calc(-1 * (var(--bleed-r, 0px) + var(--ground-over, 0px)));
+  right: calc(-1 * (var(--bleed-l, 0px) + var(--ground-over, 0px)));
   filter: blur(56px);
+  /* The same strength whether a rail is docked or not. The reach changes; the
+     mood must not, or the ground behind the question turns up and down every
+     time somebody tidies a column. */
   opacity: var(--blob-op);
   transition: opacity 300ms ease-out;
 }

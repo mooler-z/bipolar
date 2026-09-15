@@ -3,6 +3,7 @@ import { ArrowRight, Broadcast, X } from "@phosphor-icons/react";
 
 import type { Side } from "../lib/format";
 import type { ArenaHandle } from "./Arena";
+import { Backdrop } from "./Backdrop";
 import { Decide, type DecideTopic } from "./Decide";
 import type { Tour } from "../lib/keyTutor";
 import { Reveal } from "./Reveal";
@@ -79,6 +80,21 @@ export const Centre = forwardRef<
      back to the run lives on the keyboard (escape) and in the room's own row
      either way. */
   const [banner, setBanner] = useState(false);
+  /* Which answer the cursor is over, and whether it has been pressed.
+     It lives here rather than in `Decide` because the ground it drives is the
+     whole column's: when a rail is docked the ground runs on under it, and
+     `Decide` sits inside a box that clips at the column's edge. */
+  const [lean, setLean] = useState<{ side: Side | null; pressed: boolean }>({
+    side: null,
+    pressed: false,
+  });
+  useEffect(() => {
+    setLean({ side: null, pressed: false });
+  }, [topic.slug]);
+
+  /* The ground belongs to the question. It went out with `Decide` when the
+     state lived there, and it still does. */
+  const deciding = !resolving && !result && !loading;
   useEffect(() => {
     if (!pulled) return setBanner(false);
     setBanner(true);
@@ -87,7 +103,8 @@ export const Centre = forwardRef<
   }, [pulled, topic.slug]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="relative isolate flex h-full min-h-0 flex-col">
+      {deciding ? <Backdrop lean={lean.side} flood={lean.pressed} /> : null}
       {banner ? (
         <div className="slide-up flex shrink-0 items-center gap-2 bg-coin-fill px-[clamp(1.25rem,3vw,3.5rem)] py-1.5 text-on-coin">
           <Broadcast weight="fill" className="size-3.5" />
@@ -172,6 +189,7 @@ export const Centre = forwardRef<
             extra={extra}
             pending={pending}
             restoring={undone}
+            onLean={setLean}
           />
         )}
       </div>

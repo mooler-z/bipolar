@@ -28,6 +28,7 @@ type Variant =
   | "hate"
   | "coin"
   | "streak"
+  | "hollow"
   | "steel"
   | "ghost"
   | "link";
@@ -41,6 +42,12 @@ const VARIANTS: Record<Variant, string> = {
   coin: "snap rounded-[var(--r-btn)] bg-coin-fill text-on-coin uppercase tracking-[0.04em] [--ring:var(--coin-fill)]",
   streak:
     "snap rounded-[var(--r-btn)] bg-streak-fill text-on-streak uppercase tracking-[0.04em] [--ring:var(--streak-fill)]",
+  /* The same violet as `go`, hollow. For the control that sits beside the
+     forward one and means the opposite of it: same hue, so it belongs to the
+     same step of the run, but a block and an outline are never mistaken for
+     each other at a glance. */
+  hollow:
+    "snap rounded-[var(--r-btn)] border-2 border-go-fill/55 bg-go-fill/10 text-go uppercase tracking-[0.04em] hover:bg-go-fill/20 hover:border-go-fill [--ring:var(--go-fill)]",
   steel:
     "snap rounded-[var(--r-btn)] bg-surface-3 text-ink-2 hover:bg-surface-4 hover:text-ink [--ring:var(--ink-3)]",
   ghost:

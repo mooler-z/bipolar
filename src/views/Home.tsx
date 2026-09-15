@@ -13,6 +13,9 @@ import { api } from "../../convex/_generated/api";
 import { navigate } from "../lib/nav";
 import { RoomRail, type RoomTab } from "../components/room/RoomRail";
 import { RunRail } from "../components/run/RunRail";
+import { Docked } from "../components/run/Docked";
+import { onAsk } from "../lib/ask";
+import { bleed, useRails } from "../lib/rails";
 import { useRunKeys } from "../lib/keys";
 import { useKeyTutor } from "../lib/keyTutor";
 import { usePhoneTour } from "../lib/phoneTour";
@@ -59,6 +62,24 @@ export function Home({
   const arena = useRef<ArenaHandle>(null);
   const deck = useDeck();
   const desk = useIsDesk();
+  /* Readers said there was too much going on, so each rail can be put away.
+     The column stays exactly where it was and its contents go behind the
+     drifting weather instead — the question keeps the width it had, so
+     docking a rail never reflows the thing somebody is reading. Desk only:
+     below `xl` the three are a swiped deck and there is nothing to dock. */
+  const { rails, toggle } = useRails();
+
+  /* The bar's AI button lives in another tree, so its press arrives as an
+     event. It opens the rail on the panel, and un-docks the rail if it was
+     put away — a button that does nothing visible is worse than no button. */
+  useEffect(
+    () =>
+      onAsk(() => {
+        setTab("ask");
+        if (!rails.room) toggle("room");
+      }),
+    [rails.room, toggle],
+  );
   const tutor = useKeyTutor();
   const phone = usePhoneTour();
 
@@ -149,13 +170,13 @@ export function Home({
         "max-xl:h-[calc(100dvh-var(--bar))] max-xl:snap-y max-xl:snap-mandatory",
         "max-xl:overflow-y-auto max-xl:overscroll-y-contain",
         "xl:grid xl:h-[calc(100dvh-var(--bar))] xl:overflow-hidden",
-        "xl:grid-cols-[clamp(15rem,17vw,19rem)_minmax(0,1fr)_clamp(19rem,23vw,25rem)]",
+        "xl:grid-cols-[var(--rail-l)_minmax(0,1fr)_var(--rail-r)]",
         "xl:grid-rows-1",
       ].join(" ")}
     >
       {/* First in the deck, second across the desk: the question, then the
           answer to it, in the same frame. */}
-      <main data-panel="vote" className={`${PANEL} xl:order-2`}>
+      <main data-panel="vote" className={`${PANEL} xl:order-2`} style={bleed(rails, desk)}>
         <Centre
           ref={arena}
           topic={topic}
@@ -207,7 +228,8 @@ export function Home({
       </main>
 
       {/* The room. A row here pulls its topic into the middle. */}
-      <div data-panel="room" className={`${PANEL} xl:order-3`}>
+      <div data-panel="room" className={`${PANEL} xl:relative xl:z-[1] xl:order-3`}>
+        <Docked side="right" label="the room" away={desk && !rails.room} onShow={() => toggle("room")}>
         <RoomRail
           slug={topic.slug}
           topicId={topic._id as Id<"topics">}
@@ -219,16 +241,19 @@ export function Home({
           tab={tab}
           onTab={setTab}
           onComposing={setComposing}
+          onHide={() => toggle("room")}
           onOpen={(slug: string) => {
             run.pull(slug);
             setTab("live");
             deck.goTo(0);
           }}
         />
+        </Docked>
       </div>
 
       {/* The run: where you are in it, and what is still open. */}
-      <div data-panel="run" className={`${PANEL} xl:order-1`}>
+      <div data-panel="run" className={`${PANEL} xl:relative xl:z-[1] xl:order-1`}>
+        <Docked side="left" label="your run" away={desk && !rails.run} onShow={() => toggle("run")}>
         <RunRail
           answered={run.answeredCount}
           remaining={run.upNext.length}
@@ -241,11 +266,13 @@ export function Home({
             imageUrl: t.imageUrl,
           }))}
           onAccount={onAccount}
+          onHide={() => toggle("run")}
           onOpen={(slug) => {
             run.pull(slug);
             deck.goTo(0);
           }}
         />
+        </Docked>
       </div>
 
       <Pager deck={deck} labels={SECTIONS} />

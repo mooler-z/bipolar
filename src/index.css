@@ -105,7 +105,7 @@
    * pressed edge and for the light theme, where a bright fill is invisible as
    * text; and `--on-*`, whatever is written across the fill. Those flip per
    * colour, not per theme — white holds on the red and the violet, near-black
-   * holds on the blue, the yellow and the flame.
+   * holds on the blue, the mint and the flame.
    */
   --love: #ff2d55;        /* hot rose */
   --love-fill: #ff2d55;
@@ -115,10 +115,16 @@
   --hate-fill: #00c2ff;
   --hate-deep: #0090c7;
   --on-hate: #04121a;
-  --coin: #ffd60a;        /* pure yellow */
-  --coin-fill: #ffd60a;
-  --coin-deep: #d9a800;
-  --on-coin: #1a1400;
+  /* Mint, not gold. The yellow was the one accent that read as somebody
+     else's product — an advert, or a cheap betting site — which is a bad
+     thing for the colour that marks money to say. Mint carries the same
+     "this costs something" weight in the register the product actually
+     wants, and it is far enough from both the rose and the cyan to never be
+     mistaken for a side. */
+  --coin: #00e5a0;        /* mint */
+  --coin-fill: #00e5a0;
+  --coin-deep: #00a878;
+  --on-coin: #03120c;
   /* The action, and "correct", and "live". Violet sits between the red and the
      blue on the wheel, so it belongs to them; the spring green it replaced was
      a fifth hue arguing with the other four. The ink runs brighter than the
@@ -134,6 +140,13 @@
   /* The top bar, and therefore what one deck panel has to fit in. Shorter on
      a phone, where the bar is cut down to the mark, the wallet and you. */
   --bar: 3rem;
+
+  /* The console's two rails. Named rather than written into the grid because
+     the middle has to know how wide they are: a docked rail keeps its track
+     and the question's ground runs on underneath it, and the ground is drawn
+     by the middle. */
+  --rail-l: clamp(15rem, 17vw, 19rem);
+  --rail-r: clamp(19rem, 23vw, 25rem);
 
   --r-sm: 8px;
   --r-btn: 12px;
@@ -167,7 +180,7 @@
      slab of colour is the same slab on either theme. */
   --love: #d6003c;
   --hate: #0077a8;
-  --coin: #8a6a00;
+  --coin: #00795a;
   --go: #7b25c9;
   --streak: #b34700;
 }

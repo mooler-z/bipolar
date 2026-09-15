@@ -62,3 +62,23 @@
   transform-origin: left;
   animation: tour-drain 2.6s linear infinite;
 }
+
+/** The room rail's own sweep, on its twelve-second dwell. */
+@utility rail-drain {
+  transform-origin: left;
+  animation: tour-drain 12s linear infinite;
+}
+
+/* ── the AI reading ────────────────────────────────────────────────────────
+   The band of light that crosses the rail's AI tab on a slow loop — enough to
+   catch an eye in peripheral vision, slow enough not to be a nuisance on a
+   page somebody is trying to read. The header's own button carries its
+   travelling rim instead; that one lives in `ui/askButton.css`. */
+
+@keyframes sheen {
+  0% { transform: translateX(-140%) skewX(-18deg); }
+  55%, 100% { transform: translateX(260%) skewX(-18deg); }
+}
+@utility sheen {
+  animation: sheen 3.4s ease-in-out infinite;
+}

@@ -103,13 +103,16 @@ export function Reveal({
           under the whole foot rather than a third row of its own — three
           stacked rows of controls was most of a small screen. */}
       <footer className="relative flex shrink-0 flex-wrap items-center gap-2 border-t border-line bg-surface/40 px-[clamp(1.25rem,3vw,3.5rem)] py-[clamp(0.75rem,1.6vh,1.1rem)] sm:gap-2.5">
-        {/* Orange against the violet: the same size and weight as Next, and
-            unmistakably not it. Undo while the vote can still be pulled, and
-            one step back through the run once it cannot. */}
+        {/* Hollow against the solid: the same violet and the same size as
+            Next, and still unmistakably not it. Both belong to the same step
+            of the run, which is what the shared hue says; one is the way on
+            and one is the way back, which is what the outline says. Undo while
+            the vote can still be pulled, and one step back through the run
+            once it cannot. */}
         {onUndo ? (
           <Button
             size="lg"
-            variant="streak"
+            variant="hollow"
             onClick={onUndo}
             title="Take this vote back — until the countdown ends"
             className="shrink-0 max-sm:!px-4"
@@ -123,7 +126,7 @@ export function Reveal({
         ) : onPrevious ? (
           <Button
             size="lg"
-            variant="streak"
+            variant="hollow"
             onClick={onPrevious}
             aria-label="Back one"
             title="Back one"

@@ -1,0 +1,86 @@
+/* ============================================================
+   A docked rail: frosted glass over a rail that is still live.
+
+   No colour and no motion of its own. The arena is where this
+   product spends its attention budget; a rail somebody has
+   deliberately put away is the last place that should compete
+   for an eye, so the column blurs out and stops being readable,
+   and that is all.
+
+   What it must NOT do is be a surface. The middle's ground runs
+   on underneath a docked rail — `--bleed-*` in `backdrop.css` —
+   so the rail drops its own background and its own border and
+   lets that through. Anything else puts a seam down the side of
+   the question, which is the whole reason this exists.
+   ============================================================ */
+
+.docked-away {
+  /* Not "hard to read" — gone. A rail somebody has put away should leave a
+     suggestion that something is there and nothing more.
+     Every point of the ghost that survives costs a point of the ground behind
+     it, and it costs it as *grey*: the rail is pale type and light borders on
+     dark cards, and blurring that far only averages it into a haze. A pale
+     haze over the colour was the whole problem — so the ghost goes down to
+     almost nothing and the ground is what is left. */
+  filter: blur(30px);
+  opacity: 0.07;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* The rail's own ground goes with it. `!important` because these are Tailwind
+   utilities on the rail's own root — same specificity as anything written
+   here, and which of the two wins would otherwise come down to the order the
+   bundler happened to concatenate them in. */
+.docked-away > * {
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
+/* The sheet itself. `backdrop-filter` on top of the already-blurred contents
+   is deliberate: one pass alone still leaves type legible enough to try to
+   read, which is exactly the pull the reader asked to be rid of.
+
+   Clear glass, and deliberately so. Every veil tried here — grey, then
+   tinted, then dark, then faded in from the seam — bought its "put away" at
+   the cost of the colour underneath, and the faded one simply moved the seam
+   a few rems in and made it pale instead of dark. The ground running under
+   this column is the entire point of the arrangement, so nothing sits between
+   the reader and it but blur. `saturate` pushes the red and the blue back up
+   after the blur has averaged them out. */
+.docked-glass {
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(14px) saturate(2.4);
+  -webkit-backdrop-filter: blur(14px) saturate(2.4);
+  pointer-events: none;
+}
+
+/* On paper the ground is a stain rather than weather, so the glass leans on
+   saturation alone there too — less of it, because a light page shows a
+   saturated field far more readily than a black one does. */
+:root[data-theme="light"] .docked-glass {
+  backdrop-filter: blur(14px) saturate(1.5);
+  -webkit-backdrop-filter: blur(14px) saturate(1.5);
+}
+
+/*
+ * The grain, over the glass rather than under it.
+ *
+ * `width`/`height` are set for the same reason they are in `backdrop.css`: an
+ * absolutely positioned `<svg>` with no viewBox intrinsically measures
+ * 300×150, so `inset: 0` alone leaves a hard rectangle in the corner.
+ */
+.docked-grain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  mix-blend-mode: soft-light;
+  /* A little heavier than the ground's own plate, because the glass has
+     flattened everything under it by the time the grain lands — but not much,
+     since `soft-light` noise this strong lifts a near-black column towards
+     grey, which is the pale haze this arrangement keeps having to fight. */
+  opacity: 0.26;
+  pointer-events: none;
+}

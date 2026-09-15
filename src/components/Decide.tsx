@@ -1,10 +1,9 @@
-import { forwardRef, useState, type ReactNode } from "react";
+import { forwardRef, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight, ArrowUUpLeft } from "@phosphor-icons/react";
 
 import { cn } from "../lib/cn";
 import type { Side } from "../lib/format";
 import { Arena, type ArenaHandle } from "./Arena";
-import { Backdrop } from "./Backdrop";
 import { SparkSwitch } from "./SparkSwitch";
 import { DecideStrip, RoomSize } from "./DecideHead";
 import { KeyTutor, spotlit } from "./KeyTutor";
@@ -72,9 +71,11 @@ export const Decide = forwardRef<
     pending?: ReactNode;
     /** A side just retracted. The arena comes back holding the board. */
     restoring?: Side | null;
+    /** Which answer the cursor is over. Drives the ground behind the column. */
+    onLean?: (lean: { side: Side | null; pressed: boolean }) => void;
   }
 >(function Decide(
-  { topic, armed, canSpark, sparks, busy, onArm, onPick, onSkip, onBack, onUndo, onComments, onShare, onGetSparks, extra, hint, tour, pending, restoring },
+  { topic, armed, canSpark, sparks, busy, onArm, onPick, onSkip, onBack, onUndo, onComments, onShare, onGetSparks, extra, hint, tour, pending, restoring, onLean },
   ref,
 ) {
   /*
@@ -96,24 +97,19 @@ export const Decide = forwardRef<
      control that is not on screen is a step nobody can finish. */
   const skip = rehearsing ? () => {} : onSkip;
   const back = rehearsing || onBack ? (rehearsing ? () => {} : onBack) : undefined;
-  /* Which answer the cursor is over, and whether it has been pressed. It only
-     drives the ground behind the question, which is why it lives here rather
-     than in the arena. */
-  const [lean, setLean] = useState<{ side: Side | null; pressed: boolean }>({
-    side: null,
-    pressed: false,
-  });
-
   return (
     <section className="relative isolate flex h-full min-h-0 flex-col">
-      <Backdrop lean={lean.side} flood={lean.pressed} />
       <DecideStrip topic={topic} pad={PAD} />
 
       {/* Band 2 — the question. Takes the slack, so the bands below never move. */}
       <div
         className={cn(
           "col-scroll flex flex-1 flex-col justify-center",
-          "py-[clamp(1.25rem,3vh,2.5rem)]",
+          // Tighter on a phone. This band is the one that gives, and when the
+          // foot below it is carrying a spark switch, the arena and a peek
+          // offer, the padding here is the difference between the question
+          // being centred and the question being scrolled off the top.
+          "py-[clamp(0.6rem,2vh,2.5rem)]",
           PAD,
         )}
       >
@@ -152,7 +148,7 @@ export const Decide = forwardRef<
               {topic.question}
             </h1>
             {topic.description ? (
-              <p className="mt-2 line-clamp-3 max-w-[58ch] text-[13px] leading-relaxed text-ink-3 sm:mt-4 sm:line-clamp-none sm:text-[clamp(0.95rem,1.05vw,1.2rem)]">
+              <p className="mt-2 line-clamp-2 max-w-[58ch] text-[13px] leading-relaxed text-ink-3 sm:mt-4 sm:line-clamp-none sm:text-[clamp(0.95rem,1.05vw,1.2rem)]">
                 {topic.description}
               </p>
             ) : null}
@@ -187,9 +183,20 @@ export const Decide = forwardRef<
               armed={armed}
               busy={busy}
               onPick={pick}
-              onLean={(side, pressed = false) => setLean({ side, pressed })}
+              /* Which answer the cursor is over. It drives the ground, and
+                 the ground is the column's, not this component's — it runs
+                 under a docked rail as well, which is a thing only the layout
+                 above knows the width of. */
+              onLean={(side, pressed = false) => onLean?.({ side, pressed })}
               restoring={restoring}
-              className={cn("mt-2.5 h-[clamp(10rem,30vh,15rem)]", tour ? spotlit(tour, "arena") : "")}
+              /* Shorter on a phone than the desk's 30vh. A tall viewport in
+                 a browser with its own chrome has less room than its height
+                 suggests, and the arena is the piece that takes it from the
+                 question. */
+              className={cn(
+                "mt-2.5 h-[clamp(8rem,23vh,15rem)] sm:h-[clamp(10rem,30vh,15rem)]",
+                tour ? spotlit(tour, "arena") : "",
+              )}
             />
 
             {extra}
@@ -212,10 +219,10 @@ export const Decide = forwardRef<
           <span className="ml-auto flex shrink-0 items-center gap-1">
             {/* The vote just cast, for a reader who skipped past its result.
                 There is no reveal to put this under, so it stands here — left
-                of Skip, orange against the violet, on the same key. */}
+                of Skip, hollow violet against the solid, on the same key. */}
             {onUndo ? (
               <Button
-                variant="streak"
+                variant="hollow"
                 size="sm"
                 onClick={onUndo}
                 title="Take back the vote you just cast"
