@@ -7,6 +7,7 @@ import { Console } from "../components/admin/Console";
 import { Overview } from "../components/admin/Overview";
 import { Settings } from "../components/admin/Settings";
 import { TopicList } from "../components/admin/TopicList";
+import { UserList } from "../components/admin/UserList";
 import { sectionOf } from "../lib/admin-nav";
 import { signOut } from "../lib/auth-client";
 import { Button } from "../ui/Button";
@@ -63,6 +64,7 @@ export function Admin({
       ) : null}
       {section === "record" ? <RecordSection /> : null}
       {section === "settings" ? <Settings permissions={permissions} /> : null}
+      {section === "users" ? <UserList permissions={permissions} /> : null}
     </Console>
   );
 }

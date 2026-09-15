@@ -11,6 +11,7 @@
 import type * as admin from "../admin.js";
 import type * as adminQueue from "../adminQueue.js";
 import type * as adminTopics from "../adminTopics.js";
+import type * as adminUsers from "../adminUsers.js";
 import type * as auditLog from "../auditLog.js";
 import type * as auth from "../auth.js";
 import type * as backfill from "../backfill.js";
@@ -85,6 +86,7 @@ declare const fullApi: ApiFromModules<{
   admin: typeof admin;
   adminQueue: typeof adminQueue;
   adminTopics: typeof adminTopics;
+  adminUsers: typeof adminUsers;
   auditLog: typeof auditLog;
   auth: typeof auth;
   backfill: typeof backfill;

@@ -87,7 +87,7 @@ export const NAV: NavEntry[] = [
     label: "Users",
     icon: Users,
     permission: "users:read",
-    ready: false,
+    ready: true,
     blurb: "Accounts, roles and suspensions",
   },
   {
