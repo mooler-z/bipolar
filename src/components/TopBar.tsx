@@ -10,6 +10,7 @@ import { Notifications } from "./Notifications";
 import { UserMenu } from "./UserMenu";
 import { Search } from "./Search";
 import { Button } from "../ui/Button";
+import { Grain } from "../ui/Grain";
 import { Wordmark } from "../ui/Wordmark";
 
 import "./topbar.css";
@@ -82,12 +83,7 @@ export function TopBar({
     <header className="topbar sticky top-0 z-40 flex h-[var(--bar)] shrink-0 items-center gap-2 border-b border-line/70 px-3 sm:gap-3 sm:px-5">
       {/* The grain, under everything in the bar. Without it a strip this wide
           and this translucent bands in visible steps over the ground. */}
-      <svg aria-hidden className="topbar-grain" xmlns="http://www.w3.org/2000/svg">
-        <filter id="bp-bar-grain">
-          <feTurbulence type="fractalNoise" baseFrequency="0.72" numOctaves="4" stitchTiles="stitch" />
-        </filter>
-        <rect width="100%" height="100%" filter="url(#bp-bar-grain)" />
-      </svg>
+      <Grain opacity={0.3} />
 
       <Button bare onClick={onHome} className="lift shrink-0" aria-label="Home">
         <Wordmark nameClassName="hidden sm:inline" />

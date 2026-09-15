@@ -3,6 +3,7 @@ import { SidebarSimple } from "@phosphor-icons/react";
 
 import { cn } from "../../lib/cn";
 import { Button } from "../../ui/Button";
+import { Grain } from "../../ui/Grain";
 
 import "./docked.css";
 
@@ -50,15 +51,8 @@ export function Docked({
               blurs everything behind it, the grain plate included, so without
               this the docked column comes out smooth against a middle that is
               speckled — a seam made of texture rather than of colour, which is
-              the one kind this arrangement had left. Same frequency, blend and
-              opacity as the plate in `backdrop.css`; the id is per side so two
-              docked rails never share one. */}
-          <svg aria-hidden className="docked-grain" xmlns="http://www.w3.org/2000/svg">
-            <filter id={`bp-dock-grain-${side}`}>
-              <feTurbulence type="fractalNoise" baseFrequency="0.72" numOctaves="4" stitchTiles="stitch" />
-            </filter>
-            <rect width="100%" height="100%" filter={`url(#bp-dock-grain-${side})`} />
-          </svg>
+              the one kind this arrangement had left. */}
+          <Grain opacity={0.26} />
 
           {/* The whole column is the hit area — a docked rail is a big target
               and there is no reason to make somebody find a small one inside

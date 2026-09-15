@@ -63,24 +63,3 @@
   backdrop-filter: blur(14px) saturate(1.5);
   -webkit-backdrop-filter: blur(14px) saturate(1.5);
 }
-
-/*
- * The grain, over the glass rather than under it.
- *
- * `width`/`height` are set for the same reason they are in `backdrop.css`: an
- * absolutely positioned `<svg>` with no viewBox intrinsically measures
- * 300×150, so `inset: 0` alone leaves a hard rectangle in the corner.
- */
-.docked-grain {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  mix-blend-mode: soft-light;
-  /* A little heavier than the ground's own plate, because the glass has
-     flattened everything under it by the time the grain lands — but not much,
-     since `soft-light` noise this strong lifts a near-black column towards
-     grey, which is the pale haze this arrangement keeps having to fight. */
-  opacity: 0.26;
-  pointer-events: none;
-}
