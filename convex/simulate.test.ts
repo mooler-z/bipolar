@@ -73,6 +73,24 @@ async function switchTo(
 const pending = async (t: ReturnType<typeof harness>) =>
   await t.run(async (ctx) => await ctx.db.system.query("_scheduled_functions").collect());
 
+/**
+ * Cancel whatever the chain has booked, before the test ends.
+ *
+ * A beat books the next one a second out, and the harness will faithfully run
+ * it — a second later, against a test that has already finished and taken its
+ * database with it. That surfaces as `Write outside of transaction`, an
+ * unhandled rejection pinned to whichever test happened to be running at the
+ * time. Noise sitting exactly where a real failure would appear is worse than
+ * no signal at all, so every test that leaves a beat booked hangs it up here.
+ */
+async function quiet(t: ReturnType<typeof harness>) {
+  await t.run(async (ctx) => {
+    for (const f of await ctx.db.system.query("_scheduled_functions").collect()) {
+      await ctx.scheduler.cancel(f._id);
+    }
+  });
+}
+
 describe("the heartbeat", () => {
   test("a beat acts, records that it beat, and books the next one", async () => {
     const t = harness();
@@ -92,6 +110,7 @@ describe("the heartbeat", () => {
       return row!.value as { lastBeatAt: number };
     });
     expect(sim.lastBeatAt).toBeGreaterThan(0);
+    await quiet(t);
   });
 
   test("a beat from a replaced chain does nothing and books nothing", async () => {
@@ -144,6 +163,7 @@ describe("the supervisor", () => {
       return (row!.value as { token: string }).token;
     });
     expect(token).not.toBe("alpha");
+    await quiet(t);
   });
 
   test("it does nothing at all when the switch is off", async () => {
@@ -171,6 +191,7 @@ describe("what a beat writes", () => {
     /* Through `castVote`, so the counters move exactly once — a simulator
        that wrote its own totals would drift from the votes behind them. */
     expect(counted).toBe(votes.length);
+    await quiet(t);
   });
 
   test("nothing it writes comes from a real account", async () => {
@@ -189,5 +210,6 @@ describe("what a beat writes", () => {
       return out;
     });
     expect(acted.every((id) => id.startsWith("seed:"))).toBe(true);
+    await quiet(t);
   });
 });

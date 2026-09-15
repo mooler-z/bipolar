@@ -1,0 +1,55 @@
+/* ============================================================
+   The turning mark. Geometry and attribution in ConvexMark.tsx.
+   ============================================================ */
+
+.convex-spin {
+  max-width: 100%;
+}
+
+/* Rotated on an inner group rather than the <svg> element: the box the browser
+   turns is then the artwork's own, so the mark spins about its centre whatever
+   size the element has been given.
+
+   Eased rather than linear — the turn gathers pace and settles once per
+   revolution, which gives the mark a deliberate swing instead of the flat,
+   mechanical rate of a constant spin. */
+.convex-spin-mark {
+  transform-box: view-box;
+  transform-origin: center;
+  animation: convex-turn 1.2s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  /* Negative on purpose: a positive delay would hold the mark still before it
+     started, so the row would assemble itself on first paint. A negative one
+     starts it already part-way through. */
+  animation-delay: var(--delay, 0s);
+}
+
+@keyframes convex-turn {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Each lobe drifts straight out from the centre and comes back while the whole
+   mark turns. The direction is per-lobe and set on the element — the three
+   centroids sit 120° apart at an equal radius, so travelling along each one's
+   own outward vector opens the mark evenly and closes it back into register.
+
+   2.4s against the spin's 1.2s: exactly two revolutions per bloom, which keeps
+   the two rhythms locked instead of drifting in and out of phase. The brief
+   hold at 42–58% is what makes it read as "apart, then back" rather than as a
+   continuous pulse. */
+.convex-spin-lobe {
+  animation: convex-bloom 2.4s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+@keyframes convex-bloom {
+  0%, 100% { transform: translate(0, 0); }
+  42%, 58% { transform: translate(var(--dx, 0), var(--dy, 0)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .convex-spin-mark,
+  .convex-spin-lobe {
+    animation: none;
+  }
+}

@@ -1,8 +1,11 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "convex/react";
 
 import { api } from "../../convex/_generated/api";
+import { cn } from "../lib/cn";
 import { fmtInt } from "../lib/format";
+import { AskPanel } from "../components/ai/AskPanel";
+import { OpenAI } from "../ui/OpenAI";
 import { Button } from "../ui/Button";
 import { agreeWord, leanWord, moodWord, sideOf, strengthOf } from "../lib/words";
 import { Country } from "../components/world/bars";
@@ -26,22 +29,31 @@ import { BARE, Tabs, WorldMap, leanFill, nameOf } from "../components/world/Worl
  *   **Rivalries** — pick one; the world by how often it agrees with it.
  *   **Subjects** — pick a subject; the world by its lean on that alone.
  *   **Records** — the superlatives, and the map lights whoever holds one.
+ *   **Ask** — the same question in words. The panel from the run's own rail,
+ *   answering in charts read off this board, beside the map it is reading.
  *
  * Everything is summed across many questions, which is what keeps a page like
  * this public: a nation's lean over ninety questions gives away none of them.
  */
 
-type Tab = "nations" | "rivalries" | "subjects" | "records";
+type Tab = "nations" | "rivalries" | "subjects" | "records" | "ask";
 
-const TABS: { id: Tab; label: string; hint: string }[] = [
+const TABS: { id: Tab; label: string; hint: string; icon?: ReactNode }[] = [
   { id: "nations", label: "Nations", hint: "Each country by its own mood" },
   { id: "rivalries", label: "Rivalries", hint: "Who agrees with whom" },
   { id: "subjects", label: "Subjects", hint: "What each country makes of a subject" },
   { id: "records", label: "Records", hint: "The superlatives" },
+  {
+    id: "ask",
+    label: "Ask",
+    hint: "Ask the boards a question",
+    icon: <OpenAI className="size-4" />,
+  },
 ];
 
 export function World({ onDone }: { onDone: () => void }) {
   const board = useQuery(api.world.board);
+  const me = useQuery(api.users.me);
   const [tab, setTab] = useState<Tab>("nations");
   const [hover, setHover] = useState<string | null>(null);
   /* Up to two. The second click is what makes the page fun — one nation has
@@ -90,7 +102,7 @@ export function World({ onDone }: { onDone: () => void }) {
   /* The four questions the map can answer, as a colour per country. */
   function fill(code: string): string | null {
     const n = byCode.get(code);
-    if (tab === "nations") return nationFill(n);
+    if (tab === "nations" || tab === "ask") return nationFill(n);
     if (tab === "rivalries") {
       if (code === pick) return "var(--coin-fill)";
       const p = agreement.get(code);
@@ -184,7 +196,19 @@ export function World({ onDone }: { onDone: () => void }) {
           ) : null}
         </div>
 
-        <aside className="rounded-[var(--r-card)] border border-line bg-surface p-4 sm:p-5">
+        {/* The panel beside the map. Every tab but one is a reading of what
+            the map is showing; `ask` is the same board asked in words, and it
+            takes the whole panel rather than sitting under a card, because a
+            conversation with a box at the bottom of it needs a bottom. */}
+        <aside
+          className={cn(
+            "rounded-[var(--r-card)] border border-line bg-surface",
+            tab === "ask"
+              ? "flex h-[min(72vh,44rem)] min-h-0 flex-col overflow-hidden"
+              : "p-4 sm:p-5",
+          )}
+        >
+          {tab === "ask" ? <AskPanel signedIn={!!me} className="flex-1" /> : null}
           {tab === "nations" && versus ? (
             <Versus
               a={byCode.get(versus[0])!}

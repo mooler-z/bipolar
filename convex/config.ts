@@ -98,6 +98,16 @@ export const DISCOVERY_QUERIES = [
   "climate decision people disagree on",
   "immigration policy debate in the news",
   "artificial intelligence controversy this week",
+
+  /* Hacker News. A whole site of arguments already having themselves, and the
+     comment threads are where the split is — a story everybody agrees about
+     dies at four points. Scoped with `site:` so Firecrawl reads the threads
+     rather than the wider web's coverage of them. */
+  "site:news.ycombinator.com controversial discussion this week",
+  "site:news.ycombinator.com heated debate comments",
+  "site:news.ycombinator.com unpopular opinion thread",
+  "site:news.ycombinator.com developers disagree about",
+  "hacker news argument dividing programmers this week",
 ] as const;
 
 /**

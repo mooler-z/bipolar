@@ -1,0 +1,48 @@
+/* ============================================================
+   The map's hover.
+
+   A country used to arrive with a pop — scale 0.5, past 1.18,
+   settle at 1. That is the right arrival for something that has
+   just happened and the wrong one for something that is merely
+   under the cursor: on a map the pointer crosses a dozen
+   countries on the way anywhere, and a dozen pops in a second
+   reads as the page twitching rather than as the map answering.
+
+   So nothing moves. The land lights up instead — brighter, with
+   a halo of its own colour thrown out past its border — and the
+   chosen outline fades on rather than springing on.
+   ============================================================ */
+
+.map-country {
+  transition:
+    fill 300ms ease-out,
+    opacity 300ms ease-out,
+    filter 200ms ease-out;
+}
+
+/*
+ * `--map-glow` is set per country by the component, from the same colour the
+ * country is filled with, so a red country glows red and a blue one blue. Two
+ * shadows: a tight one that reads as an edge and a wide one that reads as
+ * light. Bare land falls back to the ink, which on either theme is the one
+ * colour guaranteed to be visible against the ground.
+ */
+.map-lit {
+  filter:
+    brightness(1.25)
+    drop-shadow(0 0 2px var(--map-glow, var(--ink-3)))
+    drop-shadow(0 0 7px var(--map-glow, var(--ink-3)));
+}
+
+.map-ring {
+  animation: map-ring-in 240ms ease-out both;
+}
+
+@keyframes map-ring-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-ring { animation: none; }
+}

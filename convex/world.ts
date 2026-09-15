@@ -112,6 +112,7 @@ export const board = query({
       aboutSomewhere: v.number(),
     }),
     countries: v.array(countryLean),
+    /** Every verdict, for the same reason as `pairs` below. */
     verdicts: v.array(verdict),
     /** Every pair, not a trimmed board: the map colours the whole world by
         agreement with one country, so it needs all of that country's pairs. */
@@ -198,7 +199,19 @@ export const board = query({
         aboutSomewhere: [...topics.values()].filter((t) => t.scopeCountry).length,
       },
       countries: countries.slice(0, 60),
-      verdicts: verdicts(rows, topics).slice(0, 60),
+      /* The whole board, not the top of it. This used to be the 60 rows with
+         the lowest lean, which quietly made three different things wrong: a
+         country page showed only the verdicts harsh enough to make that cut,
+         the "warmest" reading was the least-harsh row of a list that held
+         nothing but harsh ones, and asking the AI who hates a place it had
+         no extreme row about was answered with "nobody has answered enough
+         questions about it yet" — while the votes sat right there. A board
+         trimmed by the very field it is then filtered on cannot be trusted
+         for anything but the one view it was trimmed for.
+
+         It is bounded without a slice: one row per (voter, subject) pair that
+         clears the floor, and both sides of that are countries. */
+      verdicts: verdicts(rows, topics),
       pairs: pairs(rows),
       categories: byCategory(rows, topics),
       subjects: subjects(rows, topics),

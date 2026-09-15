@@ -1,16 +1,19 @@
 import { useQuery } from "convex/react";
-import { Globe, Lightning, Moon, Plus, SignOut, Sun } from "@phosphor-icons/react";
+import { Globe, Lightning, Moon, Plus, Sun } from "@phosphor-icons/react";
 
 import { api } from "../../convex/_generated/api";
+import { openAsk } from "../lib/ask";
+import { AskButton } from "../ui/AskButton";
 import { cn } from "../lib/cn";
 import { fmtInt, fmtMoney } from "../lib/format";
-import { signOut } from "../lib/auth-client";
 import { Notifications } from "./Notifications";
 import { Search } from "./Search";
 import { useTheme } from "../lib/theme";
 import { Avatar } from "../ui/Avatar";
 import { Button } from "../ui/Button";
 import { Wordmark } from "../ui/Wordmark";
+
+import "./topbar.css";
 
 /**
  * The bar: what the house is doing, and what you have.
@@ -23,9 +26,12 @@ import { Wordmark } from "../ui/Wordmark";
  *
  * The right half is two groups with a rule between them: **the house** — the
  * world page and the wallet, things about the product — and **you** — the
- * bell, the theme, the account, the way out. It used to also carry a rank
- * title ("Regular") and the call streak; the rank said nothing anybody acts
- * on, and the streak belonged to a step that no longer exists.
+ * bell, the theme, the account. It used to also carry a rank title
+ * ("Regular"), the call streak and a sign-out button; the rank said nothing
+ * anybody acts on, the streak belonged to a step that no longer exists, and
+ * signing out is a once-a-month act that does not need a permanent seat on
+ * every screen. It lives on the account page, which the avatar is one tap
+ * from.
  *
  * **On a phone it is cut to the bone**, and deliberately: 48px tall, the mark
  * alone, the wallet, the bell, you. Everything dropped has a home — the theme
@@ -71,7 +77,16 @@ export function TopBar({
   const [theme, toggleTheme] = useTheme();
 
   return (
-    <header className="sticky top-0 z-40 flex h-[var(--bar)] shrink-0 items-center gap-2 border-b border-line bg-canvas px-3 sm:gap-3 sm:px-5">
+    <header className="topbar sticky top-0 z-40 flex h-[var(--bar)] shrink-0 items-center gap-2 border-b border-line/70 px-3 sm:gap-3 sm:px-5">
+      {/* The grain, under everything in the bar. Without it a strip this wide
+          and this translucent bands in visible steps over the ground. */}
+      <svg aria-hidden className="topbar-grain" xmlns="http://www.w3.org/2000/svg">
+        <filter id="bp-bar-grain">
+          <feTurbulence type="fractalNoise" baseFrequency="0.72" numOctaves="4" stitchTiles="stitch" />
+        </filter>
+        <rect width="100%" height="100%" filter="url(#bp-bar-grain)" />
+      </svg>
+
       <Button bare onClick={onHome} className="lift shrink-0" aria-label="Home">
         <Wordmark nameClassName="hidden sm:inline" />
       </Button>
@@ -92,6 +107,11 @@ export function TopBar({
       {/* Finding a name. Wide enough to read a question in, and gone on a
           phone, where the header is cut to the bone. */}
       <Search className="hidden w-[min(22rem,26vw)] md:block" />
+
+      {/* The one control up here asking to be pressed, and allowed to look
+          like it. Everything else is furniture somebody reaches for on
+          purpose; this is what a first-time reader should notice. */}
+      <AskButton onClick={openAsk} className="hidden sm:flex" />
 
       {/* ── the house ─────────────────────────────────────────────────── */}
       <Button
@@ -159,27 +179,17 @@ export function TopBar({
       </Button>
 
       {signedIn ? (
-        <>
-          <Button
-            bare
-            aria-label="Your account"
-            onClick={onAccount}
-            className="lift flex min-h-9 items-center gap-2 rounded-[var(--r-pill)] pr-0 pl-0 hover:bg-surface-2 sm:min-h-10 sm:pr-3 sm:pl-1"
-          >
-            <Avatar name={me?.displayName ?? "?"} />
-            <span className="hidden text-[13px] font-bold sm:block">
-              {(me?.displayName?.split(" ")[0] ?? "You").slice(0, 12)}
-            </span>
-          </Button>
-          <Button
-            bare
-            aria-label="Sign out"
-            onClick={() => void signOut()}
-            className="hidden size-10 place-items-center rounded-[var(--r-btn)] text-mute transition-colors hover:bg-surface-2 hover:text-ink sm:grid"
-          >
-            <SignOut className="size-4" />
-          </Button>
-        </>
+        <Button
+          bare
+          aria-label="Your account"
+          onClick={onAccount}
+          className="lift flex min-h-9 items-center gap-2 rounded-[var(--r-pill)] pr-0 pl-0 hover:bg-surface-2 sm:min-h-10 sm:pr-3 sm:pl-1"
+        >
+          <Avatar name={me?.displayName ?? "?"} />
+          <span className="hidden text-[13px] font-bold sm:block">
+            {(me?.displayName?.split(" ")[0] ?? "You").slice(0, 12)}
+          </span>
+        </Button>
       ) : atAccount ? null : (
         <Button variant="go" size="sm" onClick={onAccount}>
           Sign in

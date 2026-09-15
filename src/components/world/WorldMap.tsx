@@ -1,6 +1,10 @@
+import { useState, type ReactNode } from "react";
+
 import worldMap from "../../data/world-map.json";
 import { cn } from "../../lib/cn";
 import { Button } from "../../ui/Button";
+
+import "./map.css";
 
 /**
  * The world, as a surface anything can be painted on.
@@ -14,6 +18,11 @@ import { Button } from "../../ui/Button";
  * world is inert is a picture, not a map. The active one is drawn last so its
  * outline sits on top of its neighbours', and a press pins it, which is the
  * whole interface on a phone where there is no hover.
+ *
+ * Nothing on this map moves. A country under the pointer lights up in its own
+ * colour and that is all: the pointer crosses a dozen countries on its way
+ * anywhere, and anything that scales or springs turns that into the page
+ * twitching. The glow lives in `map.css`.
  */
 
 /** The land with nothing on it. Light enough to read as land, not background. */
@@ -50,13 +59,21 @@ export function WorldMap({
     .filter((c): c is NonNullable<typeof c> => !!c);
   const isPicked = new Set(picked);
 
+  /* Held here rather than left to the caller. Every page wires `onHover` to
+     something of its own — a panel, a pinned pair, nothing at all — and the
+     light under the cursor is the map's own business either way. */
+  const [over, setOver] = useState<string | null>(null);
+
   return (
     <svg
       viewBox={worldMap.viewBox}
       role="img"
       aria-label="The world"
       className={cn("h-auto w-full", className)}
-      onMouseLeave={() => onHover?.(null)}
+      onMouseLeave={() => {
+        setOver(null);
+        onHover?.(null);
+      }}
     >
       {countries.map((c) => {
         const colour = fill(c.code);
@@ -67,12 +84,17 @@ export function WorldMap({
             fill={colour ?? BARE}
             stroke="var(--canvas)"
             strokeWidth={0.6}
+            style={{ ["--map-glow" as string]: colour ?? "var(--ink-3)" }}
             className={cn(
-              "transition-[fill,opacity] duration-300",
+              "map-country",
               onPick || onHover ? "cursor-pointer" : "",
               picked.length > 0 && !isPicked.has(c.code) && "opacity-80",
+              (over === c.code || isPicked.has(c.code)) && "map-lit",
             )}
-            onMouseEnter={() => onHover?.(c.code)}
+            onMouseEnter={() => {
+              setOver(c.code);
+              onHover?.(c.code);
+            }}
             onClick={() => onPick?.(c.code)}
           >
             <title>{c.name}</title>
@@ -81,19 +103,25 @@ export function WorldMap({
       })}
 
       {/* The chosen countries, once more on top, so their outlines are whole.
-          The first is gold and the second violet, so a head-to-head reads as
-          two things rather than one thing twice. */}
-      {chosen.map((c, i) => (
-        <path
-          key={c.code}
-          d={c.d}
-          fill="none"
-          stroke={i === 0 ? "var(--coin-fill)" : "var(--go-fill)"}
-          strokeWidth={2}
-          strokeLinejoin="round"
-          className="pointer-events-none pop-in"
-        />
-      ))}
+          The first is mint and the second violet, so a head-to-head reads as
+          two things rather than one thing twice. The ring fades on — it used
+          to pop, which on a board where hovering changes the choice meant the
+          whole map flinching once per country crossed. */}
+      {chosen.map((c, i) => {
+        const ink = i === 0 ? "var(--coin-fill)" : "var(--go-fill)";
+        return (
+          <path
+            key={c.code}
+            d={c.d}
+            fill="none"
+            stroke={ink}
+            strokeWidth={2}
+            strokeLinejoin="round"
+            style={{ ["--map-glow" as string]: ink }}
+            className="map-ring map-lit pointer-events-none"
+          />
+        );
+      })}
     </svg>
   );
 }
@@ -109,7 +137,9 @@ export function Tabs<T extends string>({
   at,
   onTab,
 }: {
-  tabs: { id: T; label: string; hint: string }[];
+  /** `icon` is optional and sits before the label — the AI tab wears the mark
+      of the thing behind it, the way every other AI surface here does. */
+  tabs: { id: T; label: string; hint: string; icon?: ReactNode }[];
   at: T;
   onTab: (id: T) => void;
 }) {
@@ -124,6 +154,7 @@ export function Tabs<T extends string>({
           onClick={() => onTab(t.id)}
           title={t.hint}
         >
+          {t.icon}
           {t.label}
         </Button>
       ))}

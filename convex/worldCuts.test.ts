@@ -332,3 +332,50 @@ describe("what each country makes of each subject", () => {
     expect(out.some((s) => s.slug === "food")).toBe(false);
   });
 });
+
+describe("a verdict board that is filtered on lean cannot be trimmed by lean", () => {
+  test("a warm verdict survives a board full of harsh ones", async () => {
+    const t = convexTest(schema, modules);
+    /* Sixty-five countries that can't stand Italy, and one that adores China.
+       The board used to come back as the sixty lowest leans, so the warm row
+       fell off the end — and everything downstream that filters this list by
+       subject then reported, wrongly, that nobody had said anything about
+       China at all. */
+    await t.run(async (ctx) => {
+      const author = await ctx.db.insert("users", {
+        authId: "system:test", email: "", displayName: "Discovery",
+        walletBalanceCents: 0, quillBalance: 0, role: "creator",
+        isBanned: false, profilePublic: false, topicsBacked: 0, digestOptIn: false,
+      });
+      const categoryId = await ctx.db.insert("categories", { slug: "news", name: "News" });
+      const about = async (code: string) =>
+        await ctx.db.insert("topics", {
+          slug: `on-${code}`, question: `What about ${code}?`, categoryId,
+          status: "active", isSensitive: false, isLocked: false, isFeatured: false,
+          scopeCountry: code, createdBy: author,
+        });
+
+      const harsh = await about("IT");
+      const letters = "ABCDEFGHIJKLM";
+      for (let i = 0; i < 65; i++) {
+        const code = `${letters[i % 13]}${letters[Math.floor(i / 13)]}`;
+        await ctx.db.insert("countryTopicStats", {
+          topicId: harsh, countryCode: code,
+          freeLove: 0, freeHate: 8, paidLove: 0, paidHate: 0,
+        });
+      }
+
+      const warm = await about("CN");
+      await ctx.db.insert("countryTopicStats", {
+        topicId: warm, countryCode: "ET",
+        freeLove: 9, freeHate: 0, paidLove: 0, paidHate: 0,
+      });
+    });
+
+    const board = await t.query(api.world.board, {});
+    expect(board.verdicts.length).toBeGreaterThan(60);
+    const china = board.verdicts.filter((v) => v.about === "CN");
+    expect(china).toHaveLength(1);
+    expect(china[0]).toMatchObject({ from: "ET", about: "CN", lovePct: 100 });
+  });
+});

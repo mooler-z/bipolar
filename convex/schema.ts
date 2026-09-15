@@ -488,6 +488,29 @@ export default defineSchema({
     .index("by_code", ["code"])
     .index("by_telegram", ["telegramUserId"]),
 
+  /**
+   * What somebody asked the AI about the boards, and what it showed them.
+   *
+   * Kept so a panel that is a conversation behaves like one — scrolling back
+   * is most of what makes it feel like a thing you are using rather than a
+   * button you press. It is the reader's own history and nobody else's: every
+   * row carries the user it belongs to and the only query that reads it is
+   * scoped to the caller.
+   *
+   * `blocks` is the rendered answer rather than a re-runnable question,
+   * because the boards move: re-deriving an old answer from today's numbers
+   * would quietly rewrite what somebody was told yesterday.
+   */
+  insightChats: defineTable({
+    userId: v.id("users"),
+    question: v.string(),
+    title: v.string(),
+    note: v.string(),
+    /** The view the model picked, for a sense of what it does. */
+    lens: v.string(),
+    blocks: v.any(),
+  }).index("by_user", ["userId"]),
+
   notifications: defineTable({
     userId: v.id("users"),
     kind: v.union(

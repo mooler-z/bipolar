@@ -32,4 +32,15 @@ export const limiter = new RateLimiter(components.rateLimiter, {
    * refilling from turning free credit into infinite credit.
    */
   reclaim: { kind: "fixed window", rate: LIMITS.reclaimsPerDay, period: DAY },
+  /**
+   * Asking the model to read the boards.
+   *
+   * The one thing in the product that costs a third party money per press, so
+   * it has a ceiling — but a generous one. At six an hour the bucket was empty
+   * on arrival and a reader's very first question was refused, which is the
+   * worst possible moment to meet a rate limit: it reads as broken rather than
+   * as busy. `capacity` is the opening burst, so somebody exploring gets a
+   * proper run at it and only a script ever reaches the wall.
+   */
+  insight: { kind: "token bucket", rate: 40, period: HOUR, capacity: 12 },
 });

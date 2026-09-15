@@ -1,0 +1,162 @@
+/* ============================================================
+   The ask button: the one control in the header that is
+   allowed to advertise itself.
+
+   A dark plinth with a single lit dot travelling its rim, a
+   mint wash that comes up under the cursor, and a ring that
+   blooms outward on hover. Everything else in the bar is
+   furniture somebody reaches for on purpose; this is the thing
+   a first-time reader should notice, so it is the thing that
+   moves on its own.
+
+   RULE 4 note — this control carries radial gradients and a
+   gradient-clipped label, which the rule bans on a surface, a
+   control or a fill. The owner specified this exact treatment
+   on 15 September 2026; it is recorded here rather than
+   quietly done, so a reviewer sees the exception in the diff.
+   Violet, per the same instruction: `--go`, which is already
+   the colour of every AI surface in the product, so the button
+   matches the panel it opens rather than the wallet.
+   ============================================================ */
+
+.ask-spark {
+  --plinth: #14101c;
+  --ring: var(--go-fill);
+  --t: 0.3s ease-in-out;
+
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+
+  min-height: 2.25rem;
+  padding: 0.3rem 0.85rem;
+  background: transparent;
+  border: none;
+  border-radius: var(--r-pill);
+
+  transform-origin: center;
+  transform: scale(calc(1 + (var(--active, 0) * 0.06)));
+  transition: transform var(--t);
+}
+
+/* The plinth, and the ring that blooms out of it. */
+.ask-spark::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--plinth);
+  border-radius: var(--r-pill);
+  box-shadow:
+    inset 0 0.5px color-mix(in srgb, var(--ring) 55%, transparent),
+    inset 0 -1px 2px 0 hsl(0 0% 0% / 0.6),
+    0 4px 10px -4px hsl(0 0% 0% / calc(1 - var(--active, 0))),
+    0 0 0 calc(var(--active, 0) * 0.3rem)
+      color-mix(in srgb, var(--ring) 32%, transparent);
+  transition: box-shadow var(--t);
+  z-index: 0;
+}
+
+/* The wash, up only under the cursor. */
+.ask-spark::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: color-mix(in srgb, var(--go-deep) 80%, transparent);
+  background-image:
+    radial-gradient(at 51% 89%, color-mix(in srgb, var(--go-fill) 85%, transparent) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, color-mix(in srgb, var(--go-deep) 90%, transparent) 0px, transparent 50%),
+    radial-gradient(at 22% 91%, color-mix(in srgb, var(--go-deep) 90%, transparent) 0px, transparent 50%);
+  background-position: top;
+  opacity: var(--active, 0);
+  border-radius: var(--r-pill);
+  transition: opacity var(--t);
+  z-index: 2;
+}
+
+.ask-spark:is(:hover, :focus-visible) {
+  --active: 1;
+}
+.ask-spark:active {
+  transform: scale(1);
+}
+
+/* The travelling dot. Sized one pixel proud of the plinth on every side, so
+   all that shows of it is the rim — the plinth itself masks the rest. */
+.ask-spark .ask-rim {
+  --size: calc(100% + 2px);
+
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--size);
+  height: var(--size);
+  overflow: hidden;
+  border-radius: var(--r-pill);
+  transform: translate(-50%, -50%);
+  z-index: -10;
+}
+
+.ask-spark .ask-rim::before {
+  content: "";
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  width: 100%;
+  height: 2rem;
+  background-color: var(--go-fill);
+  transform-origin: left;
+  transform: rotate(0deg);
+  mask: linear-gradient(transparent 0%, white 120%);
+  animation: ask-rim-turn 2s linear infinite;
+}
+
+@keyframes ask-rim-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ask-spark .ask-mark {
+  position: relative;
+  z-index: 10;
+  width: 1.05rem;
+  height: 1.05rem;
+  color: #ffffff;
+  transform-origin: center;
+}
+
+.ask-spark:is(:hover, :focus-visible) .ask-mark {
+  animation: ask-mark-beat 1.5s linear 0.3s infinite;
+}
+
+@keyframes ask-mark-beat {
+  0%, 34%, 71%, 100% { transform: scale(1); }
+  17% { transform: scale(1.18); }
+  49% { transform: scale(1.12); }
+  83% { transform: scale(1.18); }
+}
+
+/* The label brightens across itself as the wash comes up. */
+.ask-spark .ask-label {
+  position: relative;
+  z-index: 10;
+  background-image: linear-gradient(
+    90deg,
+    hsl(0 0% 100% / 1) 0%,
+    hsl(0 0% 100% / var(--active, 0)) 120%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ask-spark .ask-rim::before,
+  .ask-spark:is(:hover, :focus-visible) .ask-mark {
+    animation: none;
+  }
+}
