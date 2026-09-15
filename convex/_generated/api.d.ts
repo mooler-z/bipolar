@@ -43,6 +43,7 @@ import type * as lib_page from "../lib/page.js";
 import type * as lib_png from "../lib/png.js";
 import type * as lib_rank from "../lib/rank.js";
 import type * as lib_rbac from "../lib/rbac.js";
+import type * as lib_seedOpinions from "../lib/seedOpinions.js";
 import type * as lib_serve from "../lib/serve.js";
 import type * as lib_slug from "../lib/slug.js";
 import type * as lib_tgApi from "../lib/tgApi.js";
@@ -52,6 +53,7 @@ import type * as lib_tgTypes from "../lib/tgTypes.js";
 import type * as lib_tunables from "../lib/tunables.js";
 import type * as lib_voteCard from "../lib/voteCard.js";
 import type * as lib_wikipedia from "../lib/wikipedia.js";
+import type * as lib_worldCuts from "../lib/worldCuts.js";
 import type * as limits from "../limits.js";
 import type * as maintenance from "../maintenance.js";
 import type * as migrate from "../migrate.js";
@@ -61,6 +63,7 @@ import type * as recommend from "../recommend.js";
 import type * as retract from "../retract.js";
 import type * as seed from "../seed.js";
 import type * as seedTopics from "../seedTopics.js";
+import type * as seedWorld from "../seedWorld.js";
 import type * as seedWorldTopics from "../seedWorldTopics.js";
 import type * as seo from "../seo.js";
 import type * as settings from "../settings.js";
@@ -76,6 +79,7 @@ import type * as users from "../users.js";
 import type * as voteWrite from "../voteWrite.js";
 import type * as votes from "../votes.js";
 import type * as wallet from "../wallet.js";
+import type * as world from "../world.js";
 
 import type {
   ApiFromModules,
@@ -119,6 +123,7 @@ declare const fullApi: ApiFromModules<{
   "lib/png": typeof lib_png;
   "lib/rank": typeof lib_rank;
   "lib/rbac": typeof lib_rbac;
+  "lib/seedOpinions": typeof lib_seedOpinions;
   "lib/serve": typeof lib_serve;
   "lib/slug": typeof lib_slug;
   "lib/tgApi": typeof lib_tgApi;
@@ -128,6 +133,7 @@ declare const fullApi: ApiFromModules<{
   "lib/tunables": typeof lib_tunables;
   "lib/voteCard": typeof lib_voteCard;
   "lib/wikipedia": typeof lib_wikipedia;
+  "lib/worldCuts": typeof lib_worldCuts;
   limits: typeof limits;
   maintenance: typeof maintenance;
   migrate: typeof migrate;
@@ -137,6 +143,7 @@ declare const fullApi: ApiFromModules<{
   retract: typeof retract;
   seed: typeof seed;
   seedTopics: typeof seedTopics;
+  seedWorld: typeof seedWorld;
   seedWorldTopics: typeof seedWorldTopics;
   seo: typeof seo;
   settings: typeof settings;
@@ -152,6 +159,7 @@ declare const fullApi: ApiFromModules<{
   voteWrite: typeof voteWrite;
   votes: typeof votes;
   wallet: typeof wallet;
+  world: typeof world;
 }>;
 
 /**

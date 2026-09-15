@@ -1,5 +1,14 @@
 import { useQuery } from "convex/react";
-import { Fire, Lightning, Moon, Plus, SignOut, Sun, Target } from "@phosphor-icons/react";
+import {
+  Fire,
+  Globe,
+  Lightning,
+  Moon,
+  Plus,
+  SignOut,
+  Sun,
+  Target,
+} from "@phosphor-icons/react";
 
 import { api } from "../../convex/_generated/api";
 import { cn } from "../lib/cn";
@@ -46,12 +55,15 @@ export function TopBar({
   atAccount = false,
   onAccount,
   onHome,
+  onWorld,
 }: {
   signedIn: boolean;
   /** Already on the account route, so the bar has nowhere to send them. */
   atAccount?: boolean;
   onAccount: () => void;
   onHome: () => void;
+  /** The world page. Every number on it is one somebody can go and move. */
+  onWorld: () => void;
 }) {
   const me = useQuery(api.users.me);
   const calls = useQuery(api.calls.me);
@@ -91,6 +103,17 @@ export function TopBar({
           <span className="num">{calls.streak}</span>
         </span>
       ) : null}
+
+      <Button
+        bare
+        onClick={onWorld}
+        aria-label="The world so far"
+        title="The world so far"
+        className="lift hidden min-h-9 items-center gap-1.5 rounded-[var(--r-btn)] px-2.5 text-mute hover:bg-surface-2 hover:text-ink sm:flex"
+      >
+        <Globe weight="fill" className="size-4" />
+        <span className="text-[12.5px] font-bold">World</span>
+      </Button>
 
       {calls && calls.made >= 5 ? (
         <span className="chip hidden !bg-go-fill/12 !text-go sm:inline-flex">

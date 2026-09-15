@@ -9,6 +9,7 @@ import { Admin } from "./views/Admin";
 import { Account } from "./views/Account";
 import { LinkTelegram } from "./views/LinkTelegram";
 import { Suspended } from "./views/Suspended";
+import { World } from "./views/World";
 import { Home } from "./views/Home";
 import { Welcome } from "./views/Welcome";
 import { useSession } from "./lib/auth-client";
@@ -123,6 +124,7 @@ export function App() {
         atAccount={path === "/account"}
         onHome={() => go("/")}
         onAccount={toAccount}
+        onWorld={() => go("/world")}
       />
       {suspended ? (
         <Suspended />
@@ -130,6 +132,8 @@ export function App() {
         <Welcome onDone={() => go("/")} />
       ) : linkCode ? (
         <LinkTelegram code={linkCode} onDone={() => go("/")} />
+      ) : path === "/world" ? (
+        <World onDone={() => go("/")} />
       ) : path === "/account" ? (
         <Account onDone={() => go("/")} />
       ) : (
