@@ -6,6 +6,7 @@ import { api } from "../../../convex/_generated/api";
 import { cn } from "../../lib/cn";
 import { ModeSwitch } from "./ModeSwitch";
 import { Setting } from "./SettingRow";
+import { Simulate } from "./Simulate";
 
 /* The groups in the product's colours: the crawler is blue, quality is
    violet, mail is yellow. The same three the overview uses. */
@@ -82,6 +83,13 @@ export function Settings({ permissions }: { permissions: string[] }) {
   return (
     <>
       <Work>
+        {/* The demo room's switch, above the crawler's knobs: it is the one
+            control here that changes what the public sees rather than how the
+            crawler behaves. */}
+        <div className="mb-5">
+          <Simulate permissions={permissions} />
+        </div>
+
         {error ? (
           <p className="slide-up mb-3 flex items-center gap-2 rounded-[var(--r-sm)] border border-love-fill/40 bg-love-fill/12 px-3.5 py-2.5 text-[13px] font-semibold text-love">
             <Warning weight="fill" className="size-4 shrink-0" />

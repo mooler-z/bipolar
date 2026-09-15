@@ -69,19 +69,38 @@ export const WORLD: Seed[] = [
 ];
 
 /**
- * A stable number in 0–99 for a person and a question.
+ * The full hash of a pair of strings.
  *
- * A hash rather than `Math.random`, so the seed is reproducible: the same
- * deployment seeded twice has the same opinions, and a board that looked wrong
- * can be looked at again.
+ * FNV-1a rather than `Math.random`, so everything built on it is
+ * reproducible: the same deployment seeded twice has the same opinions, and a
+ * board that looked wrong can be looked at again.
  */
-export function roll(who: string, what: string): number {
+export function hash(who: string, what: string): number {
   let h = 2166136261;
   for (const ch of `${who}:${what}`) {
     h ^= ch.charCodeAt(0);
     h = Math.imul(h, 16777619);
   }
-  return Math.abs(h) % 100;
+  return Math.abs(h);
+}
+
+/** A stable number in 0–99, for anything measured as a percentage. */
+export function roll(who: string, what: string): number {
+  return hash(who, what) % 100;
+}
+
+/**
+ * A stable index into a list of `n`.
+ *
+ * Not `roll(...) % n`. `roll` is already capped at a hundred, so using it to
+ * index anything longer silently picks only from the first hundred entries —
+ * which is exactly what happened: the activity simulator drew its questions
+ * from a pool of six hundred and never reached past the newest hundred, all
+ * of which the demo accounts had already answered, so every tick produced
+ * nothing but comments.
+ */
+export function pick(who: string, what: string, n: number): number {
+  return n <= 0 ? 0 : hash(who, what) % n;
 }
 
 /**
@@ -92,59 +111,52 @@ export function roll(who: string, what: string): number {
  * is where most of the volume is — so the boards are driven by the fault lines
  * rather than drowned by them.
  *
- * `swing` keeps it from being a lookup table: even a rival gets the occasional
- * nod, which is what stops every pair scoring exactly 0% agreement and looking
- * generated, because it is.
+ * `pull` is how hard a bloc drags its members together. It keeps the thing
+ * from being a lookup table: even a rival gets the occasional nod, which is
+ * what stops every pair scoring exactly 0% agreement and looking generated,
+ * because it is.
  */
 export function votes(
   person: Seed,
-  topic: { id: string; about?: string },
-  swing = 16,
+  topic: { id: string; about?: string; favour?: number },
+  /**
+   * Which voter in that country. Several people share a country, so their
+   * rolls have to differ — otherwise a country's lean on a question is a coin
+   * flip rather than a proportion, and every board reads 0% or 100%.
+   */
+  voter: string = person.code,
+  pull = 1.1,
 ): "love" | "hate" {
   const about = topic.about;
 
-  /* A question about somewhere this country has a stake in is decided by that
-     stake: it is the fault line, and two countries on opposite sides of one
-     should land on opposite sides of the question.
-     
-     **Only where there is a stake.** Deciding every scoped question this way
-     was the mistake in the first version: most questions here are about
-     somewhere, so nearly every vote took this branch, and for a country with
-     no relationship to the place it is an independent coin. Every pair came
-     out near fifty and the agreement board was flat between 37 and 46 — a
-     country with no interest in a question about Japan does not flip a coin,
-     it votes the way its side votes. */
+  /*
+   * Reputation sets the centre; the country's stake in the subject moves it.
+   *
+   * `favour` is roughly how the world sees the subject. The stake is what
+   * makes a seeded Netanyahu split Israel from Palestine rather than
+   * averaging them into one lukewarm number — a floor and a ceiling, not a
+   * nudge, because a sour country nudged upward about its own ally still
+   * comes out lukewarm.
+   */
+  const base = topic.favour ?? person.mood;
+  let centre = base;
   if (about) {
-    const stake =
-      about === person.code
-        ? 84
-        : person.allies.includes(about)
-          ? 74
-          : person.rivals.includes(about)
-            ? 12
-            : null;
-    if (stake !== null) {
-      const r = roll(person.code, topic.id);
-      // The roll is the noise and the stake is the centre: a country with an 84
-      // still hates one in six questions about itself, which is about right.
-      return r < stake + ((r % swing) - swing / 2) ? "love" : "hate";
-    }
+    if (about === person.code) centre = Math.min(95, Math.max(base + 30, 84));
+    else if (person.allies.includes(about)) centre = Math.min(92, Math.max(base + 20, 72));
+    else if (person.rivals.includes(about)) centre = Math.min(Math.max(5, base - 28), 14);
   }
 
-  /* Everything else — no stake, or about nowhere — follows the **bloc's line**.
-     The first attempt merely nudged each country's own roll toward its bloc,
-     which changed nothing: two countries rolling separately are independent
-     however you tilt them, and every pair came out at the same middling
-     agreement with no ends on the board. So the bloc decides, and each country
-     breaks ranks on its own — which is what a bloc actually is.
-
-     A sour country breaks ranks more often on a line it is asked to love, so
-     mood still shows through without deciding anything by itself. */
-  const line: "love" | "hate" = roll(person.bloc, topic.id) < 50 ? "love" : "hate";
-  const dissent = ((line === "love" ? 100 - person.mood : person.mood) * swing) / 40;
-  return roll(person.code, topic.id) < dissent
-    ? line === "love"
-      ? "hate"
-      : "love"
-    : line;
+  /*
+   * The bloc **shifts the threshold**; it does not decide the vote.
+   *
+   * Deciding it was the mistake. One shared draw per bloc meant an entire
+   * bloc voted identically, so a question's result came down to three coin
+   * flips and no amount of reputation could move it — a seeded Messi came out
+   * at 15% and Israel came out hating Netanyahu. Shifting the threshold keeps
+   * countries that think alike correlated while leaving each voter their own
+   * roll, so the average still lands where the reputation says it should.
+   */
+  const shift = (roll(person.bloc, topic.id) - 50) * pull;
+  const threshold = Math.max(3, Math.min(97, centre + shift));
+  return roll(voter, topic.id) < threshold ? "love" : "hate";
 }

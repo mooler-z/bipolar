@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { WORLD, roll, votes } from "./lib/seedOpinions";
+import { WORLD, pick, roll, votes } from "./lib/seedOpinions";
 
 /**
  * A demo world is only worth having if it actually argues.
@@ -157,5 +157,33 @@ describe("a country with no stake still has a side", () => {
       if (votes(il, { id: `x${i}`, about: "PS" }) === "love") love += 1;
     }
     expect(Math.round((love / 200) * 100)).toBeLessThan(30);
+  });
+});
+
+describe("picking an index out of a list", () => {
+  test("it reaches every entry, however long the list", () => {
+    /* `roll` is capped at a hundred, so `roll(...) % n` on anything longer
+       only ever returns the first hundred indices. The activity simulator did
+       exactly that over six hundred questions and never reached past the
+       newest hundred — all of which had already been answered — so every tick
+       produced nothing but comments. */
+    const n = 600;
+    const seen = new Set<number>();
+    for (let i = 0; i < 20000; i++) seen.add(pick(`s${i}`, "topic", n));
+    expect(seen.size).toBeGreaterThan(n * 0.9);
+    expect(Math.max(...seen)).toBeGreaterThan(500);
+  });
+
+  test("it stays inside the list, and survives an empty one", () => {
+    for (let i = 0; i < 500; i++) {
+      const at = pick(`s${i}`, "x", 7);
+      expect(at).toBeGreaterThanOrEqual(0);
+      expect(at).toBeLessThan(7);
+    }
+    expect(pick("a", "b", 0)).toBe(0);
+  });
+
+  test("it is stable, like everything else here", () => {
+    expect(pick("a", "b", 999)).toBe(pick("a", "b", 999));
   });
 });

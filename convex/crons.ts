@@ -35,4 +35,14 @@ crons.cron(
 // acts against the ranker, so "better" stays a number rather than a memory.
 crons.cron("recommender replay", "0 4 * * *", internal.recommend.evaluate, {});
 
+/*
+ * The demo room's supervisor.
+ *
+ * The simulation beats once a second by rescheduling itself, which a cron
+ * cannot do — a cron fires at most once a minute. So this does not do the
+ * work: it checks once a minute whether the chain is still alive and starts
+ * it again if a deploy or an error broke the link. Off, it costs one read.
+ */
+crons.interval("simulated activity", { minutes: 1 }, internal.simulate.supervise, {});
+
 export default crons;
