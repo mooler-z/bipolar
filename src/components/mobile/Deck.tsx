@@ -84,14 +84,25 @@ export function useDeck(): Deck {
  * Where you are in the deck, and a way to anywhere else.
  *
  * A dot per panel on the right edge — the active one stretches into a bar.
- * Small, out of the content, and always reachable with a thumb.
+ * Out of the content, and always reachable with a thumb.
+ *
+ * It rides its own capsule. Readers said they could not see it, and they were
+ * right: a `--surface-4` dot sits two steps off the canvas, which disappears
+ * outright over the question's ground and over any image the deck happens to
+ * be scrolled onto. So the dots are carried on a blurred plate of their own
+ * and drawn in ink rather than in a surface grey — the one colour that holds
+ * on whatever the panel behind them is doing. The active one keeps its colour
+ * and gains a halo, because "which one is lit" is the thing being asked.
  */
 export function Pager({ deck, labels }: { deck: Deck; labels: string[] }) {
   if (deck.count < 2) return null;
   return (
     <nav
       aria-label="Sections"
-      className="fixed top-1/2 right-1.5 z-30 flex -translate-y-1/2 flex-col gap-2 xl:hidden"
+      className={cn(
+        "fixed top-1/2 right-2 z-30 flex -translate-y-1/2 flex-col items-center gap-1.5 xl:hidden",
+        "rounded-full border border-line-2/70 bg-canvas/45 px-1 py-1.5 backdrop-blur-md",
+      )}
     >
       {labels.slice(0, deck.count).map((label, i) => {
         const here = deck.active === i;
@@ -103,12 +114,14 @@ export function Pager({ deck, labels }: { deck: Deck; labels: string[] }) {
             aria-current={here ? "true" : undefined}
             title={label}
             onClick={() => deck.goTo(i)}
-            className="grid h-7 w-6 place-items-center"
+            className="grid h-7 w-5 place-items-center"
           >
             <span
               className={cn(
-                "w-1.5 rounded-full transition-all duration-300",
-                here ? "h-5 bg-go-fill" : "h-1.5 bg-surface-4",
+                "w-2 rounded-full transition-all duration-300",
+                here
+                  ? "h-6 bg-go-fill shadow-[0_0_8px_var(--go-fill)]"
+                  : "h-2 bg-ink/45",
               )}
             />
           </Button>

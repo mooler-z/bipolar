@@ -20,6 +20,10 @@ import { Button } from "../ui/Button";
  * had. Somebody who learned the keys last week still wants reminding which is
  * which; it is the *tour* that should not outstay its welcome.
  *
+ * **The way out says so in words.** It was a bare ✕, which reads as "dismiss
+ * this hint" rather than "let me get on with it" — and a reader who does not
+ * believe the tour can be left sits through all five steps of it.
+ *
  * Desk only. A key cap on a phone is a hint about nothing.
  */
 export function KeyTutor({ tour }: { tour: Tour }) {
@@ -57,14 +61,17 @@ export function KeyTutor({ tour }: { tour: Tour }) {
       <span className="num text-[11px] font-bold text-mute">
         {tour.index}/{tour.total}
       </span>
+      {/* A word, not an icon. A bare ✕ beside a tour reads as "close this
+          hint" rather than "let me get on with it", and readers were sitting
+          through a walkthrough they could not see the end of. */}
       <Button
-        bare
-        aria-label="Skip the keyboard tour"
-        title="Skip the tour"
+        size="sm"
+        variant="steel"
         onClick={tour.skip}
-        className="grid size-6 place-items-center rounded-[6px] text-mute transition-colors hover:bg-surface-3 hover:text-ink"
+        className="!min-h-7 !px-2.5 !text-[11px]"
       >
-        <X weight="bold" className="size-3.5" />
+        <X weight="bold" className="size-3" />
+        Skip tutorial
       </Button>
     </span>
   );

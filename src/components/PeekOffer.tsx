@@ -29,13 +29,19 @@ export function PeekOffer({
   const [error, setError] = useState("");
 
   return (
-    <div className="mt-2.5 flex flex-wrap items-center justify-between gap-3 rounded-[var(--r-btn)] border border-line bg-surface-2 px-4 py-2.5">
-      <p className="flex items-center gap-2 text-[12.5px] leading-snug text-ink-3">
+    <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 rounded-[var(--r-btn)] border border-line bg-surface-2 px-3 py-2 sm:gap-3 sm:px-4 sm:py-2.5">
+      <p className="flex min-w-0 flex-1 items-center gap-2 text-[12px] leading-snug text-ink-3 sm:text-[12.5px]">
         <LockSimple weight="fill" className="size-3.5 shrink-0 text-mute" />
+        {/* Three lines of small print on a phone is three lines the question
+            does not get. The short form says the same thing; the long one is
+            for a screen with the room to be careful in. */}
         {error || (
           <>
-            The result is hidden until you decide. Or pay a spark to see it
-            without committing — permanent, and not a vote.
+            <span className="sm:hidden">Hidden until you decide.</span>
+            <span className="hidden sm:inline">
+              The result is hidden until you decide. Or pay a spark to see it
+              without committing — permanent, and not a vote.
+            </span>
           </>
         )}
       </p>

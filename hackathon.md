@@ -3,7 +3,7 @@
 - **Project:** bipolar
 - **Event:** Convex All Gas Hackathon
 - **What it does:** Vote LOVE or HATE on polarizing topics, and see what the people who paid to be counted actually think.
-- **Live app:** not deployed
+- **Live app:** https://vivid-greyhound-473.convex.site
 - **Repo:** none
 - **Frontend:** Vite + React 19, served from this deployment in development
 - **Convex deployment:** `vivid-greyhound-473` (dev)
@@ -15,9 +15,67 @@
 - **AI models:** OpenAI `gpt-5-mini`
 - **Installable:** no
 - **Started:** 13 September 2026
-- **Last updated:** 14 September 2026
+- **Last updated:** 15 September 2026
 
 ## Log
+
+### 15 September 2026 — ask the boards, and put a rail away
+
+**The model picks the chart. It never picks the number.** "Who hates China" is a question
+people actually have and a sentence no database answers, so there is now a panel that takes
+it. What the model is given is the question and the list of country codes that have votes;
+what it returns is a *plan* — which of six lenses to draw, whose name to put on it, and a
+line of prose. It cannot emit a figure, because nothing in its contract has a number in it.
+Every value on screen is read off the public board afterwards by `convex/insightViews.ts`,
+which turns a lens into blocks: a headline, a ranking, a map, a head-to-head, bars, a dial, a
+note. The worst a wrong answer can be is the right numbers in the wrong chart.
+`convex/lib/insight.ts` routes, `convex/insightChat.ts` spends the rate limit before it
+spends anybody's money on a model call, and the reply is stored as the *rendered* answer
+rather than as a question to re-run — the boards move, and re-deriving yesterday's answer
+from today's numbers would quietly rewrite what somebody was told.
+
+**A board trimmed by the field you then filter on is a board that lies.** Asked who hates
+China, the panel said nobody had answered enough questions about it — while thirteen votes
+sat there. `world.board` was returning the sixty verdict rows with the *lowest* lean, so
+filtering that by subject found whatever happened to be extreme rather than whatever was
+true. The same trim was quietly wrong twice more: a country page showed only the verdicts
+harsh enough to make the cut, and the "warmest" reading was the least-harsh row of a list
+holding nothing but harsh ones. It returns the whole board now, bounded naturally at one row
+per voter-and-subject pair over the floor, with a test that fills a board with sixty-five
+harsh verdicts and one warm one and insists the warm one survives.
+
+**A rail can be put away, and the question does not move.** Readers said there was too much
+going on, and the first answer — collapse the track — was worse than the problem: the biggest
+type in the app jumped sideways the moment somebody tidied a column they were not even
+reading. So a docked rail keeps its width and goes behind glass instead, still mounted and
+still live, so bringing it back shows what happened rather than an empty panel that has to
+load. What shows through the glass is the question's own ground, which now reaches under
+whichever column has been docked. The field inside that reach extends by the *other* side's
+bleed, which sounds like an accounting detail and is not: sized to the lopsided box, the red
+and the blue slid sideways with it, and docking one rail handed the reader a screen where one
+answer was winning before anybody had voted.
+
+**The map answers the cursor without twitching.** A chosen country used to arrive with a pop —
+half size, past full, settle. That is the right arrival for something that just happened and
+the wrong one for something merely under a pointer that crosses a dozen countries on its way
+anywhere. Nothing moves now: the land lights up in its own fill colour, a tight halo that
+reads as an edge and a wide one that reads as light, and the chosen ring fades on. Every map
+in the app is the same component, so the reveal's atlas, the world page, the topic pages and
+the AI's own blocks all changed at once.
+
+**The queue is a player.** Thirteen rows was the same complaint one column over. It shows the
+next question at the weight that deserves, with the rest one press away; the count in the
+heading stays honest about how much is really left either way.
+
+**The yellow is gone.** It was the one accent that read as somebody else's product — an
+advert, or a cheap betting site — which is a bad thing for the colour that marks money to
+say. Mint carries the same "this costs something" weight in the register this product
+actually wants, and it is far enough from both the rose and the cyan never to be mistaken for
+a side. Undo went violet with it, hollow against the solid Next: same hue, so the two belong
+to the same step of the run, and an outline against a block so they are never confused.
+
+**293 tests.** The new one guards the verdict board against being trimmed by the very field
+it is filtered on; the rest are unchanged and still green.
 
 ### 14 September 2026 — a hundred arguments with faces on them
 

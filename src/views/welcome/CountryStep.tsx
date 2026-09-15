@@ -37,7 +37,12 @@ export function CountryStep({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="relative shrink-0">
-        <MagnifyingGlass className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-mute" />
+        {/* Anchored to the input rather than to this box: the box carries the
+            label as well, so centring on it put the glass above the line it
+            belongs to. `h-12` is the field's own height. */}
+        <span className="pointer-events-none absolute bottom-0 left-3 grid h-12 w-6 place-items-center">
+          <MagnifyingGlass weight="bold" className="size-[17px] text-mute" />
+        </span>
         <Field
           label="Find your country"
           value={query}

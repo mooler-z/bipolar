@@ -110,7 +110,7 @@ export function CountryPicker({
       {open ? (
         <div className="rise absolute inset-x-0 top-full z-40 mt-1.5 overflow-hidden rounded-[var(--r-card)] border-2 border-line-2 bg-surface shadow-[0_18px_40px_-12px_rgba(0,0,0,0.6)]">
           <label className="flex items-center gap-2.5 border-b border-line px-3.5">
-            <MagnifyingGlass className="size-4 shrink-0 text-mute" />
+            <MagnifyingGlass weight="bold" className="size-4 shrink-0 text-mute" />
             <Field
               bare
               label="Find a country"

@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import { ArrowLeft, ArrowRight } from "@phosphor-icons/react";
 
 import { api } from "../../convex/_generated/api";
+import { cn } from "../lib/cn";
 import { Button } from "../ui/Button";
 import { Label } from "../ui/Label";
 import { Wordmark } from "../ui/Wordmark";
@@ -46,8 +47,59 @@ export function Welcome({ onDone }: { onDone: () => void }) {
   const first = step === "country";
   const progress = first ? 50 : 100;
 
+  /*
+   * The two ways out of a step.
+   *
+   * Drawn once and placed twice. On a desk they sit at the foot of the column
+   * of copy, where the sentence they answer is; stacked on a phone that column
+   * ends halfway up the page and the buttons land in the middle of it, above a
+   * list of two hundred countries nobody has scrolled yet. So the phone gets
+   * them as a bar pinned to the bottom of the screen instead — where a thumb
+   * already is, and where they stay in view however far the list is scrolled.
+   */
+  const actions = (
+    <div className="flex items-center justify-between gap-3">
+      {first ? (
+        <Button variant="ghost" size="sm" onClick={() => setStep("interests")}>
+          Skip
+        </Button>
+      ) : (
+        <Button variant="ghost" size="sm" onClick={() => setStep("country")}>
+          <ArrowLeft className="size-4" /> Back
+        </Button>
+      )}
+      {first ? (
+        <Button
+          variant="go"
+          size="lg"
+          disabled={!country}
+          onClick={() => setStep("interests")}
+        >
+          Continue <ArrowRight className="size-4" />
+        </Button>
+      ) : (
+        <span className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => void finish([])}>
+            Skip
+          </Button>
+          <Button
+            variant="go"
+            size="lg"
+            disabled={busy}
+            onClick={() => void finish([...chosen])}
+          >
+            {busy
+              ? "Saving…"
+              : `Start voting${chosen.size ? ` · ${chosen.size}` : ""}`}
+            <ArrowRight className="size-4" />
+          </Button>
+        </span>
+      )}
+    </div>
+  );
+
   return (
-    <div className="grid min-h-[calc(100dvh-var(--bar))] lg:h-[calc(100dvh-var(--bar))] lg:grid-cols-[minmax(0,38fr)_minmax(0,62fr)]">
+    <div className="grid min-h-[calc(100dvh-var(--bar))] pb-[5.5rem] lg:h-[calc(100dvh-var(--bar))] lg:grid-cols-[minmax(0,38fr)_minmax(0,62fr)] lg:pb-0">
       {/* The question. */}
       <section
         key={step}
@@ -71,44 +123,7 @@ export function Welcome({ onDone }: { onDone: () => void }) {
             : "A head start for the feed, not a filter — it will keep learning from what you actually vote on, and you will still see everything else."}
         </p>
 
-        <div className="mt-auto flex items-center justify-between gap-3 pt-10">
-          {first ? (
-            <Button variant="ghost" size="sm" onClick={() => setStep("interests")}>
-              Skip
-            </Button>
-          ) : (
-            <Button variant="ghost" size="sm" onClick={() => setStep("country")}>
-              <ArrowLeft className="size-4" /> Back
-            </Button>
-          )}
-          {first ? (
-            <Button
-              variant="go"
-              size="lg"
-              disabled={!country}
-              onClick={() => setStep("interests")}
-            >
-              Continue <ArrowRight className="size-4" />
-            </Button>
-          ) : (
-            <span className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={() => void finish([])}>
-                Skip
-              </Button>
-              <Button
-                variant="go"
-                size="lg"
-                disabled={busy}
-                onClick={() => void finish([...chosen])}
-              >
-                {busy
-                  ? "Saving…"
-                  : `Start voting${chosen.size ? ` · ${chosen.size}` : ""}`}
-                <ArrowRight className="size-4" />
-              </Button>
-            </span>
-          )}
-        </div>
+        <div className="mt-auto hidden pt-10 lg:block">{actions}</div>
       </section>
 
       {/* The picker. */}
@@ -130,6 +145,20 @@ export function Welcome({ onDone }: { onDone: () => void }) {
           />
         )}
       </section>
+
+      {/* The phone's foot. Fixed, not sticky: a grid item's sticky range is its
+          own grid area, and this one's area is exactly the height of the bar —
+          zero room to move, so it would never stick to anything. The page pays
+          for it with matching bottom padding rather than hiding its last row
+          under it. */}
+      <div
+        className={cn(
+          "fixed inset-x-0 bottom-0 z-30 border-t border-line bg-canvas/85 backdrop-blur-md lg:hidden",
+          "px-[clamp(1.5rem,4vw,4rem)] py-3",
+        )}
+      >
+        {actions}
+      </div>
     </div>
   );
 }

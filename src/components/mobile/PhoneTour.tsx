@@ -81,12 +81,15 @@ export function PhoneTour({ cards, onDone }: { cards: Card[]; onDone: () => void
         </div>
 
         <div className="mt-3 flex items-center justify-between gap-3 px-5">
+          {/* Not a muted word in a corner. A reader who does not believe the
+              walkthrough can be left sits through all five cards of it. */}
           <Button
-            bare
+            variant="steel"
+            size="sm"
             onClick={onDone}
-            className="min-h-9 px-1 text-[12.5px] font-bold text-mute transition-colors hover:text-ink"
+            className="!min-h-9 !px-3 !text-[12px]"
           >
-            Skip
+            Skip tutorial
           </Button>
 
           <span aria-hidden className="flex items-center gap-1.5">

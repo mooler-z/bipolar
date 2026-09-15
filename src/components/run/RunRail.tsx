@@ -4,6 +4,7 @@ import { api } from "../../../convex/_generated/api";
 import { fmtInt } from "../../lib/format";
 import { useIncreased } from "../../lib/motion";
 import { Button } from "../../ui/Button";
+import { RailToggle } from "./RailToggle";
 import { Queue, type QueueItem } from "./Queue";
 import { Record } from "./Record";
 
@@ -22,12 +23,15 @@ export function RunRail({
   queue,
   onAccount,
   onOpen,
+  onHide,
 }: {
   answered: number;
   remaining: number;
   queue: QueueItem[];
   onAccount: () => void;
   onOpen: (slug: string) => void;
+  /** Put this rail away. Absent where there is nothing to dock. */
+  onHide?: () => void;
 }) {
   const me = useQuery(api.users.me);
   const calls = useQuery(api.calls.me);
@@ -47,6 +51,7 @@ export function RunRail({
             Your run
           </h2>
           <span className="flex-1" />
+          {onHide ? <RailToggle side="left" label="your run" onToggle={onHide} /> : null}
           <span className="num text-[13px] font-extrabold text-ink">
             {fmtInt(answered)}
           </span>
