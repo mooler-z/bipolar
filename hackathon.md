@@ -93,6 +93,18 @@ is three statements disagreeing with each other, because the 71% is the strength
 it out. A second note fires whenever fewer than four countries clear the floor: nobody can
 tell a thin board from a settled one by looking at a bar chart, so it says which it is.
 
+**The door stands on the same ground as the question.** It was a flat black page with a hard
+grey rule down the middle — a form, and the first thing a stranger sees of a product whose
+whole look is two colours drifting behind an argument. It carries the weather now, under
+grain, and the demo arena on it *drives* that ground: hover the love card and the red swells
+across the page and pushes the blue back, exactly as it does behind a real question. That is
+the demonstration, and a stranger finds it by moving a mouse before reading a single topic.
+The three promises stopped being three identical bars with three violet ticks and became
+three cards side by side, each in the colour it belongs to — red for the free vote, blue for
+the paid layer, violet for the call. `ui/Grain.tsx` is the noise plate the bar, the docked
+rails and the ground now share; there were three copies of the same turbulence filter in
+three files.
+
 **293 tests.** The new one guards the verdict board against being trimmed by the very field
 it is filtered on; the rest are unchanged and still green.
 

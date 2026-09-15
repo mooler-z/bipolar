@@ -30,6 +30,7 @@ type Variant =
   | "streak"
   | "hollow"
   | "steel"
+  | "paper"
   | "ghost"
   | "link";
 type Size = "sm" | "md" | "lg";
@@ -50,6 +51,13 @@ const VARIANTS: Record<Variant, string> = {
     "snap rounded-[var(--r-btn)] border-2 border-go-fill/55 bg-go-fill/10 text-go uppercase tracking-[0.04em] hover:bg-go-fill/20 hover:border-go-fill [--ring:var(--go-fill)]",
   steel:
     "snap rounded-[var(--r-btn)] bg-surface-3 text-ink-2 hover:bg-surface-4 hover:text-ink [--ring:var(--ink-3)]",
+  /* The inverse of the page: whatever the ground is, this is the other one.
+     For the one control that belongs to somebody else's brand and should not
+     be wearing any of ours — a Google button is white on a dark page and dark
+     on a light one everywhere else on the internet, and a reader finds it by
+     that shape rather than by reading it. */
+  paper:
+    "snap rounded-[var(--r-btn)] bg-ink text-canvas hover:bg-ink-2 [--ring:var(--ink)]",
   ghost:
     "rounded-[var(--r-sm)] text-mute transition-colors hover:bg-surface-2 hover:text-ink",
   link: "text-mute underline underline-offset-4 hover:text-ink",
