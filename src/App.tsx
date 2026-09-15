@@ -58,7 +58,11 @@ export function App() {
     // Replace, never push. The door is not a place to come back to, and a
     // pushed entry would catch the back button and bounce it forward again.
     window.history.replaceState({}, "", next);
-    setPath(next);
+    // The pathname only. `next` carries its query string — the bot's connect
+    // link is `/link/telegram?code=…` — and holding that in `path` meant every
+    // `path === "/somewhere"` below quietly stopped matching, which landed a
+    // reader on the feed at the end of the one journey they had committed to.
+    setPath(new URL(next, window.location.origin).pathname);
     window.scrollTo(0, 0);
   }, [session.data, path]);
 
@@ -70,7 +74,7 @@ export function App() {
 
   function go(next: string) {
     window.history.pushState({}, "", next);
-    setPath(next);
+    setPath(new URL(next, window.location.origin).pathname);
     window.scrollTo(0, 0);
   }
 
