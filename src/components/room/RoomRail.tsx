@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import type { Id } from "../../../convex/_generated/dataModel";
 import { cn } from "../../lib/cn";
 import { Comments } from "../comments/Comments";
@@ -16,6 +18,12 @@ import { Tabs, type RoomTab } from "./Tabs";
  * `Talk` and `Live` own their own scrolling — each follows its newest line
  * from the bottom, the way a room fills — so they sit outside the rail's
  * scroller; `Boards` sits inside it.
+ *
+ * Answering somebody from `Live` crosses two of the three faces, so the rail
+ * is where it is held: open their topic, turn to `Talk`, and hand the composer
+ * their name. The seed carries the slug it was meant for, because opening a
+ * topic is a round trip and a name delivered to the wrong thread would name
+ * somebody who is not in it.
  */
 
 export type { RoomTab };
@@ -50,6 +58,14 @@ export function RoomRail({
   onComposing?: (composing: boolean) => void;
   className?: string;
 }) {
+  const [seed, setSeed] = useState<{ slug: string; text: string } | null>(null);
+
+  function answer(at: string, author: string) {
+    if (at !== slug) onOpen(at);
+    setSeed({ slug: at, text: `@${author} ` });
+    onTab("talk");
+  }
+
   return (
     <aside
       className={cn("rail flex h-full min-h-0 flex-col xl:border-l xl:border-line", className)}
@@ -63,12 +79,14 @@ export function RoomRail({
           quills={quills}
           signedIn={signedIn}
           question={question}
+          seed={seed?.slug === slug ? seed.text : null}
+          onSeeded={() => setSeed(null)}
           onTopic={onTopic}
           onComposing={onComposing}
           className="min-h-0 flex-1"
         />
       ) : tab === "live" ? (
-        <Live slug={slug} onOpen={onOpen} className="min-h-0 flex-1" />
+        <Live slug={slug} onOpen={onOpen} onAnswer={answer} className="min-h-0 flex-1" />
       ) : (
         <div className="col-scroll flex-1">
           <Boards onOpen={onOpen} />

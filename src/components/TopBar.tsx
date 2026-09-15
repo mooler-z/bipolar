@@ -6,6 +6,7 @@ import { cn } from "../lib/cn";
 import { fmtInt, fmtMoney, rankOf } from "../lib/format";
 import { useIncreased } from "../lib/motion";
 import { signOut } from "../lib/auth-client";
+import { Notifications } from "./Notifications";
 import { useTheme } from "../lib/theme";
 import { Avatar } from "../ui/Avatar";
 import { Button } from "../ui/Button";
@@ -126,6 +127,10 @@ export function TopBar({
           </span>
         </Button>
       ) : null}
+
+      {/* The bell stays on a phone: it is the only thing up here that is
+          about something that happened rather than something to press. */}
+      {signedIn ? <Notifications /> : null}
 
       {/* Both of these have a home on the account screen, so the phone drops
           them rather than shrinking them. */}

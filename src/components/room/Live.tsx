@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useQuery } from "convex/react";
 import {
+  ArrowBendUpLeft,
   ChatCircle,
   Heart,
   Lightning,
@@ -27,6 +28,13 @@ import { Flag } from "../../ui/Flag";
  * country, the question, and how long ago. The side of a vote is drawn only
  * when the payload carries it — the server withholds it for any topic this
  * reader has not earned, and this file never guesses.
+ *
+ * A **vote row has no name on it**, and that is the product's promise about
+ * voting rather than an omission — a country and a side, never a person. A
+ * comment row has one, because its author put it there, so the quoted line is
+ * its own control: press it to answer that person by name. Two controls side
+ * by side rather than one inside the other, which is invalid and unreachable
+ * from a keyboard.
  */
 
 const WINDOW_MS = 10 * 60_000;
@@ -71,6 +79,7 @@ function Ticket({
   now,
   index,
   onOpen,
+  onAnswer,
 }: {
   r: Row;
   here: boolean;
@@ -79,8 +88,11 @@ function Ticket({
   now: number;
   index: number;
   onOpen: (slug: string) => void;
+  /** Answer the person who wrote this line, by name. Comments only. */
+  onAnswer: (slug: string, author: string) => void;
 }) {
   const unknown = r.kind === "vote" && r.choice === null;
+  const said = r.kind === "comment" && r.body && r.author ? { body: r.body, author: r.author } : null;
   return (
     <li
       className={fresh ? "roll" : "stagger"}
@@ -126,12 +138,29 @@ function Ticket({
             this one
           </span>
         ) : null}
-        {r.kind === "comment" && r.body ? (
-          <span className="relative line-clamp-2 pl-[25px] text-[11.5px] leading-snug text-mute italic">
-            &ldquo;{r.body}&rdquo; &mdash; {r.author}
-          </span>
-        ) : null}
       </Button>
+
+      {/* Its own control, outside the ticket: the ticket opens the topic, the
+          line answers the person who wrote it. */}
+      {said ? (
+        <Button
+          bare
+          onClick={() => onAnswer(r.slug, said.author)}
+          title={`Answer ${said.author}`}
+          className={cn(
+            "group/say mt-0.5 flex w-full items-start gap-1.5 rounded-[8px] py-1 pr-2 pl-[28px] text-left",
+            "transition-colors duration-150 hover:bg-surface-3",
+          )}
+        >
+          <span className="line-clamp-2 min-w-0 flex-1 text-[11.5px] leading-snug text-mute italic transition-colors group-hover/say:text-ink-3">
+            &ldquo;{said.body}&rdquo; &mdash; {said.author}
+          </span>
+          <ArrowBendUpLeft
+            weight="bold"
+            className="mt-0.5 size-3 shrink-0 text-mute opacity-0 transition-opacity duration-150 group-hover/say:opacity-100 group-focus-visible/say:opacity-100"
+          />
+        </Button>
+      ) : null}
     </li>
   );
 }
@@ -139,11 +168,13 @@ function Ticket({
 export function Live({
   slug,
   onOpen,
+  onAnswer,
   className,
 }: {
   /** The topic in the middle, so its own rows read as this one. */
   slug: string;
   onOpen: (slug: string) => void;
+  onAnswer: (slug: string, author: string) => void;
   className?: string;
 }) {
   const rows = useQuery(api.leaderboards.activity, { limit: 30 });
@@ -214,6 +245,7 @@ export function Live({
               now={now}
               index={i}
               onOpen={onOpen}
+              onAnswer={onAnswer}
             />
           ))}
         </ul>
