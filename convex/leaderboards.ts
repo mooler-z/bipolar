@@ -13,7 +13,15 @@ import { currentUser } from "./users";
  * that was a real risk.
  */
 
-/** Hottest topics, by money staked. The board that makes the product legible. */
+/**
+ * Hottest topics, by how many people turned up.
+ *
+ * It used to rank on money staked and show nothing else, which made the board
+ * a list of whichever four questions happened to have taken a fifty-cent
+ * spark — four food arguments at $0.50 each, while eleven thousand votes sat
+ * on questions the board would not name. Money is still on the row, as the
+ * detail it always was; what decides the order is the crowd.
+ */
 export const hottest = query({
   args: { limit: v.optional(v.number()) },
   returns: v.array(
@@ -22,26 +30,36 @@ export const hottest = query({
       question: v.string(),
       stakedCents: v.number(),
       votes: v.number(),
+      comments: v.number(),
+      countryCode: v.union(v.null(), v.string()),
     }),
   ),
   handler: async (ctx, args) => {
     const want = Math.min(args.limit ?? 5, 20);
-    // Bounded read, then ranked in memory: a board is a headline, not a report.
-    const rows = await ctx.db.query("topicStats").take(300);
+    // Bounded read, then ranked in memory: a board is a headline, not a
+    // report. The ceiling is the whole feed, though — ranking the first three
+    // hundred rows of a five-hundred-topic table is ranking an arbitrary
+    // third of it.
+    const rows = await ctx.db.query("topicStats").take(1200);
+    const heat = (r: (typeof rows)[number]) =>
+      r.freeLove + r.freeHate + r.paidLove + r.paidHate;
     const ranked = rows
-      .filter((r) => r.stakedCents > 0)
-      .sort((a, b) => b.stakedCents - a.stakedCents)
-      .slice(0, want);
+      .filter((r) => heat(r) > 0)
+      .sort((a, b) => heat(b) - heat(a) || b.stakedCents - a.stakedCents)
+      .slice(0, want + 8);
 
     const out = [];
     for (const row of ranked) {
+      if (out.length >= want) break;
       const topic = await ctx.db.get("topics", row.topicId);
       if (!topic || topic.status !== "active") continue;
       out.push({
         slug: topic.slug,
         question: topic.question,
         stakedCents: row.stakedCents,
-        votes: row.freeLove + row.freeHate + row.paidLove + row.paidHate,
+        votes: heat(row),
+        comments: row.comments,
+        countryCode: topic.scopeCountry ?? null,
       });
     }
     return out;

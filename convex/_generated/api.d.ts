@@ -15,6 +15,7 @@ import type * as adminUsers from "../adminUsers.js";
 import type * as auditLog from "../auditLog.js";
 import type * as auth from "../auth.js";
 import type * as backfill from "../backfill.js";
+import type * as boards from "../boards.js";
 import type * as calls from "../calls.js";
 import type * as commentThread from "../commentThread.js";
 import type * as comments from "../comments.js";
@@ -104,6 +105,7 @@ declare const fullApi: ApiFromModules<{
   auditLog: typeof auditLog;
   auth: typeof auth;
   backfill: typeof backfill;
+  boards: typeof boards;
   calls: typeof calls;
   commentThread: typeof commentThread;
   comments: typeof comments;

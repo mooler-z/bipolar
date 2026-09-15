@@ -74,6 +74,18 @@ actually wants, and it is far enough from both the rose and the cyan never to be
 a side. Undo went violet with it, hollow against the solid Next: same hue, so the two belong
 to the same step of the run, and an outline against a block so they are never confused.
 
+**The boards say what is actually happening.** "Hottest" ranked on money staked and showed
+nothing else, so it listed whichever four questions happened to have taken a fifty-cent spark
+— four food arguments — while eleven thousand votes sat on questions the board would not
+name. It ranks on the crowd now, with the money kept on the row as the detail it always was,
+and it reads the whole feed rather than the first three hundred rows of it, which was ranking
+an arbitrary third. Two boards joined it in `convex/boards.ts`: the loudest countries, by
+votes cast, each with its lean said in words; and the most argued questions, by replies. Both
+are aggregates over many questions, which is what keeps them public — a country's lean across
+two hundred topics gives away none of them. And a board with nobody on it is no longer drawn
+at all: three headings over three lines of "nobody on this board yet" reads as broken rather
+than as early.
+
 **293 tests.** The new one guards the verdict board against being trimmed by the very field
 it is filtered on; the rest are unchanged and still green.
 
