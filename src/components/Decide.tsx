@@ -60,6 +60,7 @@ export const Decide = forwardRef<
     /** Take back the vote just cast. Only for a reader who skips the result. */
     onUndo?: () => void;
     onComments: () => void;
+    onShare: () => void;
     onGetSparks: () => void;
     /** Anything that belongs under the arena — the peek, on a topic's own page. */
     extra?: ReactNode;
@@ -73,7 +74,7 @@ export const Decide = forwardRef<
     restoring?: Side | null;
   }
 >(function Decide(
-  { topic, armed, canSpark, sparks, busy, onArm, onPick, onSkip, onBack, onUndo, onComments, onGetSparks, extra, hint, tour, pending, restoring },
+  { topic, armed, canSpark, sparks, busy, onArm, onPick, onSkip, onBack, onUndo, onComments, onShare, onGetSparks, extra, hint, tour, pending, restoring },
   ref,
 ) {
   /*
@@ -158,7 +159,7 @@ export const Decide = forwardRef<
           </div>
         </div>
 
-        <RoomSize topic={topic} onComments={onComments} />
+        <RoomSize topic={topic} onComments={onComments} onShare={onShare} />
       </div>
 
       {/* Band 3 — the answer. Always here, whatever the question was. */}

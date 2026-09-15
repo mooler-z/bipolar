@@ -165,6 +165,7 @@ export const Centre = forwardRef<
             /* Only here when there is no reveal to carry it. */
             onUndo={onUndo}
             onComments={onComments}
+            onShare={onShare}
             onGetSparks={onGetSparks}
             hint={hint}
             tour={tour}

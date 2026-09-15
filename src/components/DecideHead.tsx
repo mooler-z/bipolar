@@ -1,4 +1,4 @@
-import { ArrowSquareOut, ChatCircle, Users, Warning } from "@phosphor-icons/react";
+import { ArrowSquareOut, ChatCircle, ShareNetwork, Users, Warning } from "@phosphor-icons/react";
 
 import { cn } from "../lib/cn";
 import { fmtInt } from "../lib/format";
@@ -57,9 +57,12 @@ export function DecideStrip({ topic, pad }: { topic: DecideTopic; pad: string })
 export function RoomSize({
   topic,
   onComments,
+  onShare,
 }: {
   topic: DecideTopic;
   onComments: () => void;
+  /** Send this question on, before answering it. */
+  onShare: () => void;
 }) {
   return (
     <div key={`c-${topic.slug}`} className="rise mt-4 flex flex-wrap items-center gap-2">
@@ -85,6 +88,22 @@ export function RoomSize({
         <span className="text-[11.5px] font-extrabold tracking-[0.08em] text-mute uppercase">
           arguing
         </span>
+      </Button>
+
+      {/* Sharing belongs here as well as under the result. The reveal's card
+          is the better share, but a question worth arguing about is worth
+          sending to the person you want to argue with, and making somebody
+          vote first to be allowed to do that is a toll on the one act that
+          brings anybody new in. */}
+      <Button
+        bare
+        onClick={onShare}
+        aria-label="Share this question"
+        title="Share this question"
+        className="lift flex items-center gap-2 rounded-[var(--r-btn)] border-2 border-line bg-surface-2 px-3.5 py-2 text-mute hover:border-line-2 hover:text-ink"
+      >
+        <ShareNetwork weight="fill" className="size-[18px]" />
+        <span className="text-[11.5px] font-extrabold tracking-[0.08em] uppercase">share</span>
       </Button>
     </div>
   );
