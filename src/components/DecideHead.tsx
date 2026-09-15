@@ -65,13 +65,17 @@ export function RoomSize({
   onShare: () => void;
 }) {
   return (
-    <div key={`c-${topic.slug}`} className="rise mt-4 flex flex-wrap items-center gap-2">
-      <span className="flex items-center gap-2.5 rounded-[var(--r-btn)] border-2 border-line-2 bg-surface-2 px-3.5 py-2">
-        <Users weight="fill" className="size-[18px] text-ink-3" />
-        <span className="num display text-[clamp(1.2rem,1.8vw,1.75rem)] leading-none">
+    <div key={`c-${topic.slug}`} className="rise mt-6 flex flex-wrap items-center gap-2.5 sm:mt-4 sm:gap-2">
+      {/* Scaled for the screen it is on. These are a footnote to the question
+          — how many turned up, how many stayed to argue — and at the desk's
+          size on a phone they were three slabs competing with the headline
+          above them. */}
+      <span className="flex items-center gap-2 rounded-[var(--r-btn)] border-2 border-line-2 bg-surface-2 px-2.5 py-1.5 sm:gap-2.5 sm:px-3.5 sm:py-2">
+        <Users weight="fill" className="size-4 text-ink-3 sm:size-[18px]" />
+        <span className="num display text-[15px] leading-none sm:text-[clamp(1.2rem,1.8vw,1.75rem)]">
           {fmtInt(topic.voteCount)}
         </span>
-        <span className="text-[11.5px] font-extrabold tracking-[0.08em] text-mute uppercase">
+        <span className="text-[10px] font-extrabold tracking-[0.08em] text-mute uppercase sm:text-[11.5px]">
           {topic.voteCount === 1 ? "vote in" : "votes in"}
         </span>
       </span>
@@ -79,13 +83,13 @@ export function RoomSize({
       <Button
         bare
         onClick={onComments}
-        className="lift flex items-center gap-2.5 rounded-[var(--r-btn)] border-2 border-line bg-surface-2 px-3.5 py-2 hover:border-line-2"
+        className="lift flex items-center gap-2 rounded-[var(--r-btn)] border-2 border-line bg-surface-2 px-2.5 py-1.5 hover:border-line-2 sm:gap-2.5 sm:px-3.5 sm:py-2"
       >
-        <ChatCircle weight="fill" className="size-[18px] text-hate" />
-        <span className="num display text-[clamp(1.2rem,1.8vw,1.75rem)] leading-none">
+        <ChatCircle weight="fill" className="size-4 text-hate sm:size-[18px]" />
+        <span className="num display text-[15px] leading-none sm:text-[clamp(1.2rem,1.8vw,1.75rem)]">
           {fmtInt(topic.commentCount)}
         </span>
-        <span className="text-[11.5px] font-extrabold tracking-[0.08em] text-mute uppercase">
+        <span className="text-[10px] font-extrabold tracking-[0.08em] text-mute uppercase sm:text-[11.5px]">
           arguing
         </span>
       </Button>
@@ -100,10 +104,12 @@ export function RoomSize({
         onClick={onShare}
         aria-label="Share this question"
         title="Share this question"
-        className="lift flex items-center gap-2 rounded-[var(--r-btn)] border-2 border-line bg-surface-2 px-3.5 py-2 text-mute hover:border-line-2 hover:text-ink"
+        className="lift flex items-center gap-2 rounded-[var(--r-btn)] border-2 border-line bg-surface-2 px-2.5 py-1.5 text-mute hover:border-line-2 hover:text-ink sm:px-3.5 sm:py-2"
       >
-        <ShareNetwork weight="fill" className="size-[18px]" />
-        <span className="text-[11.5px] font-extrabold tracking-[0.08em] uppercase">share</span>
+        <ShareNetwork weight="fill" className="size-4 sm:size-[18px]" />
+        <span className="text-[10px] font-extrabold tracking-[0.08em] uppercase sm:text-[11.5px]">
+          share
+        </span>
       </Button>
     </div>
   );

@@ -29,7 +29,7 @@ export function PeekOffer({
   const [error, setError] = useState("");
 
   return (
-    <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 rounded-[var(--r-btn)] border border-line bg-surface-2 px-3 py-2 sm:gap-3 sm:px-4 sm:py-2.5">
+    <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-[var(--r-btn)] sm:mt-2.5 border border-line bg-surface-2 px-3 py-2 sm:gap-3 sm:px-4 sm:py-2.5">
       <p className="flex min-w-0 flex-1 items-center gap-2 text-[12px] leading-snug text-ink-3 sm:text-[12.5px]">
         <LockSimple weight="fill" className="size-3.5 shrink-0 text-mute" />
         {/* Three lines of small print on a phone is three lines the question

@@ -76,33 +76,37 @@ export function Reveal({
 
   return (
     <section className="slide-in flex h-full min-h-0 flex-col">
-      <div className="col-scroll flex-1 px-[clamp(1.25rem,3vw,3.5rem)] py-5">
+      {/* Room to breathe on a phone. Everything below stacks there, and the
+          desk's tight rhythm — built for a column with height to spare —
+          reads as a pile when it is one card after another down a screen. */}
+      <div className="col-scroll flex-1 px-[clamp(1.25rem,3vw,3.5rem)] py-6 sm:py-5">
         {verdict ? (
-          <div className="mb-4">
+          <div className="mb-5 sm:mb-4">
             <Called verdict={verdict} />
           </div>
         ) : null}
 
         <BigNumber stats={stats} mine={mine} question={question} imageUrl={imageUrl} />
 
-        <div className="mt-5">
+        <div className="mt-7 sm:mt-5">
           <Sides stats={stats} staked={staked} />
         </div>
 
         {/* The world: the map, the outlier, and the sentence worth repeating.
             Only reachable here because the vote unlocked the full board. */}
         {countries.length > 0 ? (
-          <div className="mt-5">
+          <div className="mt-7 sm:mt-5">
             <Atlas rows={countries} globalLovePct={cl} />
           </div>
         ) : null}
       </div>
 
-      {/* One row on a phone. Undo loses its word and keeps its colour, Next
-          takes the space that is left, and the countdown becomes a hairline
-          under the whole foot rather than a third row of its own — three
-          stacked rows of controls was most of a small screen. */}
-      <footer className="relative flex shrink-0 flex-wrap items-center gap-2 border-t border-line bg-surface/40 px-[clamp(1.25rem,3vw,3.5rem)] py-[clamp(0.75rem,1.6vh,1.1rem)] sm:gap-2.5">
+      {/* Undo loses its word on a phone and keeps its colour, and Next takes
+          the space that is left. The countdown used to be pulled up out of
+          this foot and sat over the result with nothing behind it — a strip of
+          red segments floating across a map. It is a row *inside* the foot
+          now, on the foot's own ground, above the buttons. */}
+      <footer className="relative flex shrink-0 flex-wrap items-center gap-2 border-t border-line bg-surface/40 px-[clamp(1.25rem,3vw,3.5rem)] py-3 sm:gap-2.5 sm:py-[clamp(0.75rem,1.6vh,1.1rem)]">
         {/* Hollow against the solid: the same violet and the same size as
             Next, and still unmistakably not it. Both belong to the same step
             of the run, which is what the shared hue says; one is the way on
@@ -115,7 +119,7 @@ export function Reveal({
             variant="hollow"
             onClick={onUndo}
             title="Take this vote back — until the countdown ends"
-            className="shrink-0 max-sm:!px-4"
+            className="shrink-0 max-sm:!min-h-11 max-sm:!px-3.5"
           >
             <ArrowUUpLeft weight="bold" className="size-4" />
             <span className="max-sm:hidden">Undo</span>
@@ -130,15 +134,23 @@ export function Reveal({
             onClick={onPrevious}
             aria-label="Back one"
             title="Back one"
-            className="shrink-0 !px-5"
+            className="shrink-0 !px-5 max-sm:!min-h-11 max-sm:!px-3.5"
           >
             <ArrowLeft weight="bold" className="size-4" />
             <kbd className="key !bg-current/15 !text-current !shadow-none">&larr;</kbd>
           </Button>
         ) : null}
 
+        {/* Smaller on a phone, and never wrapping. At the desk's size the
+            label broke across two lines inside its own button, which is what
+            made the foot read as stacked. */}
         {onNext ? (
-          <Button size="lg" variant="go" onClick={onNext} className="max-sm:flex-1 sm:shrink-0">
+          <Button
+            size="lg"
+            variant="go"
+            onClick={onNext}
+            className="max-sm:!min-h-11 max-sm:flex-1 max-sm:!px-4 max-sm:!text-[13px] max-sm:whitespace-nowrap sm:shrink-0"
+          >
             Next topic <ArrowRight weight="bold" className="size-4" />
             <kbd className="key ml-1 !bg-current/15 !text-current !shadow-none max-sm:hidden">
               &rarr;
@@ -155,11 +167,16 @@ export function Reveal({
             side={won}
             paused={autoAdvance.paused}
             onDone={onNext}
-            /* A hairline across the top of the foot on a phone; a bar beside
-               the buttons on a desk, where there is room for one. */
+            /* Its own row on a phone, inside the foot and on the foot's own
+               ground; a bar beside the buttons on a desk, where there is room
+               for one. `basis-full` rather than `w-full`, because the
+               component sets `flex-1` on itself — `flex: 1 1 0%` — and a
+               basis of zero beats any width you put next to it, which is why
+               it went on sharing the buttons' row instead of taking its own. */
             className={[
-              "max-sm:absolute max-sm:inset-x-0 max-sm:top-0 max-sm:-translate-y-full",
-              "max-sm:rounded-none max-sm:border-0 max-sm:!p-0 max-sm:opacity-90",
+              "max-sm:order-first max-sm:mb-1.5 max-sm:!flex-none max-sm:!basis-full",
+              "max-sm:rounded-[var(--r-btn)] max-sm:border max-sm:border-line",
+              "max-sm:bg-surface-2 max-sm:px-2.5 max-sm:py-1.5",
               "sm:basis-48",
             ].join(" ")}
           />

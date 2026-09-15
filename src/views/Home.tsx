@@ -70,15 +70,21 @@ export function Home({
   const { rails, toggle } = useRails();
 
   /* The bar's AI button lives in another tree, so its press arrives as an
-     event. It opens the rail on the panel, and un-docks the rail if it was
-     put away — a button that does nothing visible is worse than no button. */
+     event. It opens the rail on the panel, un-docks the rail if it was put
+     away, and on a phone swipes the deck to the room — a button that does
+     nothing visible is worse than no button, and on a phone the panel it
+     opens is a screen away. */
   useEffect(
     () =>
       onAsk(() => {
         setTab("ask");
-        if (!rails.room) toggle("room");
+        if (desk) {
+          if (!rails.room) toggle("room");
+        } else {
+          deck.goTo(1);
+        }
       }),
-    [rails.room, toggle],
+    [desk, deck, rails.room, toggle],
   );
   const tutor = useKeyTutor();
   const phone = usePhoneTour();

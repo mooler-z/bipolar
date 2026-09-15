@@ -159,7 +159,17 @@ export const Decide = forwardRef<
       </div>
 
       {/* Band 3 — the answer. Always here, whatever the question was. */}
-      <footer className={cn("shrink-0 border-t border-line bg-surface/40 py-[clamp(0.75rem,1.8vh,1.25rem)]", PAD)}>
+      {/* Roomier on a phone. Everything in this band is stacked there rather
+          than spread across a desk's width, and the desk's tight rhythm turns
+          a spark switch sitting above two cards into a box pressed against
+          them. */}
+      <footer
+        className={cn(
+          "shrink-0 border-t border-line bg-surface/40",
+          "py-4 sm:py-[clamp(0.75rem,1.8vh,1.25rem)]",
+          PAD,
+        )}
+      >
         {/* One band, two states: the pending window takes the arena's place
             rather than covering it, so the foot never moves. */}
         {pending ? (
@@ -194,7 +204,7 @@ export const Decide = forwardRef<
                  suggests, and the arena is the piece that takes it from the
                  question. */
               className={cn(
-                "mt-2.5 h-[clamp(8rem,23vh,15rem)] sm:h-[clamp(10rem,30vh,15rem)]",
+                "mt-4 h-[clamp(8rem,23vh,15rem)] sm:mt-2.5 sm:h-[clamp(10rem,30vh,15rem)]",
                 tour ? spotlit(tour, "arena") : "",
               )}
             />
@@ -209,7 +219,7 @@ export const Decide = forwardRef<
             exactly where Undo sits. */}
         <div
           className={cn(
-            "mt-2.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-2",
+            "mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 sm:mt-2.5",
             pending && "hidden",
           )}
         >
