@@ -105,8 +105,21 @@ the paid layer, violet for the call. `ui/Grain.tsx` is the noise plate the bar, 
 rails and the ground now share; there were three copies of the same turbulence filter in
 three files.
 
-**293 tests.** The new one guards the verdict board against being trimmed by the very field
-it is filtered on; the rest are unchanged and still green.
+**The feed asks a question to find something out.** The ranker already gave about one slot in
+ten to a "discovery pick", and that pick reached into the bottom half of the score order —
+which sounds like exploring and is not: the bottom half of a board that has learned one taste
+is the same taste, scored worse. A reader who answered a few questions about famous people
+was served famous people, then duller famous people, and nothing in the loop was ever asked
+to learn anything. The slot now takes whatever the reader has told us *least* about — the
+candidate whose category and tags carry the least evidence, chosen at random among the
+joint-least-known so the stranger is not the same stranger every time. Tags count double,
+because a category is coarse and the tags are what somebody has actually been answering. One
+slot in six, since the slot is now doing real work.
+
+**295 tests.** Three are new: one guards the verdict board against being trimmed by
+the very field it is filtered on, and two hold the discovery pick — that novelty is one for a
+stranger and falls away as evidence arrives, and that an exploring slot takes the least known
+question rather than the worst-scored one. The rest are unchanged and still green.
 
 ### 14 September 2026 — a hundred arguments with faces on them
 

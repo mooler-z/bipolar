@@ -5,7 +5,7 @@
  */
 
 export const MAX_RUN = 2; // consecutive cards from one category
-export const EPSILON = 0.1; // chance a slot is a discovery pick
+export const EPSILON = 0.16; // chance a slot is a discovery pick
 
 /** FNV-1a, so a reader's order is stable within a day and different the next. */
 export function hashSeed(s: string): number {
@@ -29,17 +29,46 @@ function mulberry32(seed: number): () => number {
 }
 
 /**
+ * How little is known about a candidate: 1 is a total stranger, and it falls
+ * away fast as evidence arrives.
+ *
+ * Tags count double. A category is coarse — "culture" covers a pop star and a
+ * building — and it is the tags that say what a reader has actually been
+ * answering, which on a feed that has learned somebody likes famous people is
+ * the difference between "another one" and "something else".
+ */
+export function noveltyOf(seenCategory: number, seenTags: number): number {
+  return 1 / (1 + seenCategory + seenTags * 2);
+}
+
+/**
  * Greedy from the score order, with two corrections.
  *
  * A third card in a row from one category is skipped past, because a feed that
- * serves six food questions reads as broken however well each one scored. And
- * one slot in ten pulls from the lower half — without it a ranker only ever
- * confirms what it already believes about you, and taste stops moving.
+ * serves six food questions reads as broken however well each one scored.
+ *
+ * And roughly one slot in six is a **discovery pick**. This is the correction
+ * that matters: without it a ranker only ever confirms what it already
+ * believes about you, and a reader who answered a few questions about famous
+ * people is served famous people until they stop coming.
+ *
+ * What a discovery pick *is* changed. It used to reach into the bottom half of
+ * the score order, which sounds like exploring and is not — the bottom half of
+ * a board that has learned one taste is the same taste, scored worse. It now
+ * takes the candidate the reader has told us **least** about: the one whose
+ * category and tags carry the least evidence. That is a question asked to find
+ * something out rather than a weaker version of a question already answered.
  *
  * Nothing is ever dropped; deterministic for a given seed.
  */
 export function interleave(
-  items: { id: string; score: number; categoryId: string }[],
+  items: {
+    id: string;
+    score: number;
+    categoryId: string;
+    /** From `noveltyOf`. Absent everywhere means the old low-half behaviour. */
+    novelty?: number;
+  }[],
   opts: { seed: number; maxRun?: number; epsilon?: number },
 ): string[] {
   const maxRun = opts.maxRun ?? MAX_RUN;
@@ -56,8 +85,18 @@ export function interleave(
   while (pool.length > 0) {
     let idx = 0;
     if (pool.length > 3 && rng() < epsilon) {
-      const lo = Math.floor(pool.length / 2);
-      idx = lo + Math.floor(rng() * (pool.length - lo));
+      const best = pool.reduce((n, p) => Math.max(n, p.novelty ?? -1), -1);
+      if (best > 0) {
+        // Everything joint-least-known, and one of them at random: picking the
+        // first would make "the stranger" the same stranger every time.
+        const strangers = pool
+          .map((p, i) => (p.novelty === best ? i : -1))
+          .filter((i) => i >= 0);
+        idx = strangers[Math.floor(rng() * strangers.length)];
+      } else {
+        const lo = Math.floor(pool.length / 2);
+        idx = lo + Math.floor(rng() * (pool.length - lo));
+      }
     } else if (lastCat !== null && run >= maxRun && pool[0].categoryId === lastCat) {
       const alt = pool.findIndex((p) => p.categoryId !== lastCat);
       idx = alt === -1 ? 0 : alt;

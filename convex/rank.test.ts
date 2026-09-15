@@ -8,7 +8,7 @@ import {
   type Candidate,
   type Context,
 } from "./lib/rank";
-import { JITTER, hashSeed, interleave, jitter, seededShuffle } from "./lib/serve";
+import { JITTER, hashSeed, interleave, jitter, noveltyOf, seededShuffle } from "./lib/serve";
 
 /**
  * The ranker is pure arithmetic, so it is tested as arithmetic — no database,
@@ -226,6 +226,45 @@ describe("serve order is not score order", () => {
     );
     // Both minority cards have been served before any run of three forms.
     expect(cats.slice(0, firstRunOfThree).filter((c) => c === "other")).toHaveLength(2);
+  });
+
+  /* ── the discovery pick ─────────────────────────────────────────────────
+     A reader who answers a few questions about famous people used to be served
+     famous people until they stopped coming: the explore slot reached into the
+     bottom half of the score order, and the bottom half of a board that has
+     learned one taste is the same taste, scored worse. It goes to whatever the
+     reader has said least about now. */
+
+  test("novelty is one for a stranger and falls away as evidence arrives", () => {
+    expect(noveltyOf(0, 0)).toBe(1);
+    expect(noveltyOf(9, 0)).toBeLessThan(noveltyOf(3, 0));
+    // A tag counts double: a category is coarse, and the tags are what the
+    // reader has actually been answering.
+    expect(noveltyOf(0, 1)).toBeLessThan(noveltyOf(1, 0));
+  });
+
+  test("an exploring slot takes the least known question, not the worst one", () => {
+    const known = Array.from({ length: 8 }, (_, i) => ({
+      id: `famous${i}`,
+      categoryId: "culture",
+      score: 1 - i * 0.01,
+      novelty: noveltyOf(40, 3),
+    }));
+    const stranger = { id: "cities", categoryId: "urbanism", score: 0.1, novelty: 1 };
+
+    // Every slot explores, so the order is novelty order and the one thing
+    // nobody has asked this reader about comes first.
+    const order = interleave([...known, stranger], { seed: 7, epsilon: 1 });
+    expect(order[0]).toBe("cities");
+
+    /* And with no exploring at all the best score leads. The stranger still
+       arrives third rather than last, because the run cap breaks a third
+       culture card in a row — that is the *other* correction, and the point
+       here is that novelty is what puts the stranger at the front rather than
+       in the middle. */
+    const greedy = interleave([...known, stranger], { seed: 7, epsilon: 0 });
+    expect(greedy[0]).toBe("famous0");
+    expect(greedy.indexOf("cities")).toBeGreaterThan(0);
   });
 
   test("nothing is ever dropped", () => {

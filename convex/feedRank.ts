@@ -1,7 +1,7 @@
 import type { QueryCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { score, type Candidate } from "./lib/rank";
-import { JITTER, hashSeed, interleave, jitter, seededShuffle } from "./lib/serve";
+import { JITTER, hashSeed, interleave, jitter, noveltyOf, seededShuffle } from "./lib/serve";
 import { contextFor } from "./feedContext";
 
 /**
@@ -50,6 +50,18 @@ export async function rankedFeed<T>(
     const nowMs = args.now ?? 0;
     const { candidates, context, statsByTopic } = await contextFor(ctx, user, pool, nowMs);
     if (candidates.length === 0) return [];
+    /* How much this reader has already told us about a candidate.
+       `categoryLean.total` is their own votes in that category; `learned` holds
+       a weight for every tag they have acted on at all. Both are evidence, not
+       affinity — a tag they hate is still a tag we know about them. */
+    const evidence = (topic: Doc<"topics">) => {
+      const cat = context.categoryLean.get(topic.categoryId as string)?.total ?? 0;
+      const tags = (topic.tagSlugs ?? []).filter((t) =>
+        context.learned.has(`tag:${t}`),
+      ).length;
+      return noveltyOf(cat, tags);
+    };
+
     const scored = candidates.map((topic) => {
       const totals = statsByTopic.get(topic._id);
       const candidate: Candidate = {
@@ -75,11 +87,13 @@ export async function rankedFeed<T>(
         id: topic._id as string,
         categoryId: topic.categoryId as string,
         score: base + (args.seed ? jitter(args.seed, topic._id) * JITTER : 0),
+        novelty: evidence(topic),
       };
     });
 
     // Serve order, not score order: no three cards from one category in a row,
-    // and one slot in ten pulled from the lower half so taste keeps moving.
+    // and about one slot in six given to whatever this reader has told us the
+    // least about, so the feed keeps learning instead of agreeing with itself.
     const byId = new Map(candidates.map((t) => [t._id as string, t]));
     const order = interleave(scored, {
       seed: hashSeed(
