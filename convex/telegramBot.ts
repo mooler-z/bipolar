@@ -40,11 +40,24 @@ import type { TgCallbackQuery, TgMessage, TgUpdate } from "./lib/tgTypes";
  * Scheduled by the redeem mutation, so by the time somebody gets back to the
  * chat the menu is installed and a question is already waiting. Coming back to
  * an empty chat that says nothing is how a connect flow ends in a shrug.
+ *
+ * It clears the invitations first. A CONNECT button left in a chat that is
+ * already connected is a dead card — the same thing an answered ballot is, and
+ * it goes the same way.
  */
 export const greet = internalAction({
-  args: { chatId: v.number(), userId: v.id("users"), name: v.string() },
+  args: {
+    chatId: v.number(),
+    userId: v.id("users"),
+    name: v.string(),
+    /** The connect prompts this account was offered, now spent. */
+    stale: v.optional(v.array(v.number())),
+  },
   returns: v.null(),
   handler: async (ctx, args) => {
+    for (const messageId of args.stale ?? []) {
+      await clear(args.chatId, messageId);
+    }
     await tg.sendMessage(
       args.chatId,
       `Connected. You vote here as <b>${escapeHtml(args.name)}</b> — same record, same streak.`,
@@ -142,7 +155,7 @@ async function offerConnect(ctx: ActionCtx, msg: TgMessage): Promise<void> {
     username: msg.from!.username,
     chatId: msg.chat.id,
   });
-  await tg.sendMessage(
+  const sent = await tg.sendMessage(
     msg.chat.id,
     "<b>bipolar</b> — vote LOVE or HATE on polarizing topics, and see what the " +
       "people who paid to be counted actually think.\n\nConnect your account to vote from here:",
@@ -152,6 +165,14 @@ async function offerConnect(ctx: ActionCtx, msg: TgMessage): Promise<void> {
       ],
     },
   );
+  // Remembered so connecting can take the button back down. Best-effort: a
+  // prompt whose id never arrived simply stays, which is the old behaviour.
+  if (sent) {
+    await ctx.runMutation(internal.telegramLink.notePrompt, {
+      code,
+      messageId: sent.message_id,
+    });
+  }
 }
 
 async function onCallback(ctx: ActionCtx, cb: TgCallbackQuery): Promise<void> {

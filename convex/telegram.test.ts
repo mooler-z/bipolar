@@ -103,6 +103,49 @@ describe("one Telegram account, one bipolar account", () => {
     await expect(as.mutation(api.telegramLink.redeem, { code })).rejects.toThrow(/expired/i);
   });
 
+  test("connecting voids every outstanding invitation, not just the one used", async () => {
+    const t = harness();
+    await seed(t);
+    const { as } = await voter(t, "one");
+
+    /* Somebody who messaged the bot three times has three live CONNECT
+       buttons, and each one is a code that still works. Connecting with any of
+       them has to close the rest — otherwise a forwarded older link is a
+       standing way in. */
+    const first = await codeFor(t, "tg-1");
+    const second = await codeFor(t, "tg-1");
+    const third = await codeFor(t, "tg-1");
+
+    await as.mutation(api.telegramLink.redeem, { code: second });
+
+    const codes = await t.run(async (ctx) => await ctx.db.query("telegramCodes").collect());
+    expect(codes).toHaveLength(3);
+    expect(codes.every((c) => c.usedAt !== undefined)).toBe(true);
+
+    for (const spent of [first, third]) {
+      await expect(as.mutation(api.telegramLink.redeem, { code: spent })).rejects.toThrow(
+        /expired/i,
+      );
+    }
+  });
+
+  test("the prompts that carried them are handed back to be taken down", async () => {
+    const t = harness();
+    await seed(t);
+    const { as } = await voter(t, "one");
+
+    const code = await codeFor(t, "tg-1");
+    await t.mutation(internal.telegramLink.notePrompt, { code, messageId: 77 });
+
+    await as.mutation(api.telegramLink.redeem, { code });
+    const scheduled = await t.run(
+      async (ctx) => await ctx.db.system.query("_scheduled_functions").collect(),
+    );
+    const greet = scheduled.find((f) => f.name.includes("greet"));
+    // A live CONNECT button in a chat that is already connected is a dead card.
+    expect((greet?.args[0] as { stale: number[] }).stale).toEqual([77]);
+  });
+
   test("a Telegram account cannot be attached to a second bipolar account", async () => {
     const t = harness();
     await seed(t);

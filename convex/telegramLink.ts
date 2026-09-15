@@ -58,6 +58,20 @@ export const accountFor = internalQuery({
   },
 });
 
+/** Which message carried the button, so connecting can take it back down. */
+export const notePrompt = internalMutation({
+  args: { code: v.string(), messageId: v.number() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const row = await ctx.db
+      .query("telegramCodes")
+      .withIndex("by_code", (q) => q.eq("code", args.code))
+      .unique();
+    if (row) await ctx.db.patch("telegramCodes", row._id, { promptMessageId: args.messageId });
+    return null;
+  },
+});
+
 /** Mint a code for a Telegram user who is not linked yet. */
 export const issueCode = internalMutation({
   args: {
@@ -140,10 +154,28 @@ export const redeem = mutation({
       await ctx.db.patch("telegramAccounts", byTelegram._id, { chatId: pending.chatId });
     }
 
+    /* Every outstanding invitation for this Telegram account is spent, not
+       just the one that was used. Somebody who messaged the bot three times
+       has three live CONNECT buttons, and each is a code that still works —
+       so this closes the others as credentials and collects their messages so
+       the chat can be tidied of them at the same time. */
+    const stale: number[] = [];
+    const outstanding = await ctx.db
+      .query("telegramCodes")
+      .withIndex("by_telegram", (q) => q.eq("telegramUserId", pending.telegramUserId))
+      .collect();
+    for (const row of outstanding) {
+      if (row.promptMessageId !== undefined) stale.push(row.promptMessageId);
+      if (row.usedAt === undefined) {
+        await ctx.db.patch("telegramCodes", row._id, { usedAt: Date.now() });
+      }
+    }
+
     await ctx.scheduler.runAfter(0, internal.telegramBot.greet, {
       chatId: pending.chatId,
       userId: user._id,
       name: user.displayName,
+      stale,
     });
 
     return {

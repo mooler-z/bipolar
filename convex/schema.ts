@@ -462,7 +462,15 @@ export default defineSchema({
     expiresAt: v.number(),
     /** Set the moment it is spent, so a replay finds it already used. */
     usedAt: v.optional(v.number()),
-  }).index("by_code", ["code"]),
+    /**
+     * The message that carried the button, so it can be taken down once it
+     * has been used. A live CONNECT button in a chat that is already
+     * connected is the same dead card the bot deletes everywhere else.
+     */
+    promptMessageId: v.optional(v.number()),
+  })
+    .index("by_code", ["code"])
+    .index("by_telegram", ["telegramUserId"]),
 
   notifications: defineTable({
     userId: v.id("users"),
