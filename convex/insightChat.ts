@@ -4,7 +4,8 @@ import { api, internal } from "./_generated/api";
 import { action, internalMutation, mutation, query } from "./_generated/server";
 import { limiter } from "./limits";
 import { plan as route } from "./lib/insight";
-import { block, build, type Block } from "./insightViews";
+import { block, type Block } from "./insightBlocks";
+import { build } from "./insightViews";
 import { currentUser, requireUser } from "./users";
 
 /**

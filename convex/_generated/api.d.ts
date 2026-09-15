@@ -30,6 +30,7 @@ import type * as ingest from "../ingest.js";
 import type * as ingestRuns from "../ingestRuns.js";
 import type * as ingestSession from "../ingestSession.js";
 import type * as ingestStore from "../ingestStore.js";
+import type * as insightBlocks from "../insightBlocks.js";
 import type * as insightChat from "../insightChat.js";
 import type * as insightViews from "../insightViews.js";
 import type * as interactions from "../interactions.js";
@@ -120,6 +121,7 @@ declare const fullApi: ApiFromModules<{
   ingestRuns: typeof ingestRuns;
   ingestSession: typeof ingestSession;
   ingestStore: typeof ingestStore;
+  insightBlocks: typeof insightBlocks;
   insightChat: typeof insightChat;
   insightViews: typeof insightViews;
   interactions: typeof interactions;

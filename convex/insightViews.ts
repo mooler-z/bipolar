@@ -1,6 +1,5 @@
-import { v } from "convex/values";
-
 import type { Plan } from "./lib/insight";
+import { strength, tone, word, type Block, type Board } from "./insightBlocks";
 
 /**
  * Turning a chosen lens into blocks of real numbers.
@@ -8,87 +7,9 @@ import type { Plan } from "./lib/insight";
  * This is the half the model does not touch. It reads the public board, picks
  * the rows the lens asked for, and emits blocks the client knows how to draw —
  * so every figure on screen came out of the database rather than out of a
- * language model.
- *
- * Seven kinds of block, because one answer is rarely one shape: "who hates
- * China" wants a ranking *and* a map, and a country profile wants a dial, a
- * ranking and a head-to-head. The client renders whatever it is handed and
- * nothing here knows what any of them look like.
+ * language model. The blocks themselves, and the board's shape, live in
+ * `insightBlocks.ts`.
  */
-
-export const block = v.union(
-  v.object({
-    kind: v.literal("headline"),
-    label: v.string(),
-    value: v.string(),
-    word: v.string(),
-    tone: v.string(),
-    flag: v.union(v.null(), v.string()),
-  }),
-  v.object({
-    kind: v.literal("ranking"),
-    title: v.string(),
-    rows: v.array(
-      v.object({ code: v.string(), pct: v.number(), votes: v.number() }),
-    ),
-  }),
-  v.object({
-    kind: v.literal("map"),
-    title: v.string(),
-    focus: v.union(v.null(), v.string()),
-    cells: v.array(v.object({ code: v.string(), pct: v.number() })),
-  }),
-  v.object({
-    kind: v.literal("versus"),
-    a: v.object({ code: v.string(), pct: v.number() }),
-    b: v.object({ code: v.string(), pct: v.number() }),
-    agreement: v.union(v.null(), v.number()),
-    shared: v.number(),
-  }),
-  v.object({
-    kind: v.literal("bars"),
-    title: v.string(),
-    rows: v.array(
-      v.object({ label: v.string(), pct: v.number(), votes: v.number() }),
-    ),
-  }),
-  v.object({
-    kind: v.literal("donut"),
-    title: v.string(),
-    lovePct: v.number(),
-    votes: v.number(),
-    flag: v.union(v.null(), v.string()),
-  }),
-  v.object({ kind: v.literal("note"), text: v.string() }),
-);
-
-export type Block = typeof block.type;
-
-type Board = {
-  totals: { countries: number; votes: number; lovePct: number; topics: number };
-  countries: { code: string; lovePct: number; votes: number; topics: number; contrary: number }[];
-  verdicts: { from: string; about: string; lovePct: number; votes: number; topics: number }[];
-  pairs: { a: string; b: string; agreement: number; shared: number }[];
-  categories: { slug: string; lovePct: number; votes: number; topics: number }[];
-  subjects: { code: string; slug: string; lovePct: number; votes: number }[];
-};
-
-/** The word for a lean, duplicated from the client's scale on purpose — the
-    server says what it means rather than shipping a number to be interpreted. */
-function word(pct: number): string {
-  if (pct >= 84) return "adores";
-  if (pct >= 74) return "loves";
-  if (pct >= 64) return "likes";
-  if (pct >= 56) return "warms to";
-  if (pct >= 45) return "is split on";
-  if (pct >= 37) return "cools on";
-  if (pct >= 27) return "dislikes";
-  if (pct >= 17) return "hates";
-  return "despises";
-}
-
-const tone = (pct: number) => (pct >= 56 ? "love" : pct <= 44 ? "hate" : "neutral");
-const strength = (pct: number) => (pct >= 50 ? pct : 100 - pct);
 
 export function build(plan: Plan, board: Board): Block[] {
   const out: Block[] = [];
@@ -109,15 +30,47 @@ export function build(plan: Plan, board: Board): Block[] {
         });
         break;
       }
+      /* The headline has to survive the answer running against the question.
+         Asked who loves China most, the honest reply here is a country that
+         still dislikes it — and "Thinks most of it / ET dislikes it / 71%"
+         reads as three statements disagreeing with each other, because the
+         71% is the strength of the *hate*. So when the board answers against
+         the question, the label says so and a note spells it out. */
       const top = rows[0]!;
+      const asked = plan.direction === "hate" ? "hate" : "love";
+      const against = asked === "love" ? top.lovePct < 50 : top.lovePct >= 50;
       out.push({
         kind: "headline",
-        label: plan.direction === "hate" ? "Thinks least of it" : "Thinks most of it",
+        label: against
+          ? asked === "love"
+            ? "Warmest — and still against"
+            : "Coolest — and still for"
+          : asked === "hate"
+            ? "Thinks least of it"
+            : "Thinks most of it",
         value: `${strength(top.lovePct)}%`,
         word: `${top.from} ${word(top.lovePct)} it`,
         tone: tone(top.lovePct),
         flag: top.from,
       });
+      if (against) {
+        out.push({
+          kind: "note",
+          text:
+            asked === "love"
+              ? `Nobody on this board is fond of ${about}. ${top.from} is the warmest of the ${rows.length} that have said enough, and it still leans against.`
+              : `Nobody on this board is against ${about}. ${top.from} is the coolest of the ${rows.length} that have said enough, and it still leans for.`,
+        });
+      }
+      /* How thin the board is, said out loud. Two countries is an answer worth
+         reading and not one worth quoting, and the reader cannot tell which
+         they are looking at from a bar chart. */
+      if (rows.length < 4) {
+        out.push({
+          kind: "note",
+          text: `Only ${rows.length === 1 ? "one country has" : `${rows.length} countries have`} answered enough questions about ${about} to count. Treat this as early rather than settled.`,
+        });
+      }
       out.push({
         kind: "ranking",
         title: `Every country on ${about}`,

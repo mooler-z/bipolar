@@ -86,6 +86,13 @@ two hundred topics gives away none of them. And a board with nobody on it is no 
 at all: three headings over three lines of "nobody on this board yet" reads as broken rather
 than as early.
 
+**The reading says how thin it is.** Asked who loves China most, the honest answer on this
+board is a country that still dislikes it — and "Thinks most of it / ET dislikes it / 71%"
+is three statements disagreeing with each other, because the 71% is the strength of the
+*hate*. When the board answers against the question the label says so now, and a note spells
+it out. A second note fires whenever fewer than four countries clear the floor: nobody can
+tell a thin board from a settled one by looking at a bar chart, so it says which it is.
+
 **293 tests.** The new one guards the verdict board against being trimmed by the very field
 it is filtered on; the rest are unchanged and still green.
 
