@@ -87,6 +87,14 @@ export const save = mutation({
     const userId = await ensureUser(ctx);
     const user = (await ctx.db.get("users", userId))!;
 
+    /* Checked here rather than inherited from `requireUser`, because this is
+       the one write that cannot use it: it has to create the row for a
+       first-run reader, and `requireUser` refuses when there is none. That
+       exemption is exactly how a suspended account kept a write — it could
+       still rewrite its interests and set its country, which reshapes the
+       feed. The suspension is the same one, spelled out once. */
+    if (user.isBanned) throw new Error("This account is suspended.");
+
     if (args.countryCode) {
       const code = args.countryCode.trim().toUpperCase();
       if (!/^[A-Z]{2}$/.test(code)) throw new Error("Two letters, ISO 3166-1.");

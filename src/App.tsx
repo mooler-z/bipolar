@@ -8,6 +8,7 @@ import { api } from "../convex/_generated/api";
 import { Admin } from "./views/Admin";
 import { Account } from "./views/Account";
 import { LinkTelegram } from "./views/LinkTelegram";
+import { Suspended } from "./views/Suspended";
 import { Home } from "./views/Home";
 import { Welcome } from "./views/Welcome";
 import { useSession } from "./lib/auth-client";
@@ -105,6 +106,16 @@ export function App() {
   // under the public header.
   if (admin) return <Admin path={path} onGo={go} />;
 
+  /*
+   * A suspended account is shown the lock, not the app.
+   *
+   * The server refuses every write on its own — this changes nothing about
+   * what is possible. It changes what it feels like: without it the app looks
+   * entirely normal and each tap fails separately with a sentence that scrolls
+   * away, which reads as a broken product rather than a closed door.
+   */
+  const suspended = !!session.data && me?.isBanned === true;
+
   return (
     <>
       <TopBar
@@ -113,7 +124,9 @@ export function App() {
         onHome={() => go("/")}
         onAccount={toAccount}
       />
-      {needsWelcome ? (
+      {suspended ? (
+        <Suspended />
+      ) : needsWelcome ? (
         <Welcome onDone={() => go("/")} />
       ) : linkCode ? (
         <LinkTelegram code={linkCode} onDone={() => go("/")} />

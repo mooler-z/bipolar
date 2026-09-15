@@ -37,11 +37,20 @@ export async function currentUser(
     .unique();
 }
 
-/** The caller's row, or a thrown error. What every write path uses. */
+/**
+ * The caller's row, or a thrown error. What every write path uses.
+ *
+ * A suspended account is refused here, which is what makes a suspension mean
+ * something: it is one check on the one function every write goes through,
+ * rather than a flag each mutation has to remember to look at. The message
+ * says *account*, not *vote* — this same refusal is what a suspended reader
+ * gets for commenting, liking, peeking and spending, and telling them voting
+ * is the problem sends them looking in the wrong place.
+ */
 export async function requireUser(ctx: QueryCtx): Promise<Doc<"users">> {
   const user = await currentUser(ctx);
   if (!user) throw new Error("Sign in to do that.");
-  if (user.isBanned) throw new Error("This account cannot vote.");
+  if (user.isBanned) throw new Error("This account is suspended.");
   return user;
 }
 
@@ -58,6 +67,9 @@ export const me = query({
       walletBalanceCents: v.number(),
       quillBalance: v.number(),
       role: v.string(),
+      /** Suspended. Every write path already refuses; this lets the app say so
+          rather than letting each action fail one at a time. */
+      isBanned: v.boolean(),
       digestOptIn: v.boolean(),
       /** Straight to the next question after voting, without the result. */
       skipReveal: v.boolean(),
@@ -78,6 +90,7 @@ export const me = query({
       walletBalanceCents: user.walletBalanceCents,
       quillBalance: user.quillBalance,
       role: user.role,
+      isBanned: user.isBanned,
       digestOptIn: user.digestOptIn,
       skipReveal: user.skipReveal ?? false,
       topicsBacked: user.topicsBacked,
@@ -195,6 +208,13 @@ export const setSkipReveal = mutation({
  * request. A country arriving as a client argument would be a country the
  * client chose, and the whole country breakdown would be fiction.
  */
+/**
+ * Where a vote is counted from.
+ *
+ * A suspended account is skipped: nothing about it should keep moving, and a
+ * country quietly updating on an account that cannot act is state changing
+ * with nobody able to explain why.
+ */
 export const stampCountry = internalMutation({
   args: { authId: v.string(), countryCode: v.string() },
   returns: v.null(),
@@ -206,8 +226,9 @@ export const stampCountry = internalMutation({
       .query("users")
       .withIndex("by_auth", (q) => q.eq("authId", args.authId))
       .unique();
-    // Geolocation fills a blank; it never overrides a country the user chose.
-    if (user && !user.countryCode) {
+    // Geolocation fills a blank; it never overrides a country the user chose,
+    // and nothing moves on a suspended account.
+    if (user && !user.isBanned && !user.countryCode) {
       await ctx.db.patch("users", user._id, { countryCode: code });
     }
     return null;

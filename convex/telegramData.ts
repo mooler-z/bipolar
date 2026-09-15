@@ -78,7 +78,7 @@ export const castFor = internalMutation({
   handler: async (ctx, args) => {
     const user = await ctx.db.get("users", args.userId);
     if (!user) return { ok: false as const, why: "Not connected." };
-    if (user.isBanned) return { ok: false as const, why: "This account cannot vote." };
+    if (user.isBanned) return { ok: false as const, why: "This account is suspended." };
 
     try {
       const out = await castVote(
