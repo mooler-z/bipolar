@@ -6,6 +6,7 @@ import { authComponent, createAuth } from "./auth";
 import { httpAction } from "./_generated/server";
 import { robots, sitemap, topicPage } from "./seo";
 import { card } from "./shareImage";
+import { webhook as telegramWebhook } from "./telegram";
 
 /**
  * Route order is the whole point. Exact and prefixed routes are matched first,
@@ -52,6 +53,10 @@ const stampCountry = httpAction(async (ctx, request) => {
 });
 
 http.route({ path: "/api/country", method: "POST", handler: stampCountry });
+
+/* The bot. No session — Telegram is the caller — so the secret token it
+   echoes back on every delivery is the whole gate. See `telegram.ts`. */
+http.route({ path: "/telegram/webhook", method: "POST", handler: telegramWebhook });
 
 registerStaticRoutes(http, components.staticHosting);
 

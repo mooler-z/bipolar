@@ -419,6 +419,51 @@ export default defineSchema({
    * `readAt` is the only field that is ever updated. Everything else is a
    * record of a moment.
    */
+  /**
+   * A Telegram account attached to a bipolar account.
+   *
+   * Its own table rather than a column on `users`, because it is a join to
+   * somewhere else and because the bot's hot path is the reverse lookup —
+   * "who is this Telegram id?" — on every single update. A column would make
+   * that a scan of the user table.
+   *
+   * One each way, enforced by the mutation that writes it: a Telegram account
+   * reaches exactly one bipolar account, and a bipolar account is reachable
+   * from exactly one Telegram account. Neither is a unique index, because
+   * Convex has none — same as the vote rule, and tested the same way.
+   */
+  telegramAccounts: defineTable({
+    userId: v.id("users"),
+    /** Telegram's numeric user id, kept as a string — it is an identifier. */
+    telegramUserId: v.string(),
+    username: v.optional(v.string()),
+    /** The private chat this account talks to the bot in. */
+    chatId: v.number(),
+  })
+    .index("by_telegram", ["telegramUserId"])
+    .index("by_user", ["userId"]),
+
+  /**
+   * A one-time code that attaches the two.
+   *
+   * The bot mints one, bakes it into a web link, and the signed-in browser
+   * redeems it. It is a row rather than an in-memory map because there is no
+   * single process here to hold one — and a row is better anyway: it survives
+   * a deploy, which an in-memory code does not.
+   *
+   * Short-lived and single-use. A code is a standing credential for as long as
+   * it lives, and it lives in somebody's chat history.
+   */
+  telegramCodes: defineTable({
+    code: v.string(),
+    telegramUserId: v.string(),
+    username: v.optional(v.string()),
+    chatId: v.number(),
+    expiresAt: v.number(),
+    /** Set the moment it is spent, so a replay finds it already used. */
+    usedAt: v.optional(v.number()),
+  }).index("by_code", ["code"]),
+
   notifications: defineTable({
     userId: v.id("users"),
     kind: v.union(

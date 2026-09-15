@@ -7,6 +7,7 @@ import { useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { Admin } from "./views/Admin";
 import { Account } from "./views/Account";
+import { LinkTelegram } from "./views/LinkTelegram";
 import { Home } from "./views/Home";
 import { Welcome } from "./views/Welcome";
 import { useSession } from "./lib/auth-client";
@@ -81,6 +82,12 @@ export function App() {
   const toAccount = () => (session.data ? go("/account") : toSignIn());
 
   const slug = path.startsWith("/t/") ? decodeURIComponent(path.slice(3)) : null;
+  /* The bot's connect link. The code rides in the query string because the bot
+     has to bake it into a URL before anybody has signed in. */
+  const linkCode =
+    path === "/link/telegram"
+      ? new URLSearchParams(window.location.search).get("code")
+      : null;
   /** The staff console owns the whole window and carries its own chrome. */
   const admin = path === "/admin" || path.startsWith("/admin/");
 
@@ -104,6 +111,8 @@ export function App() {
       />
       {needsWelcome ? (
         <Welcome onDone={() => go("/")} />
+      ) : linkCode ? (
+        <LinkTelegram code={linkCode} onDone={() => go("/")} />
       ) : path === "/account" ? (
         <Account onDone={() => go("/")} />
       ) : (
