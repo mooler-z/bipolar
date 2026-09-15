@@ -37,14 +37,18 @@ export function WorldMap({
 }: {
   /** A colour for a country, or null for bare land. */
   fill: (code: string) => string | null;
-  /** The country drawn as chosen. */
-  active?: string | null;
+  /** The countries drawn as chosen — up to two, the second in a second colour. */
+  active?: string | string[] | null;
   onHover?: (code: string | null) => void;
   onPick?: (code: string) => void;
   className?: string;
 }) {
   const countries = worldMap.countries;
-  const chosen = active ? countries.find((c) => c.code === active) : undefined;
+  const picked = (Array.isArray(active) ? active : active ? [active] : []).slice(0, 2);
+  const chosen = picked
+    .map((code) => countries.find((c) => c.code === code))
+    .filter((c): c is NonNullable<typeof c> => !!c);
+  const isPicked = new Set(picked);
 
   return (
     <svg
@@ -66,7 +70,7 @@ export function WorldMap({
             className={cn(
               "transition-[fill,opacity] duration-300",
               onPick || onHover ? "cursor-pointer" : "",
-              active && active !== c.code && "opacity-80",
+              picked.length > 0 && !isPicked.has(c.code) && "opacity-80",
             )}
             onMouseEnter={() => onHover?.(c.code)}
             onClick={() => onPick?.(c.code)}
@@ -76,17 +80,20 @@ export function WorldMap({
         );
       })}
 
-      {/* The chosen country, once more on top, so its outline is whole. */}
-      {chosen ? (
+      {/* The chosen countries, once more on top, so their outlines are whole.
+          The first is gold and the second violet, so a head-to-head reads as
+          two things rather than one thing twice. */}
+      {chosen.map((c, i) => (
         <path
-          d={chosen.d}
+          key={c.code}
+          d={c.d}
           fill="none"
-          stroke="var(--coin-fill)"
+          stroke={i === 0 ? "var(--coin-fill)" : "var(--go-fill)"}
           strokeWidth={2}
           strokeLinejoin="round"
           className="pointer-events-none pop-in"
         />
-      ) : null}
+      ))}
     </svg>
   );
 }

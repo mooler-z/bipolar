@@ -9,6 +9,7 @@ import { NationCard, nationFill, type Nation } from "../components/world/Nations
 import { RecordCards, records } from "../components/world/Records";
 import { RivalryCard, agreementWith } from "../components/world/Rivalries";
 import { SubjectCard, SubjectList } from "../components/world/SubjectsTab";
+import { Versus } from "../components/world/Versus";
 import { BARE, Tabs, WorldMap, leanFill, nameOf } from "../components/world/WorldMap";
 
 /**
@@ -19,7 +20,8 @@ import { BARE, Tabs, WorldMap, leanFill, nameOf } from "../components/world/Worl
  * runs the width a desk gives it — and the tabs change the question it is
  * answering rather than swapping it for a list:
  *
- *   **Nations** — each country by its own temperament.
+ *   **Nations** — each country by its own temperament. Click one and it is
+ *   pinned; click a second and the two go head to head.
  *   **Rivalries** — pick one; the world by how often it agrees with it.
  *   **Subjects** — pick a subject; the world by its lean on that alone.
  *   **Records** — the superlatives, and the map lights whoever holds one.
@@ -41,15 +43,20 @@ export function World({ onDone }: { onDone: () => void }) {
   const board = useQuery(api.world.board);
   const [tab, setTab] = useState<Tab>("nations");
   const [hover, setHover] = useState<string | null>(null);
-  const [pin, setPin] = useState<string | null>(null);
+  /* Up to two. The second click is what makes the page fun — one nation has
+     a mood, two have a relationship — and a third replaces the older. */
+  const [pins, setPins] = useState<string[]>([]);
   const [subject, setSubject] = useState<string | null>(null);
   const [lit, setLit] = useState<string[] | null>(null);
 
   const nations: Nation[] = board?.countries ?? [];
   const byCode = useMemo(() => new Map(nations.map((n) => [n.code, n])), [nations]);
   const busiest = nations[0]?.code ?? null;
-  const pick = pin && byCode.has(pin) ? pin : busiest;
+  const picked = pins.filter((c) => byCode.has(c));
+  const pick = picked[0] ?? busiest;
+  const second = picked[1] ?? null;
   const active = hover && byCode.has(hover) ? hover : pick;
+  const versus = tab === "nations" && pick && second ? [pick, second] : null;
 
   const agreement = useMemo(
     () => (board && pick ? agreementWith(board.pairs, pick) : new Map()),
@@ -98,6 +105,9 @@ export function World({ onDone }: { onDone: () => void }) {
   }
 
   const caption = (() => {
+    if (versus && !hover) {
+      return `${nameOf(versus[0])} against ${nameOf(versus[1])}.`;
+    }
     if (!active) return "Point at a country.";
     const n = byCode.get(active);
     if (tab === "rivalries" && active !== pick) {
@@ -143,11 +153,17 @@ export function World({ onDone }: { onDone: () => void }) {
           <div className="rounded-[var(--r-card)] border border-line bg-surface p-2">
             <WorldMap
               fill={fill}
-              active={tab === "records" ? null : active}
+              active={tab === "records" ? null : versus ? versus : active}
               onHover={setHover}
               onPick={(code) => {
-                if (tab === "records") return;
-                setPin((was) => (was === code ? null : code));
+                if (tab === "records" || !byCode.has(code)) return;
+                setPins((was) =>
+                  was.includes(code)
+                    ? was.filter((c) => c !== code)
+                    : tab === "nations"
+                      ? [...was, code].slice(-2)
+                      : [code],
+                );
               }}
             />
           </div>
@@ -160,14 +176,28 @@ export function World({ onDone }: { onDone: () => void }) {
               Gold is the pick. Red agrees with it, cyan does not. Click a country to compare
               against it instead.
             </p>
+          ) : tab === "nations" && versus ? (
+            <p className="mt-1 text-[11.5px] text-mute">
+              Gold against violet. Click either to let it go.
+            </p>
           ) : null}
         </div>
 
         <aside className="rounded-[var(--r-card)] border border-line bg-surface p-4 sm:p-5">
-          {tab === "nations" && active && byCode.get(active) ? (
+          {tab === "nations" && versus ? (
+            <Versus
+              a={byCode.get(versus[0])!}
+              b={byCode.get(versus[1])!}
+              pairs={board.pairs}
+              verdicts={board.verdicts}
+              subjects={board.subjects}
+            />
+          ) : tab === "nations" && active && byCode.get(active) ? (
             <NationCard
               nation={byCode.get(active)!}
               verdicts={board.verdicts.filter((v) => v.from === active)}
+              pairs={board.pairs}
+              subjects={board.subjects}
             />
           ) : null}
           {tab === "rivalries" && pick ? <RivalryCard pick={pick} pairs={agreement} /> : null}
