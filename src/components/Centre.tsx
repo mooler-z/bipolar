@@ -4,6 +4,7 @@ import { ArrowRight, Broadcast, X } from "@phosphor-icons/react";
 import type { Side } from "../lib/format";
 import type { ArenaHandle } from "./Arena";
 import { Decide, type DecideTopic } from "./Decide";
+import type { Tour } from "../lib/keyTutor";
 import { Reveal } from "./Reveal";
 import type { Result } from "./reveal/types";
 import { Button } from "../ui/Button";
@@ -44,6 +45,8 @@ export const Centre = forwardRef<
     composing: boolean;
     /** The way to the next panel, on a phone. Shown in the decision's foot. */
     hint?: ReactNode;
+    /** The keyboard walkthrough, run in the decision's foot. */
+    tour?: Tour;
     /** Anything under the arena — the peek, on a topic somebody came to. */
     extra?: ReactNode;
     /** A pressed-but-uncast vote. Takes the arena's place while it is open. */
@@ -66,7 +69,7 @@ export const Centre = forwardRef<
 >(function Centre(
   {
     topic, pulled, linked = false, onRelease, result, loading, resolving, armed, canSpark, sparks,
-    busy, composing, hint, extra, pending, undone, onArm, onPick, onSkip, onBack, onUndo, onComments, onGetSparks, onNext, onShare,
+    busy, composing, hint, tour, extra, pending, undone, onArm, onPick, onSkip, onBack, onUndo, onComments, onGetSparks, onNext, onShare,
   },
   ref,
 ) {
@@ -164,6 +167,7 @@ export const Centre = forwardRef<
             onComments={onComments}
             onGetSparks={onGetSparks}
             hint={hint}
+            tour={tour}
             extra={extra}
             pending={pending}
             restoring={undone}

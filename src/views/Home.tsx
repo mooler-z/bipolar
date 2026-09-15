@@ -1,15 +1,21 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { Id } from "../../convex/_generated/dataModel";
 import type { ArenaHandle } from "../components/Arena";
 import { CallStep } from "../components/CallStep";
 import { Centre } from "../components/Centre";
 import { DeckHint, Pager, useDeck } from "../components/mobile/Deck";
+import { PhoneTour } from "../components/mobile/PhoneTour";
 import { PeekOffer } from "../components/PeekOffer";
+import { useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import { navigate } from "../lib/nav";
 import { RoomRail, type RoomTab } from "../components/room/RoomRail";
 import { RunRail } from "../components/run/RunRail";
 import { useRunKeys } from "../lib/keys";
+import { useKeyTutor } from "../lib/keyTutor";
+import { usePhoneTour } from "../lib/phoneTour";
+import { useIsDesk } from "../lib/viewport";
 import { CaughtUp } from "./home/CaughtUp";
 import { useRun } from "./home/useRun";
 
@@ -50,20 +56,61 @@ export function Home({
   const [composing, setComposing] = useState(false);
   const arena = useRef<ArenaHandle>(null);
   const deck = useDeck();
+  const desk = useIsDesk();
+  const tutor = useKeyTutor();
+  const phone = usePhoneTour();
+
+  /* Going and getting a topic is the strongest thing a reader can say about a
+     subject short of paying for it, so it is written down — when the card
+     lands, not on the press, so a pull that resolved to nothing teaches
+     nothing. */
+  const notePull = useMutation(api.interactions.pull);
+  const landed = run.pulled && !run.resolving && run.me ? run.topic?._id : undefined;
+  useEffect(() => {
+    if (landed) void notePull({ topicId: landed as Id<"topics"> });
+  }, [landed, notePull]);
+
+  /*
+   * The rehearsal covers the keyboard too, and it has to.
+   *
+   * Two of the five steps could not be finished otherwise. `←` only ran when
+   * there was something behind you, and during a rehearsal nothing is ever
+   * cast, so the history stayed empty and the step waited forever. `→` had the
+   * opposite fault: it bypassed the decision column entirely and skipped the
+   * question for real, while the same press of the same card with a mouse did
+   * nothing — the tour taught one thing and did another.
+   *
+   * So both are **live but inert** while the tour runs: the key is heard, the
+   * step advances, and nothing moves. They go back to the real handlers the
+   * moment it is walked or skipped.
+   *
+   * **And only on the desk.** The rehearsal ends when every key has been
+   * pressed, which on a phone is never — the pill was hidden by a class while
+   * the rehearsal it announced kept running underneath, so every tap on every
+   * answer did nothing, permanently. A phone gets its own walkthrough instead,
+   * and this one is never handed to the column at all.
+   */
+  const rehearsing = desk && !!tutor.tour.step;
+  const inert = () => {};
 
   useRunKeys({
     answered: !!run.result || run.loading,
     asking: !!run.asking,
     canSpark: run.canSpark,
     pulled: run.pulled,
-    // The key plays the same flood the mouse does; the arena calls back.
-    onPick: (side) => (arena.current ? arena.current.press(side) : run.pick(side)),
-    onSkip: run.pass,
+    // The key plays the same flood the mouse does; the arena calls back — and
+    // in a rehearsal that callback is the one that does nothing.
+    onPick: (side) => {
+      if (arena.current) arena.current.press(side);
+      else if (!rehearsing) run.pick(side);
+    },
+    onSkip: rehearsing ? inert : run.pass,
     onArm: () => run.setArmed(!run.armed),
     onNext: run.next,
     onRelease: run.release,
     onUndo: run.canUndo || !!run.asking ? () => void run.undo() : undefined,
-    onBack: run.canGoBack ? run.back : undefined,
+    onBack: rehearsing ? inert : run.canGoBack ? run.back : undefined,
+    onUsed: tutor.mark,
   });
 
   /* The run being empty *and* a pull still in flight is the one case with no
@@ -128,6 +175,7 @@ export function Home({
           busy={run.busy}
           composing={composing}
           hint={<DeckHint label="The room" onGo={() => deck.goTo(1)} />}
+          tour={desk ? tutor.tour : undefined}
           /* Only on a topic somebody came to on purpose. In a run the point
              is to answer, and an offer to buy the answer instead is the run
              arguing with itself. */
@@ -215,6 +263,11 @@ export function Home({
       </div>
 
       <Pager deck={deck} labels={SECTIONS} />
+
+      {/* A phone's own walkthrough: gestures, never keys. */}
+      {!desk && phone.open ? (
+        <PhoneTour cards={phone.cards} onDone={phone.finish} />
+      ) : null}
 
       {run.error ? (
         <p className="slide-up fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-[var(--r-sm)] border border-line-2 bg-surface-3 px-4 py-2.5 text-sm font-bold text-ink">

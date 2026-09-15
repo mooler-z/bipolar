@@ -1,6 +1,6 @@
-# How bi-polar uses Convex, OpenAI, Firecrawl, Wikipedia and AgentMail
+# How bipolar uses Convex, OpenAI, Firecrawl, Wikipedia and AgentMail
 
-bi-polar lets you vote LOVE or HATE on polarizing topics, and see what the
+bipolar lets you vote LOVE or HATE on polarizing topics, and see what the
 people who paid to be counted actually think.
 
 This document explains, in sequence, what each tool actually does in the
@@ -243,7 +243,7 @@ Every metered thing is spent as late as possible and remembered afterwards:
 
 ## 7. Why the award would matter
 
-bi-polar is built around one mechanic: results stay hidden until you decide,
+bipolar is built around one mechanic: results stay hidden until you decide,
 and the people who paid to be counted are shown apart from the crowd. That
 mechanic only works if the feed never runs dry and never repeats itself, which
 is exactly the part that meters per use — the searches, the model call behind

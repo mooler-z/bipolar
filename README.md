@@ -1,4 +1,4 @@
-# bi-polar
+# bipolar
 
 Vote LOVE or HATE on polarizing topics, and see what the people who paid to be
 counted actually think.

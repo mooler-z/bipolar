@@ -1,6 +1,6 @@
 # Hackathon log
 
-- **Project:** bi-polar
+- **Project:** bipolar
 - **Event:** Convex All Gas Hackathon
 - **What it does:** Vote LOVE or HATE on polarizing topics, and see what the people who paid to be counted actually think.
 - **Live app:** not deployed
@@ -418,7 +418,7 @@ downloaded to show one of them. `src/ui/Flag.tsx`.
 
 **A shared link opens the product, not a page about it.** `/t/<slug>` is registered ahead of
 the static site so a crawler gets real markup — and for a while that meant *everybody* got it.
-A link out of the daily mail opened four lines of Times New Roman with a blue "Open bi-polar"
+A link out of the daily mail opened four lines of Times New Roman with a blue "Open bipolar"
 underneath that led back to the page you were already on. The route now fetches the app's own
 deployed shell from the hosting component, splices the live tags into its head, and puts the
 readable summary inside the root element where React replaces it the moment the bundle boots.
@@ -449,4 +449,79 @@ The size of the room moved with it: how many people have already voted was a 12p
 a hashtag and a source link, and it is the whole reason to have an opinion, so it is now its
 own band under the question at a size that says so.
 
-**145 tests.** Six cover the retraction: the spark returned and the counters left exactly as they were found, the country counters with them, a retracted vote recast the other way, the streak restored from its snapshot, the window closing, and one voter unable to take back another's vote. Five more cover reclaiming: an emptied wallet taking another pack with both grants left in the ledger, a wallet one spark above empty refused, the two currencies emptying independently, the daily ceiling, and the ceiling lifting the next day. Three more cover the record: a moderator refused, an admin served, and the rows bounded and newest-first. Nine more cover discovery's promise that a question is new: rewordings, reorderings and repunctuations collapsing to one key, genuinely different arguments staying apart, the threshold behaving as a threshold, the mint refusing a repeat inside its transaction, and sessions counting up and stamping what they mint. Four more cover the button: a moderator refused, the row open and attributed before the session wakes, one session at a time, and a session with no API keys saying so in a line rather than never returning. Ten more cover the settings: every default inside its own range, an out-of-range value clamped on arrival rather than at the field, an untouched table reading as the code, an unknown key refused, a moderator refused and an admin recorded, a reset forgetting rather than rewriting, and the cadence deciding that a three-hour-old session is due at twelve a day but not at six.
+**The feed learns from everything you do, and proves it.** The ranker used to learn one
+number per category, from votes and skips. It now sees every act a reader takes on a topic —
+a vote, a paid vote, a skip, an undo, a comment, a peek, and pulling a topic out of the room
+by hand — each written to an append-only log with what the topic was made of stamped on the
+row, and each moving one weight per tag, category and country by a strength that matches how
+deliberate the act was. Going and getting a topic moves more than tapping through one; an undo
+takes most of a vote back; two skips in a category in half an hour sink that category for the
+next card without touching long-run taste. `convex/interactions.ts`, `convex/lib/affinity.ts`.
+
+The proof is a replay, not a claim. Every reader's real acts are replayed in the order they
+happened, and at each act taken towards a topic the ranker is asked, knowing only what came
+before, where it would have placed that topic among everything the reader could have been
+shown. Two rankers answer on the same readers and the same acts: the one that shipped before
+the log existed, and the one that reads it. On the development deployment, over 81 acts by two
+readers, every yardstick improves: mean reciprocal rank 0.087 against 0.149, the topic they
+went on to choose landing on the first screen 27% of the time instead of 20%, and a median
+place of 38 against 39. A topic a reader later engaged with scores 0.21 higher than one they
+later skipped. The replay runs nightly, its report card is on the console's
+overview beside a button that re-runs it, and the test that holds it was proven by switching
+the learned term off and watching it fail. `convex/recommend.ts`, `convex/recommend.test.ts`.
+
+**The argument answers itself, and agrees with itself.** A line can now be replied to and
+liked. A reply costs a quill like any other line and is filed one level deep — reply to a
+reply and you are filed under the same parent, because a thread that nests without limit is a
+thread nobody can read on a phone. A like is free, because the point of it is that everybody
+can afford to agree, and it is one row per person per comment read before every write, so a
+second tap takes the like back rather than adding another. The thread order is the server's:
+parents oldest first, each followed by its own replies, since a client cannot work that out
+from a page of a flat list without knowing where the page ends.
+
+**Two hundred characters.** Six hundred was an essay, and an essay under a one-tap question is
+somebody talking past the room. The counter appears in the last fifty, because a limit that
+only announces itself at the moment you hit it eats a sentence somebody had finished writing.
+
+**Both new acts feed the recommender.** A reply is the strongest signal in the product —
+it costs a quill and takes a side — so it moves the weights further than a comment. A like is
+free and one tap, so it counts for less than anything that was paid for, and taking a like
+back pulls the weight back, because a weight that can rise but never fall ends up saying
+nothing. All three land in the interaction log with the topic's tags on them, and the first
+two are engagement the replay scores against.
+
+**The undo stops following you, and stops lying.** A reader who skips the result has no
+countdown to measure the window against, so the offer used to ride along for the whole run —
+an Undo on the twelfth question that would have retracted the first. It now closes after nine
+seconds, which is about as long as "wait, no" takes. And it is tied to the topic actually on
+screen: stepping back to an old result, or pulling one out of the room, shows nothing to
+undo, because those votes are final and the button over them would have retracted something
+else entirely.
+
+**The keyboard is a walkthrough.** The decision's foot used to carry a fixed row of key caps,
+which is furniture everybody stops seeing by the third question. It is a five-step tour now:
+one key on screen at a time, naming what pressing it does, with the control it is about lit
+at the same moment so the instruction is never in a different place from the thing. A step
+advances **only when the key is actually pressed** — clicking the same control with the mouse
+teaches nothing, because the step is the practice.
+
+While the tour runs the product is a **rehearsal**: the cards still move under a mouse press
+and nothing is cast, so nobody votes on a question they have not read yet while finding out
+what the buttons do. The pill says "practice" for exactly as long as that is true. It can be
+walked out of at any point, and finishing and skipping end the same way. Afterwards the foot
+goes back to the quiet line of caps it always had — somebody who learned the keys last week
+still wants reminding which is which; it is the tour that should not outstay its welcome.
+
+**A bell, for the three things worth being told.** Somebody answered your line, somebody
+agreed with it, and the room found something worth arguing about. Nothing else rings: a bell
+that rings for everything is a bell nobody looks at. Each notice is written in the same
+mutation as the thing it announces, so one cannot exist for a reply that was not posted — the
+same arrangement Rule 8 uses for the audit log — and never for your own act, because being
+told what you just did is the fastest way to teach somebody to ignore the bell. Opening the
+panel is reading it, since a list of things you have plainly just looked at, still marked
+unread, is an argument with the reader. Nothing is ever deleted; only the read stamp changes.
+The daily hot topic now lands here as well as in the inbox, because the mail only reaches the
+people who asked for mail and somebody who comes back to nothing stops coming back.
+`convex/notifications.ts`.
+
+**173 tests.** Six cover the retraction: the spark returned and the counters left exactly as they were found, the country counters with them, a retracted vote recast the other way, the streak restored from its snapshot, the window closing, and one voter unable to take back another's vote. Five more cover reclaiming: an emptied wallet taking another pack with both grants left in the ledger, a wallet one spark above empty refused, the two currencies emptying independently, the daily ceiling, and the ceiling lifting the next day. Three more cover the record: a moderator refused, an admin served, and the rows bounded and newest-first. Nine more cover discovery's promise that a question is new: rewordings, reorderings and repunctuations collapsing to one key, genuinely different arguments staying apart, the threshold behaving as a threshold, the mint refusing a repeat inside its transaction, and sessions counting up and stamping what they mint. Four more cover the button: a moderator refused, the row open and attributed before the session wakes, one session at a time, and a session with no API keys saying so in a line rather than never returning. Sixteen more cover the recommender: what each act is worth and which way, that tags count double against their category, fatigue being about right now, the yardsticks, every act landing in the log with the topic's tags on it and moving the weights, the very next feed changing because of a pull, and the replay ranking a reader with a known taste better under the ranker that learned it. Eight more cover the argument: two hundred characters landing and two hundred and one refused before any quill moves, a reply filed under the line it answers, a reply to a reply filed under the same parent, the thread coming back in thread order, a line on another topic refused, a second tap taking a like back rather than adding one, a removed line that cannot be liked, both new acts reaching the ranker with the reply outweighing the like, and taking a like back pulling the weight back down. Ten more cover the settings: every default inside its own range, an out-of-range value clamped on arrival rather than at the field, an untouched table reading as the code, an unknown key refused, a moderator refused and an admin recorded, a reset forgetting rather than rewriting, and the cadence deciding that a three-hour-old session is due at twelve a day but not at six.

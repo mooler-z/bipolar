@@ -25,7 +25,7 @@ export function Wordmark({
     <span className={cn("inline-flex items-center gap-2 select-none", className)}>
       <img
         src="/logo.png"
-        alt="bi-polar"
+        alt="bipolar"
         width={534}
         height={468}
         decoding="async"

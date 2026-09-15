@@ -1,11 +1,12 @@
 @import "tailwindcss";
 @import "./shapes.css";
 @import "./motion.css";
+@import "./tour.css";
 
 @source "./**/*.{ts,tsx}";
 
 /* ============================================================
-   bi-polar — a mashup of three.
+   bipolar — a mashup of three.
 
    POLYMARKET  the ground: near-black canvas, layered greys, a
                four-step text hierarchy, Inter with tight

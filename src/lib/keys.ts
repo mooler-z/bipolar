@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 
 import type { Side } from "./format";
+import type { KeyName } from "./keyTutor";
 
 /**
  * The keyboard path through a run, and through a topic's own page.
@@ -35,6 +36,7 @@ export function useRunKeys({
   onRelease,
   onUndo,
   onBack,
+  onUsed,
 }: {
   answered: boolean;
   asking: boolean;
@@ -49,6 +51,8 @@ export function useRunKeys({
   onUndo?: () => void;
   /** Put the last skipped question back in front. */
   onBack?: () => void;
+  /** A key that did something. The tutor stops teaching it. */
+  onUsed?: (key: KeyName) => void;
 }) {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -63,6 +67,7 @@ export function useRunKeys({
       if (asking) {
         if (k === "u" || k === "arrowleft" || k === "escape") {
           e.preventDefault();
+          if (k === "u") onUsed?.("u");
           onUndo?.();
         }
         return;
@@ -77,13 +82,16 @@ export function useRunKeys({
       if (answered) {
         if (k === "n" || k === "enter" || k === "arrowright") {
           e.preventDefault();
+          onUsed?.(k === "arrowright" ? "right" : "enter");
           onNext();
         } else if ((k === "u" || k === "arrowleft") && onUndo) {
           // The countdown is the undo window; while it runs, back means undo.
           e.preventDefault();
+          onUsed?.(k === "u" ? "u" : "left");
           onUndo();
         } else if (k === "arrowleft" && onBack) {
           e.preventDefault();
+          onUsed?.("left");
           onBack();
         }
         return;
@@ -91,25 +99,33 @@ export function useRunKeys({
 
       if (k === "l") {
         e.preventDefault();
+        onUsed?.("l");
         onPick("love");
       } else if (k === "h") {
         e.preventDefault();
+        onUsed?.("h");
         onPick("hate");
       } else if ((k === "s" || k === "arrowright") && onSkip) {
         e.preventDefault();
+        if (k === "arrowright") onUsed?.("right");
         onSkip();
       } else if (k === "u" && onUndo) {
         // A reader who skips the result has no reveal to press undo on, so
         // the key follows the vote to the next question. Only `U`: the left
         // arrow still means "back through the run" here.
         e.preventDefault();
+        onUsed?.("u");
         onUndo();
       } else if (k === "arrowleft" && onBack) {
         e.preventDefault();
+        onUsed?.("left");
         onBack();
       } else if (k === " ") {
         e.preventDefault();
-        if (canSpark) onArm();
+        if (canSpark) {
+          onUsed?.("space");
+          onArm();
+        }
       }
     }
     window.addEventListener("keydown", onKey);

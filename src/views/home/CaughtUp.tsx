@@ -49,8 +49,8 @@ export function CaughtUp({
   function share() {
     const line =
       voted > 0
-        ? `I answered ${voted} ${voted === 1 ? "question" : "questions"} on bi-polar today — ${lovePct}% love. Where do you stand? ${window.location.origin}`
-        : `Pick a side on bi-polar: ${window.location.origin}`;
+        ? `I answered ${voted} ${voted === 1 ? "question" : "questions"} on bipolar today — ${lovePct}% love. Where do you stand? ${window.location.origin}`
+        : `Pick a side on bipolar: ${window.location.origin}`;
     void navigator.clipboard?.writeText(line);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1600);

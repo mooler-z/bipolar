@@ -1,21 +1,15 @@
 import { forwardRef, useState, type ReactNode } from "react";
-import {
-  ArrowLeft,
-  ArrowRight,
-  ArrowSquareOut,
-  ArrowUUpLeft,
-  ChatCircle,
-  Users,
-  Warning,
-} from "@phosphor-icons/react";
+import { ArrowLeft, ArrowRight, ArrowUUpLeft } from "@phosphor-icons/react";
 
 import { cn } from "../lib/cn";
-import { fmtInt, type Side } from "../lib/format";
+import type { Side } from "../lib/format";
 import { Arena, type ArenaHandle } from "./Arena";
 import { Backdrop } from "./Backdrop";
 import { SparkSwitch } from "./SparkSwitch";
+import { DecideStrip, RoomSize } from "./DecideHead";
+import { KeyTutor, spotlit } from "./KeyTutor";
+import type { Tour } from "../lib/keyTutor";
 import { Button } from "../ui/Button";
-import { Flag } from "../ui/Flag";
 import { Thumb } from "../ui/Thumb";
 
 /**
@@ -71,15 +65,36 @@ export const Decide = forwardRef<
     extra?: ReactNode;
     /** Replaces the keyboard hints where the layout is a deck rather than a desk. */
     hint?: ReactNode;
+    /** The keyboard walkthrough: one step, and what it points at. */
+    tour?: Tour;
     /** A pressed-but-uncast vote. Takes the arena's place while it is open. */
     pending?: ReactNode;
     /** A side just retracted. The arena comes back holding the board. */
     restoring?: Side | null;
   }
 >(function Decide(
-  { topic, armed, canSpark, sparks, busy, onArm, onPick, onSkip, onBack, onUndo, onComments, onGetSparks, extra, hint, pending, restoring },
+  { topic, armed, canSpark, sparks, busy, onArm, onPick, onSkip, onBack, onUndo, onComments, onGetSparks, extra, hint, tour, pending, restoring },
   ref,
 ) {
+  /*
+   * A rehearsal, while the tour is running.
+   *
+   * Somebody learning the keys will press the cards with the mouse to see
+   * what they do, and that press would cast a real vote on a real question
+   * before they had understood the question. So the arena, the skip and the
+   * back are inert until the tour is walked or skipped: everything still
+   * moves, nothing is sent. The spark switch is left live because flipping it
+   * writes nothing either way, and feeling it move is the lesson.
+   *
+   * The pill says "practice" for exactly as long as this is true.
+   */
+  const rehearsing = !!tour?.step;
+  const pick = rehearsing ? () => {} : onPick;
+  /* Both buttons are *shown* through the rehearsal even when the run has
+     nothing behind it yet — the tour points at them, and a spotlight on a
+     control that is not on screen is a step nobody can finish. */
+  const skip = rehearsing ? () => {} : onSkip;
+  const back = rehearsing || onBack ? (rehearsing ? () => {} : onBack) : undefined;
   /* Which answer the cursor is over, and whether it has been pressed. It only
      drives the ground behind the question, which is why it lives here rather
      than in the arena. */
@@ -91,41 +106,7 @@ export const Decide = forwardRef<
   return (
     <section className="relative isolate flex h-full min-h-0 flex-col">
       <Backdrop lean={lean.side} flood={lean.pressed} />
-      {/* Band 1 — context. One line; nothing here competes with the question. */}
-      <header className={cn("flex shrink-0 flex-wrap items-center gap-x-2.5 gap-y-2 border-b border-line py-2.5", PAD)}>
-        {/* The flag leads so it sits in the same place on every question. */}
-        {topic.scopeCountry ? (
-          <span className="chip !bg-surface-3">
-            <Flag code={topic.scopeCountry} withCode />
-          </span>
-        ) : null}
-        <span className="rounded-[6px] bg-ink px-2.5 py-1 text-[11.5px] font-extrabold tracking-[0.06em] text-canvas uppercase">
-          {topic.categorySlug}
-        </span>
-        {topic.isSensitive ? (
-          <span className="chip !bg-coin-fill/15 !text-coin">
-            <Warning weight="fill" className="size-3" /> Sensitive
-          </span>
-        ) : null}
-        {topic.tags.slice(0, 3).map((t) => (
-          <span key={t} className="hidden text-[12px] font-semibold text-mute sm:inline">
-            #{t}
-          </span>
-        ))}
-
-        <span className="flex-1" />
-
-        {topic.sourceUrl ? (
-          <a
-            href={topic.sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden items-center gap-1 text-[12.5px] text-mute transition-colors hover:text-ink sm:flex"
-          >
-            Source <ArrowSquareOut className="size-3" />
-          </a>
-        ) : null}
-      </header>
+      <DecideStrip topic={topic} pad={PAD} />
 
       {/* Band 2 — the question. Takes the slack, so the bands below never move. */}
       <div
@@ -177,64 +158,37 @@ export const Decide = forwardRef<
           </div>
         </div>
 
-        {/* How big the room is, at a size that says so.
-            This was a 12.5px chip in the context strip, sitting between a
-            hashtag and a source link — and the size of the room is the whole
-            reason to have an opinion about the question, not a footnote to it.
-            Its own band under the question, full width, so the number is read
-            before the answer is pressed rather than after. */}
-        <div key={`c-${topic.slug}`} className="rise mt-4 flex flex-wrap items-center gap-2">
-          <span className="flex items-center gap-2.5 rounded-[var(--r-btn)] border-2 border-line-2 bg-surface-2 px-3.5 py-2">
-            <Users weight="fill" className="size-[18px] text-ink-3" />
-            <span className="num display text-[clamp(1.2rem,1.8vw,1.75rem)] leading-none">
-              {fmtInt(topic.voteCount)}
-            </span>
-            <span className="text-[11.5px] font-extrabold tracking-[0.08em] text-mute uppercase">
-              {topic.voteCount === 1 ? "vote in" : "votes in"}
-            </span>
-          </span>
-
-          <Button
-            bare
-            onClick={onComments}
-            className="lift flex items-center gap-2.5 rounded-[var(--r-btn)] border-2 border-line bg-surface-2 px-3.5 py-2 hover:border-line-2"
-          >
-            <ChatCircle weight="fill" className="size-[18px] text-hate" />
-            <span className="num display text-[clamp(1.2rem,1.8vw,1.75rem)] leading-none">
-              {fmtInt(topic.commentCount)}
-            </span>
-            <span className="text-[11.5px] font-extrabold tracking-[0.08em] text-mute uppercase">
-              arguing
-            </span>
-          </Button>
-        </div>
+        <RoomSize topic={topic} onComments={onComments} />
       </div>
 
       {/* Band 3 — the answer. Always here, whatever the question was. */}
       <footer className={cn("shrink-0 border-t border-line bg-surface/40 py-[clamp(0.75rem,1.8vh,1.25rem)]", PAD)}>
-        {/* One band, two states. The pending window takes the arena's place
-            rather than covering it, so the question it is about stays on
-            screen and the foot of the column never moves. */}
+        {/* One band, two states: the pending window takes the arena's place
+            rather than covering it, so the foot never moves. */}
         {pending ? (
           pending
         ) : (
           <>
-            <SparkSwitch
-              armed={armed}
-              affordable={canSpark}
-              sparks={sparks}
-              onChange={onArm}
-              onEmpty={onGetSparks}
-            />
+            {/* The step and the control it is about are lit together, so the
+                instruction is never in a different place from the thing. */}
+            <span className={cn("block", tour ? spotlit(tour, "spark") : "")}>
+              <SparkSwitch
+                armed={armed}
+                affordable={canSpark}
+                sparks={sparks}
+                onChange={onArm}
+                onEmpty={onGetSparks}
+              />
+            </span>
 
             <Arena
               ref={ref}
               armed={armed}
               busy={busy}
-              onPick={onPick}
+              onPick={pick}
               onLean={(side, pressed = false) => setLean({ side, pressed })}
               restoring={restoring}
-              className="mt-2.5 h-[clamp(10rem,30vh,15rem)]"
+              className={cn("mt-2.5 h-[clamp(10rem,30vh,15rem)]", tour ? spotlit(tour, "arena") : "")}
             />
 
             {extra}
@@ -242,16 +196,8 @@ export const Decide = forwardRef<
         )}
 
         <div className={cn("mt-2.5 flex items-center justify-between gap-3", pending && "hidden")}>
-          {/* The keyboard is the desk's path through a run; the deck's is a
-              swipe, and a key cap on a phone is a hint about nothing. */}
-          <span className="hidden items-center gap-1.5 text-[11.5px] text-mute xl:flex">
-            <kbd className="key">L</kbd>
-            <kbd className="key">H</kbd>
-            <span className="ml-1">to answer</span>
-            <span className="mx-1 text-line-2">·</span>
-            <kbd className="key">space</kbd>
-            <span className="ml-1">to back it</span>
-          </span>
+            {/* The desk's path through a run, one step at a time. */}
+          {tour ? <KeyTutor tour={tour} /> : <span />}
           <span className="xl:hidden">{hint}</span>
           <span className="flex items-center gap-1">
             {/* The vote just cast, for a reader who skipped past its result.
@@ -270,19 +216,25 @@ export const Decide = forwardRef<
             ) : null}
             {/* A run that only moves forward makes one stray keystroke
                 permanent. This is the way back to it. */}
-            {onBack ? (
+            {back ? (
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={onBack}
+                onClick={back}
                 title="Back one — the last question you left"
+                className={tour ? spotlit(tour, "back") : undefined}
               >
                 <ArrowLeft className="size-4" /> Back
                 <kbd className="key ml-1 hidden xl:inline-grid">&larr;</kbd>
               </Button>
             ) : null}
-            {onSkip ? (
-              <Button variant="ghost" size="sm" onClick={onSkip}>
+            {skip ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={skip}
+                className={tour ? spotlit(tour, "skip") : undefined}
+              >
                 Skip <ArrowRight className="size-4" />
                 <kbd className="key ml-1 hidden xl:inline-grid">&rarr;</kbd>
               </Button>

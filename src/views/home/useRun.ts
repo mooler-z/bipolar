@@ -62,14 +62,12 @@ export function useRun({ startWith }: { startWith?: string } = {}) {
     if (!canSpark) setArmed(false);
   }, [canSpark]);
 
-  /* One lookup, two jobs. `bySlug` is the only query carrying an aggregate and
-     the one place the gate is enforced; it answers both for the topic just
-     voted on and for one pulled out of a rail. */
+  /* One lookup, two jobs: `bySlug` is the only query carrying an aggregate,
+     and it answers both for the topic just voted on and for a pulled one. */
   const lookup = answer?.topic.slug ?? picked;
   const page = useQuery(api.topics.bySlug, lookup ? { slug: lookup } : "skip");
 
-  /* A topic clicked in a rail replaces the question rather than navigating
-     away — leaving the console to look at one row of it ends the run. */
+  /* A rail row replaces the question rather than navigating away. */
   const pulling = picked !== null && !answer;
   const pulled = pulling ? (page?.topic ?? null) : null;
 
@@ -81,6 +79,22 @@ export function useRun({ startWith }: { startWith?: string } = {}) {
    * topic this reader has not voted on, and the reveal waits forever.
    */
   const topic = answer?.topic ?? pulled ?? front ?? open[0];
+
+  /*
+   * Pin the question the moment it appears, not only when the run moves on.
+   *
+   * `advance()` pins the successor on every press, which covers every card
+   * but the first. A comment or a like writes `userAffinity`, the live feed
+   * re-ranks, and an unpinned `open[0]` becomes a different question — so
+   * writing a line about a topic swapped that topic out from under you.
+   */
+  useEffect(() => {
+    if (front || answer || pulled || asking) return;
+    const first = open[0];
+    if (first) setFront(first);
+    // `open` is rebuilt every render; its head is what this is about.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [front, answer, pulled, asking, open[0]?._id]);
 
   /** Still ahead. Whatever is in front is not, wherever it came from. */
   const upNext = open.filter((t) => t._id !== topic?._id);
@@ -105,13 +119,9 @@ export function useRun({ startWith }: { startWith?: string } = {}) {
 
   /**
    * The next question, chosen **now** rather than read off the list later.
-   *
    * `feed` is a live ranked subscription and every move rewrites its own
-   * inputs, so the list re-orders about a round trip after the run moves on.
-   * A front card read off it at that moment is shown for a beat and then
-   * silently replaced. Pinning the successor at the moment of the press ends
-   * that: the re-rank still decides what comes *after*, but it can no longer
-   * reach the card already on screen.
+   * inputs, so pinning the successor at the moment of the press is what stops
+   * the card on screen being silently replaced a round trip later.
    */
   function advance() {
     setFront(upNext[0] ?? null);
@@ -144,13 +154,9 @@ export function useRun({ startWith }: { startWith?: string } = {}) {
   }
 
   /**
-   * Step back through the run. A skipped question returns to be answered,
-   * jumping the queue; an answered one returns as its result, which costs
-   * nothing to re-read because its aggregate is already unlocked.
-   *
-   * **Neither rewrites what happened.** The skip row stays written and the
-   * vote stays cast — the server recorded both and the ranker has learned
-   * from them. What comes back is the screen, not the history.
+   * Step back through the run: a skipped question returns to be answered, an
+   * answered one as its result. **Neither rewrites what happened** — the skip
+   * stays written and the vote stays cast. What comes back is the screen.
    */
   function back() {
     if (busy) return;
@@ -173,18 +179,14 @@ export function useRun({ startWith }: { startWith?: string } = {}) {
     setFront(last.card);
   }
 
-  /** Done with this card: out of the run, onto the stack, and move on. */
   function bank(card: Card) {
     setDone((s) => new Set(s).add(card._id));
     history.push(card, true);
     advance();
   }
 
-  /**
-   * A row in a rail takes the middle column, whatever is in it. Setting
-   * `picked` alone does nothing while a result is up, so banking the answer
-   * here is what makes the pull register on the press.
-   */
+  /** A row in a rail takes the middle column, whatever is in it. Banking the
+      answer here is what makes the pull register on the press. */
   function pull(slug: string) {
     if (busy) return;
     const left = answer?.topic;
@@ -230,20 +232,16 @@ export function useRun({ startWith }: { startWith?: string } = {}) {
     }
   }
 
-  /**
-   * Pressing an answer opens the call, and the call is the pending window.
-   *
-   * Nothing reaches the server until `commit` runs, which is the whole reason
-   * `undo` can exist. A room too small to read is never asked to be called and
-   * never graded, so it casts on the press.
-   */
+  /** Pressing an answer opens the call, and the call is the pending window:
+      nothing reaches the server until `commit` runs, which is the whole reason
+      `undo` can exist. A room too small to read casts on the press. */
   function pick(side: Side) {
     if (!topic || busy) return;
     if (topic.crowdSize >= MIN_ROOM) setAsking(side);
     else void commit(side);
   }
 
-  const { undone, undo, canUndo, noteCast } = useUndo({
+  const { undone, undo, undoableId, noteCast } = useUndo({
     answer,
     asking,
     busy,
@@ -277,8 +275,10 @@ export function useRun({ startWith }: { startWith?: string } = {}) {
     setError,
     /** Whether there is anything behind you in the run. */
     canGoBack: history.any,
-    /** A vote cast this sitting, still inside its window. */
-    canUndo,
+    /** A vote cast this sitting, still inside its window, **and** the topic
+        on screen — a past vote stepped back to is final, and an undo over it
+        would retract a different topic. */
+    canUndo: !!topic && undoableId === topic._id,
     /** The side a retraction just pulled back. Drives the rewind. */
     undone,
     restart: () => {

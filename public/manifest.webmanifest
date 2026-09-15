@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "bi-polar",
-  "short_name": "bi-polar",
+  "name": "bipolar",
+  "short_name": "bipolar",
   "description": "Vote LOVE or HATE on polarizing topics, and see what the people who paid to be counted actually think.",
   "start_url": "/",
   "scope": "/",
