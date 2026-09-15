@@ -216,7 +216,23 @@ export default defineSchema({
     .index("by_run", ["ingestRunId"])
     .index("by_status", ["status"])
     .index("by_category", ["categoryId"])
-    .index("by_question_key", ["questionKey"]),
+    .index("by_question_key", ["questionKey"])
+    /**
+     * Finding a topic by typing at it.
+     *
+     * A search index rather than a scan and a `includes()`: the console can
+     * afford to read six hundred rows and filter them, a search box on every
+     * screen cannot, and it has to stay quick as the feed grows past what a
+     * bounded read would ever reach.
+     *
+     * `status` is a filter field so drafts and archived topics never surface
+     * — a reader finding a question that cannot be opened is worse than not
+     * finding it.
+     */
+    .searchIndex("search_question", {
+      searchField: "question",
+      filterFields: ["status"],
+    }),
 
   /**
    * Every act a reader takes on a topic, one row each, append-only.

@@ -6,6 +6,7 @@ import { cn } from "../lib/cn";
 import { fmtInt, fmtMoney } from "../lib/format";
 import { signOut } from "../lib/auth-client";
 import { Notifications } from "./Notifications";
+import { Search } from "./Search";
 import { useTheme } from "../lib/theme";
 import { Avatar } from "../ui/Avatar";
 import { Button } from "../ui/Button";
@@ -87,6 +88,10 @@ export function TopBar({
       ) : null}
 
       <span className="flex-1" />
+
+      {/* Finding a name. Wide enough to read a question in, and gone on a
+          phone, where the header is cut to the bone. */}
+      <Search className="hidden w-[min(22rem,26vw)] md:block" />
 
       {/* ── the house ─────────────────────────────────────────────────── */}
       <Button

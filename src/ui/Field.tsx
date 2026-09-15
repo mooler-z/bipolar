@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes } from "react";
+import { forwardRef, type InputHTMLAttributes } from "react";
 
 import { cn } from "../lib/cn";
 
@@ -9,16 +9,18 @@ import { cn } from "../lib/cn";
  * whole surface rather than a row in a form — the command palette's search, for
  * instance. It is a **restyling, not a replacement**: the label survives as the
  * accessible name, so a bare-looking input is still an input with a name.
+ *
+ * It forwards a ref, because a search box has to be focusable and blurrable
+ * from the component that owns the dropdown around it.
  */
-export function Field({
-  label,
-  bare = false,
-  className,
-  ...rest
-}: InputHTMLAttributes<HTMLInputElement> & { label: string; bare?: boolean }) {
+export const Field = forwardRef<
+  HTMLInputElement,
+  InputHTMLAttributes<HTMLInputElement> & { label: string; bare?: boolean }
+>(function Field({ label, bare = false, className, ...rest }, ref) {
   if (bare) {
     return (
       <input
+        ref={ref}
         aria-label={label}
         className={cn(
           "block w-full bg-transparent text-[14px] font-medium text-ink outline-none",
@@ -34,6 +36,7 @@ export function Field({
     <label className="block">
       <span className="label mb-1.5 block">{label}</span>
       <input
+        ref={ref}
         className={cn(
           "block h-12 w-full rounded-[var(--r-btn)] border-2 border-line bg-surface-2 px-3.5",
           "text-[15px] font-medium text-ink outline-none transition-colors",
@@ -44,4 +47,4 @@ export function Field({
       />
     </label>
   );
-}
+});

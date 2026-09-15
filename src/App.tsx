@@ -9,6 +9,7 @@ import { Admin } from "./views/Admin";
 import { Account } from "./views/Account";
 import { LinkTelegram } from "./views/LinkTelegram";
 import { Suspended } from "./views/Suspended";
+import { TopicWorld } from "./views/TopicWorld";
 import { World } from "./views/World";
 import { Home } from "./views/Home";
 import { Welcome } from "./views/Welcome";
@@ -87,7 +88,11 @@ export function App() {
    */
   const toAccount = () => (session.data ? go("/account") : toSignIn());
 
-  const slug = path.startsWith("/t/") ? decodeURIComponent(path.slice(3)) : null;
+  /* `/t/<slug>` opens the console on that question; `/t/<slug>/world` opens
+     the page about it, which is where a search result goes. */
+  const inTopic = path.startsWith("/t/") ? path.slice(3).split("/") : null;
+  const slug = inTopic ? decodeURIComponent(inTopic[0] ?? "") : null;
+  const topicWorld = inTopic?.[1] === "world" ? slug : null;
   /* The bot's connect link. The code rides in the query string because the bot
      has to bake it into a URL before anybody has signed in. */
   const linkCode =
@@ -133,6 +138,8 @@ export function App() {
         <Welcome onDone={() => go("/")} />
       ) : linkCode ? (
         <LinkTelegram code={linkCode} onDone={() => go("/")} />
+      ) : topicWorld ? (
+        <TopicWorld key={topicWorld} slug={topicWorld} />
       ) : path === "/world" ? (
         <World onDone={() => go("/")} />
       ) : path === "/account" ? (
