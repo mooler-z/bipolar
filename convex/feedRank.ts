@@ -17,6 +17,11 @@ import { contextFor } from "./feedContext";
  * `toCard` is handed in rather than imported, to keep the dependency pointing
  * one way: `topics.ts` owns the shape a topic is published in.
  */
+/** How far back the pool reads, and how much of the back catalogue rides
+ *  along with the newest slice. Both bounded: a feed is a serve, not a scan. */
+const CATALOGUE = 600;
+const DEEP = 120;
+
 export async function rankedFeed<T>(
   ctx: QueryCtx,
   user: Doc<"users"> | null,
@@ -25,11 +30,26 @@ export async function rankedFeed<T>(
 ): Promise<T[]> {
     const want = Math.min(args.limit ?? 10, 100);
 
-    const pool = await ctx.db
+    /* The catalogue, not the top of it.
+       This used to be the newest `want * 3` rows, capped at 180 — and the
+       hundred-odd questions imported most recently were all one kind, so the
+       newest hundred and eighty were ninety percent famous people and the
+       ranker could not have served anything else if it wanted to. A pool that
+       is one thing makes every correction downstream cosmetic.
+       So: the newest slice, which is what a feed should mostly be, plus a
+       seeded sample of everything behind it, so the back catalogue is
+       reachable and the sample moves between visits. */
+    const catalogue = await ctx.db
       .query("topics")
       .withIndex("by_status", (q) => q.eq("status", "active"))
       .order("desc")
-      .take(Math.min(want * 3, 180));
+      .take(CATALOGUE);
+    const fresh = Math.min(Math.max(want * 3, 60), 120);
+    const older = catalogue.slice(fresh);
+    const pool = [
+      ...catalogue.slice(0, fresh),
+      ...seededShuffle(older, hashSeed(args.seed ?? "pool")).slice(0, DEEP),
+    ];
 
     if (!user) {
       // Signed out there are no signals to rank on, so recency is the honest
@@ -86,6 +106,7 @@ export async function rankedFeed<T>(
       return {
         id: topic._id as string,
         categoryId: topic.categoryId as string,
+        tags: topic.tagSlugs ?? [],
         score: base + (args.seed ? jitter(args.seed, topic._id) * JITTER : 0),
         novelty: evidence(topic),
       };

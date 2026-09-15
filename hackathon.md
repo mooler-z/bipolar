@@ -116,10 +116,28 @@ joint-least-known so the stranger is not the same stranger every time. Tags coun
 because a category is coarse and the tags are what somebody has actually been answering. One
 slot in six, since the slot is now doing real work.
 
-**295 tests.** Three are new: one guards the verdict board against being trimmed by
-the very field it is filtered on, and two hold the discovery pick — that novelty is one for a
-stranger and falls away as evidence arrives, and that an exploring slot takes the least known
-question rather than the worst-scored one. The rest are unchanged and still green.
+**And then it did nothing, because the pool was one thing.** The candidate pool was the newest
+hundred and eighty active questions, and the hundred-odd imported most recently were all the
+same kind: a hundred and sixty-three of those hundred and eighty were a name and a question
+mark. A pool that is one thing makes every correction downstream cosmetic — the ranker could
+not have served anything else if it wanted to. It reads the catalogue now: the newest slice,
+which is what a feed should mostly be, plus a seeded sample of everything behind it, so the
+back catalogue is reachable and the sample moves between visits.
+
+The discovery pick needed the same lesson twice. Measuring how little the *reader* has said
+about something is right and is not enough: on a first visit nobody has said anything about
+anything, every candidate ties, and a coin toss over a catalogue that is three-quarters one
+kind of question serves thirteen famous people. Strangeness is measured against **this serve**
+as well — least-served category, least-served tags, tags counting double — with the reader's
+own evidence as the tie-break. Serving one question tagged `leader` drops every other
+`leader` to a third of its strangeness, so the next discovery slot goes elsewhere. That works
+on the first visit and on the thousandth.
+
+**296 tests.** Three are new: one guards the verdict board against being trimmed by
+the very field it is filtered on, and three hold the discovery pick — that novelty is one for a
+stranger and falls away as evidence arrives, that an exploring slot takes the least known
+question rather than the worst-scored one, and that a reader with no history at all still
+gets a mixed serve. The rest are unchanged and still green.
 
 ### 14 September 2026 — a hundred arguments with faces on them
 

@@ -52,12 +52,19 @@ export function noveltyOf(seenCategory: number, seenTags: number): number {
  * believes about you, and a reader who answered a few questions about famous
  * people is served famous people until they stop coming.
  *
- * What a discovery pick *is* changed. It used to reach into the bottom half of
- * the score order, which sounds like exploring and is not — the bottom half of
- * a board that has learned one taste is the same taste, scored worse. It now
- * takes the candidate the reader has told us **least** about: the one whose
- * category and tags carry the least evidence. That is a question asked to find
- * something out rather than a weaker version of a question already answered.
+ * What a discovery pick *is* has changed twice. It used to reach into the
+ * bottom half of the score order, which sounds like exploring and is not — the
+ * bottom half of a board that has learned one taste is the same taste, scored
+ * worse. Then it took whatever the *reader* had said least about, which is
+ * right and is not enough: a reader with no history at all has said nothing
+ * about anything, so every candidate tied and the pick was a coin toss over a
+ * catalogue that is three-quarters one kind of question.
+ *
+ * So it is both. A discovery pick takes the candidate that is strangest
+ * **against what this serve has already handed out** — least-served category,
+ * least-served tags, tags counting double — with the reader's own evidence
+ * added on top as the tie-break. That works on the first visit, when there is
+ * nothing to know about somebody, and it keeps working on the thousandth.
  *
  * Nothing is ever dropped; deterministic for a given seed.
  */
@@ -66,7 +73,9 @@ export function interleave(
     id: string;
     score: number;
     categoryId: string;
-    /** From `noveltyOf`. Absent everywhere means the old low-half behaviour. */
+    /** What the question is about. The category is too coarse on its own. */
+    tags?: string[];
+    /** From `noveltyOf`: how little the *reader* has said about this. */
     novelty?: number;
   }[],
   opts: { seed: number; maxRun?: number; epsilon?: number },
@@ -82,26 +91,33 @@ export function interleave(
   let lastCat: string | null = null;
   let run = 0;
 
+  /* What this serve has handed out so far. A queue of thirteen famous people
+     is thirteen cards that each looked reasonable on their own. */
+  const servedCat = new Map<string, number>();
+  const servedTag = new Map<string, number>();
+  const strangeness = (p: (typeof pool)[number]) => {
+    let seen = servedCat.get(p.categoryId) ?? 0;
+    for (const t of p.tags ?? []) seen += 2 * (servedTag.get(t) ?? 0);
+    return 1 / (1 + seen) + (p.novelty ?? 0);
+  };
+
   while (pool.length > 0) {
     let idx = 0;
     if (pool.length > 3 && rng() < epsilon) {
-      const best = pool.reduce((n, p) => Math.max(n, p.novelty ?? -1), -1);
-      if (best > 0) {
-        // Everything joint-least-known, and one of them at random: picking the
-        // first would make "the stranger" the same stranger every time.
-        const strangers = pool
-          .map((p, i) => (p.novelty === best ? i : -1))
-          .filter((i) => i >= 0);
-        idx = strangers[Math.floor(rng() * strangers.length)];
-      } else {
-        const lo = Math.floor(pool.length / 2);
-        idx = lo + Math.floor(rng() * (pool.length - lo));
-      }
+      const best = pool.reduce((n, p) => Math.max(n, strangeness(p)), 0);
+      // Everything joint-strangest, and one of them at random: picking the
+      // first would make "the stranger" the same stranger every time.
+      const strangers = pool
+        .map((p, i) => (strangeness(p) === best ? i : -1))
+        .filter((i) => i >= 0);
+      idx = strangers[Math.floor(rng() * strangers.length)];
     } else if (lastCat !== null && run >= maxRun && pool[0].categoryId === lastCat) {
       const alt = pool.findIndex((p) => p.categoryId !== lastCat);
       idx = alt === -1 ? 0 : alt;
     }
     const picked = pool.splice(idx, 1)[0];
+    servedCat.set(picked.categoryId, (servedCat.get(picked.categoryId) ?? 0) + 1);
+    for (const t of picked.tags ?? []) servedTag.set(t, (servedTag.get(t) ?? 0) + 1);
     if (picked.categoryId === lastCat) run += 1;
     else {
       lastCat = picked.categoryId;

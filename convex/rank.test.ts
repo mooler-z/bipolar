@@ -267,6 +267,36 @@ describe("serve order is not score order", () => {
     expect(greedy.indexOf("cities")).toBeGreaterThan(0);
   });
 
+  test("a reader with no history still gets a mixed serve", () => {
+    /* The case that mattered and was missed: on a first visit nobody has said
+       anything about anything, so every candidate ties on the reader's own
+       evidence — and the catalogue is three-quarters one kind of question, so
+       a coin toss over it serves thirteen famous people. Strangeness is
+       measured against *this serve* as well, which is what breaks that. */
+    const people = Array.from({ length: 12 }, (_, i) => ({
+      id: `p${i}`,
+      categoryId: `c${(i % 4) + 1}`,
+      tags: ["leader"],
+      score: 1 - i * 0.01,
+    }));
+    const others = [
+      { id: "food", categoryId: "c5", tags: ["food"], score: 0.1 },
+      { id: "space", categoryId: "c6", tags: ["space"], score: 0.09 },
+      { id: "sport", categoryId: "c7", tags: ["sport"], score: 0.08 },
+    ];
+
+    const order = interleave([...people, ...others], { seed: 11, epsilon: 1 });
+    const kind = (id: string) => (id.startsWith("p") ? "leader" : id);
+
+    // No two leaders back to back while something else is still unserved.
+    const left = new Set(others.map((o) => o.id));
+    for (let i = 1; i < order.length; i += 1) {
+      left.delete(order[i - 1]);
+      if (left.size === 0) break;
+      expect([kind(order[i - 1]), kind(order[i])]).not.toEqual(["leader", "leader"]);
+    }
+  });
+
   test("nothing is ever dropped", () => {
     const order = interleave(items, { seed: 123 });
     expect(order).toHaveLength(items.length);
