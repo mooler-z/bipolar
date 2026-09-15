@@ -8,7 +8,7 @@ import { toResult } from "./result";
 import { useHistory } from "./useHistory";
 import { useUndo } from "./useUndo";
 import { useTally } from "./useTally";
-import { MIN_ROOM, type Side } from "../../lib/format";
+import type { Side } from "../../lib/format";
 import { toSignIn } from "../../lib/nav";
 
 /**
@@ -204,7 +204,7 @@ export function useRun({ startWith }: { startWith?: string } = {}) {
     setPicked(slug);
   }
 
-  async function commit(side: Side, call?: Side) {
+  async function commit(side: Side) {
     if (!topic) return;
     // Not a refusal: the door, and `App` brings them back to this question.
     if (!me) return toSignIn();
@@ -214,7 +214,6 @@ export function useRun({ startWith }: { startWith?: string } = {}) {
         topicId: topic._id as Id<"topics">,
         choice: side,
         voteType: armed ? "paid" : "free",
-        call,
       });
       run.voted(side, armed, out.verdict ? out.verdict.correct : null);
       // Forty answered, not one studied. Same vote; only the screen is skipped.
@@ -232,13 +231,11 @@ export function useRun({ startWith }: { startWith?: string } = {}) {
     }
   }
 
-  /** Pressing an answer opens the call, and the call is the pending window:
-      nothing reaches the server until `commit` runs, which is the whole reason
-      `undo` can exist. A room too small to read casts on the press. */
+  /** Pressing an answer casts it. Vote, then the result or the next
+      question — nothing in between. */
   function pick(side: Side) {
     if (!topic || busy) return;
-    if (topic.crowdSize >= MIN_ROOM) setAsking(side);
-    else void commit(side);
+    void commit(side);
   }
 
   const { undone, undo, answeredId, skippedId, noteCast } = useUndo({

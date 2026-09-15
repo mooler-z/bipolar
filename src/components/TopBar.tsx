@@ -1,19 +1,9 @@
 import { useQuery } from "convex/react";
-import {
-  Fire,
-  Globe,
-  Lightning,
-  Moon,
-  Plus,
-  SignOut,
-  Sun,
-  Target,
-} from "@phosphor-icons/react";
+import { Globe, Lightning, Moon, Plus, SignOut, Sun } from "@phosphor-icons/react";
 
 import { api } from "../../convex/_generated/api";
 import { cn } from "../lib/cn";
-import { fmtInt, fmtMoney, rankOf } from "../lib/format";
-import { useIncreased } from "../lib/motion";
+import { fmtInt, fmtMoney } from "../lib/format";
 import { signOut } from "../lib/auth-client";
 import { Notifications } from "./Notifications";
 import { useTheme } from "../lib/theme";
@@ -30,11 +20,17 @@ import { Wordmark } from "../ui/Wordmark";
  * reading a question, and each number flashes once when it does. That is the
  * cheapest proof there is that the room is real.
  *
+ * The right half is two groups with a rule between them: **the house** — the
+ * world page and the wallet, things about the product — and **you** — the
+ * bell, the theme, the account, the way out. It used to also carry a rank
+ * title ("Regular") and the call streak; the rank said nothing anybody acts
+ * on, and the streak belonged to a step that no longer exists.
+ *
  * **On a phone it is cut to the bone**, and deliberately: 48px tall, the mark
- * alone, the streak, the wallet, you. Everything dropped has a home — the
- * theme and the way out are both on the account screen, which the avatar is
- * one tap from. A phone gives the question its whole screen; a header
- * carrying six things it could have carried is a header taking a sixth of it.
+ * alone, the wallet, the bell, you. Everything dropped has a home — the theme
+ * and the way out are both on the account screen, which the avatar is one tap
+ * from. A phone gives the question its whole screen; a header carrying six
+ * things it could have carried is a header taking a sixth of it.
  */
 
 function Tick({ label, value }: { label: string; value: string }) {
@@ -53,6 +49,7 @@ function Tick({ label, value }: { label: string; value: string }) {
 export function TopBar({
   signedIn,
   atAccount = false,
+  atWorld = false,
   onAccount,
   onHome,
   onWorld,
@@ -60,15 +57,15 @@ export function TopBar({
   signedIn: boolean;
   /** Already on the account route, so the bar has nowhere to send them. */
   atAccount?: boolean;
+  /** On the world page: its link reads as the place you are. */
+  atWorld?: boolean;
   onAccount: () => void;
   onHome: () => void;
   /** The world page. Every number on it is one somebody can go and move. */
   onWorld: () => void;
 }) {
   const me = useQuery(api.users.me);
-  const calls = useQuery(api.calls.me);
   const global = useQuery(api.stats.global);
-  const extended = useIncreased(calls?.streak ?? 0);
   const sparks = me?.sparks ?? 0;
   const [theme, toggleTheme] = useTheme();
 
@@ -91,38 +88,20 @@ export function TopBar({
 
       <span className="flex-1" />
 
-      {/* Loss aversion, in the one place it is always visible. */}
-      {calls && calls.streak > 0 ? (
-        <span
-          className={cn(
-            "flex items-center gap-1 rounded-[var(--r-pill)] bg-streak-fill/15 px-2.5 py-1.5 text-[13px] font-extrabold text-streak sm:gap-1.5 sm:px-3",
-            extended && "pop-in",
-          )}
-        >
-          <Fire weight="fill" className="size-4 flicker" />
-          <span className="num">{calls.streak}</span>
-        </span>
-      ) : null}
-
+      {/* ── the house ─────────────────────────────────────────────────── */}
       <Button
         bare
         onClick={onWorld}
         aria-label="The world so far"
-        title="The world so far"
-        className="lift hidden min-h-9 items-center gap-1.5 rounded-[var(--r-btn)] px-2.5 text-mute hover:bg-surface-2 hover:text-ink sm:flex"
+        aria-current={atWorld ? "page" : undefined}
+        className={cn(
+          "lift hidden min-h-9 items-center gap-1.5 rounded-[var(--r-btn)] px-3 text-[12.5px] font-bold sm:flex",
+          atWorld ? "bg-surface-2 text-ink" : "text-mute hover:bg-surface-2 hover:text-ink",
+        )}
       >
         <Globe weight="fill" className="size-4" />
-        <span className="text-[12.5px] font-bold">World</span>
+        World
       </Button>
-
-      {calls && calls.made >= 5 ? (
-        <span className="chip hidden !bg-go-fill/12 !text-go sm:inline-flex">
-          <Target weight="fill" className="size-3.5" />
-          <span className="num font-extrabold">{calls.accuracy}%</span> read
-        </span>
-      ) : me ? (
-        <span className="chip hidden !bg-surface-2 sm:inline-flex">{rankOf(me.topicsBacked).title}</span>
-      ) : null}
 
       {me ? (
         <Button
@@ -150,6 +129,9 @@ export function TopBar({
           </span>
         </Button>
       ) : null}
+
+      {/* ── you ─────────────────────────────────────────────────────────── */}
+      {signedIn ? <span aria-hidden className="mx-1 hidden h-6 w-px bg-line sm:block" /> : null}
 
       {/* The bell stays on a phone: it is the only thing up here that is
           about something that happened rather than something to press. */}

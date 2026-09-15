@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 
 import type { Id } from "../../convex/_generated/dataModel";
 import type { ArenaHandle } from "../components/Arena";
-import { CallStep } from "../components/CallStep";
 import { Centre } from "../components/Centre";
 import { DeckHint, Pager, useDeck } from "../components/mobile/Deck";
 import { PhoneTour } from "../components/mobile/PhoneTour";
@@ -139,7 +138,6 @@ export function Home({
   }
 
   const topic = run.topic;
-  const asking = run.asking;
 
   return (
     <div
@@ -189,18 +187,6 @@ export function Home({
                 topicId={topic._id}
                 signedIn={!!run.me}
                 canSpark={run.canSpark}
-              />
-            ) : null
-          }
-          pending={
-            asking ? (
-              <CallStep
-                mine={asking}
-                crowdSize={topic.crowdSize}
-                busy={run.busy}
-                onCall={(call) => void run.commit(asking, call)}
-                onSkip={() => void run.commit(asking)}
-                onUndo={run.undo}
               />
             ) : null
           }

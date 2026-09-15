@@ -122,6 +122,7 @@ export function App() {
       <TopBar
         signedIn={!!session.data}
         atAccount={path === "/account"}
+        atWorld={path === "/world"}
         onHome={() => go("/")}
         onAccount={toAccount}
         onWorld={() => go("/world")}
