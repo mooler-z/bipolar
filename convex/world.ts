@@ -5,6 +5,7 @@ import {
   byCategory,
   byCountry,
   pairs,
+  subjects,
   verdicts,
   type StatRow,
   type TopicRow,
@@ -40,6 +41,14 @@ const countryLean = v.object({
   votes: v.number(),
   lovePct: v.number(),
   topics: v.number(),
+  contrary: v.number(),
+});
+
+const subject = v.object({
+  code: v.string(),
+  slug: v.string(),
+  votes: v.number(),
+  lovePct: v.number(),
 });
 
 const verdict = v.object({
@@ -65,6 +74,20 @@ const category = v.object({
   topics: v.number(),
 });
 
+/**
+ * The grid: every voting country against every country voted about.
+ *
+ * Cells go down to two votes rather than the board's six, because a grid is
+ * read as a whole and a blank cell says "no opinion" where a faint one says
+ * "not much of one yet". The client fades anything under the board's floor
+ * so a thin cell is never mistaken for a verdict.
+ */
+const grid = v.object({
+  /** The columns: who gets voted about, busiest first. */
+  about: v.array(v.string()),
+  cells: v.array(verdict),
+});
+
 /** A topic the page can point at: what it asks, and how busy it is. Never how
     it went — that is the thing a vote is exchanged for. */
 const loudest = v.object({
@@ -74,20 +97,6 @@ const loudest = v.object({
   /** The country it is about, when it is about one. */
   about: v.union(v.null(), v.string()),
 });
-
-/**
- * Both ends of a sorted list, in order.
- *
- * The rivalry board shows the pairs that never agree *and* the pairs that
- * always do, and the list arrives sorted worst-first — so trimming it with a
- * plain `slice` keeps forty feuds and throws every friendship away. It did
- * exactly that, and the "same mind" board filled with the least-bad of the
- * worst: China and Taiwan, Israel and Russia, all at forty-six per cent.
- */
-function ends<T>(list: T[], each: number): T[] {
-  if (list.length <= each * 2) return list;
-  return [...list.slice(0, each), ...list.slice(-each)];
-}
 
 export const board = query({
   args: {},
@@ -104,8 +113,12 @@ export const board = query({
     }),
     countries: v.array(countryLean),
     verdicts: v.array(verdict),
+    /** Every pair, not a trimmed board: the map colours the whole world by
+        agreement with one country, so it needs all of that country's pairs. */
     pairs: v.array(pair),
+    grid,
     categories: v.array(category),
+    subjects: v.array(subject),
     loudest: v.array(loudest),
     /** True when a read hit its ceiling, so the page can say so. */
     capped: v.boolean(),
@@ -164,7 +177,17 @@ export const board = query({
         return { slug: t.slug, question: t.question, votes: n, about: t.scopeCountry ?? null };
       });
 
+    /* The grid's columns are the places most voted about, capped so the thing
+       stays a grid rather than a wall — and the cells are every opinion held
+       about one of them, thin ones included. */
+    const every = verdicts(rows, topics, 2);
+    const volume = new Map<string, number>();
+    for (const c of every) volume.set(c.about, (volume.get(c.about) ?? 0) + c.votes);
+    const about = [...volume].sort((a, b) => b[1] - a[1]).slice(0, 14).map(([code]) => code);
+    const columns = new Set(about);
+
     return {
+      grid: { about, cells: every.filter((c) => columns.has(c.about)) },
       totals: {
         countries: countries.length,
         votes,
@@ -176,8 +199,9 @@ export const board = query({
       },
       countries: countries.slice(0, 60),
       verdicts: verdicts(rows, topics).slice(0, 60),
-      pairs: ends(pairs(rows), 20),
+      pairs: pairs(rows),
       categories: byCategory(rows, topics),
+      subjects: subjects(rows, topics),
       loudest: loudestRows,
       capped: statRows.length >= STATS || topicDocs.length >= TOPICS,
     };

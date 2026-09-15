@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { byCategory, byCountry, lean, pairs, verdicts, type StatRow, type TopicRow } from "./lib/worldCuts";
+import { byCategory, byCountry, lean, pairs, subjects, verdicts, type StatRow, type TopicRow } from "./lib/worldCuts";
 
 /**
  * A page of superlatives is the hardest kind of page to check by eye.
@@ -293,5 +293,42 @@ describe("a board with two ends keeps both of them", () => {
     const worst = Math.min(...board.pairs.map((p) => p.agreement));
     expect(worst).toBe(0);
     expect(best).toBe(100);
+  });
+});
+
+describe("how often a country goes against the world", () => {
+  test("a rebel is counted only where the rest of the world had a side", () => {
+    const rows = [
+      // t1: the world (minus ET) loves; ET hates → against.
+      stat("t1", "US", 5, 0), stat("t1", "GB", 4, 0), stat("t1", "ET", 0, 3),
+      // t2: everybody hates → with.
+      stat("t2", "US", 0, 5), stat("t2", "GB", 0, 4), stat("t2", "ET", 0, 3),
+      // t3: the rest are split 2-2 → no side, not judged.
+      stat("t3", "US", 2, 0), stat("t3", "GB", 0, 2), stat("t3", "ET", 3, 0),
+    ];
+    const et = byCountry(rows).find((c) => c.code === "ET")!;
+    expect(et.contrary).toBe(50);
+    // And the world measured against ET was the world *without* ET.
+    const us = byCountry(rows).find((c) => c.code === "US")!;
+    expect(us.contrary).toBe(0);
+  });
+
+  test("a nation of one always agrees with itself, and so is not judged", () => {
+    expect(byCountry([stat("t1", "ET", 5, 0)])[0]!.contrary).toBe(0);
+  });
+});
+
+describe("what each country makes of each subject", () => {
+  test("leans are summed per country per subject, under a floor", () => {
+    const topics = map(topic("t1", undefined, "sport"), topic("t2", undefined, "sport"), topic("t3", undefined, "food"));
+    const rows = [
+      stat("t1", "ET", 3, 0), stat("t2", "ET", 1, 2),
+      stat("t3", "ET", 0, 1),            // one vote: under the floor
+      stat("t1", "US", 0, 3),
+    ];
+    const out = subjects(rows, topics, 3);
+    expect(out).toContainEqual({ code: "ET", slug: "sport", votes: 6, lovePct: 67 });
+    expect(out).toContainEqual({ code: "US", slug: "sport", votes: 3, lovePct: 0 });
+    expect(out.some((s) => s.slug === "food")).toBe(false);
   });
 });

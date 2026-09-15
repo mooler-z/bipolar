@@ -3,10 +3,10 @@ import { ArrowLeft, ArrowRight, ArrowUUpLeft, ShareNetwork } from "@phosphor-ico
 import { pct, type Side } from "../lib/format";
 import type { CountryRow } from "../lib/insights";
 import { AutoAdvance } from "./AutoAdvance";
-import { CountryBoard } from "./CountryBoard";
+import { Atlas } from "./reveal/Atlas";
 import { BigNumber } from "./reveal/BigNumber";
 import { Called } from "./reveal/Called";
-import { Layers } from "./reveal/Layers";
+import { Sides } from "./reveal/Sides";
 import type { Aggregate, CallVerdict } from "./reveal/types";
 import { Button } from "../ui/Button";
 
@@ -86,13 +86,15 @@ export function Reveal({
         <BigNumber stats={stats} mine={mine} question={question} imageUrl={imageUrl} />
 
         <div className="mt-5">
-          <Layers stats={stats} staked={staked} />
+          <Sides stats={stats} staked={staked} />
         </div>
 
         {/* The world: the map, the outlier, and the sentence worth repeating.
             Only reachable here because the vote unlocked the full board. */}
         {countries.length > 0 ? (
-          <CountryBoard rows={countries} globalLovePct={cl} />
+          <div className="mt-5">
+            <Atlas rows={countries} globalLovePct={cl} />
+          </div>
         ) : null}
       </div>
 

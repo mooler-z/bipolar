@@ -59,20 +59,47 @@ export type CountryLean = {
   lovePct: number;
   /** How many distinct topics this country has voted on. */
   topics: number;
+  /** How often it lands on the other side from the world, as a percentage of
+      the questions where the world had a side. */
+  contrary: number;
 };
 
 /** Every voting country, summed over everything it has ever answered. */
 export function byCountry(rows: StatRow[]): CountryLean[] {
-  const acc = new Map<string, { love: number; hate: number; topics: Set<string> }>();
+  /* The world's side on each question, so a country can be measured against
+     it. A dead heat has no side and does not count either way. */
+  const world = new Map<string, { love: number; hate: number }>();
+  for (const r of rows) {
+    if (r.countryCode === UNKNOWN) continue;
+    const at = world.get(r.topicId) ?? { love: 0, hate: 0 };
+    at.love += loveOf(r);
+    at.hate += hateOf(r);
+    world.set(r.topicId, at);
+  }
+
+  const acc = new Map<
+    string,
+    { love: number; hate: number; topics: Set<string>; against: number; judged: number }
+  >();
   for (const r of rows) {
     if (r.countryCode === UNKNOWN) continue;
     const love = loveOf(r);
     const hate = hateOf(r);
     if (love + hate === 0) continue;
-    const at = acc.get(r.countryCode) ?? { love: 0, hate: 0, topics: new Set<string>() };
+    const at =
+      acc.get(r.countryCode) ??
+      { love: 0, hate: 0, topics: new Set<string>(), against: 0, judged: 0 };
     at.love += love;
     at.hate += hate;
     at.topics.add(r.topicId);
+
+    const w = world.get(r.topicId)!;
+    // The world minus this country, or a nation of one always agrees with it.
+    const others = { love: w.love - love, hate: w.hate - hate };
+    if (others.love !== others.hate && love !== hate) {
+      at.judged += 1;
+      if (love > hate !== others.love > others.hate) at.against += 1;
+    }
     acc.set(r.countryCode, at);
   }
   return [...acc]
@@ -81,6 +108,7 @@ export function byCountry(rows: StatRow[]): CountryLean[] {
       love: a.love,
       hate: a.hate,
       topics: a.topics.size,
+      contrary: a.judged === 0 ? 0 : Math.round((a.against / a.judged) * 100),
       ...lean(a.love, a.hate),
     }))
     .sort((x, y) => y.votes - x.votes);
@@ -236,4 +264,36 @@ export function byCategory(rows: StatRow[], topics: Map<string, TopicRow>): Cate
   return [...acc]
     .map(([slug, a]) => ({ slug, topics: a.topics.size, ...lean(a.love, a.hate) }))
     .sort((x, y) => y.votes - x.votes);
+}
+
+export type Subject = {
+  code: string;
+  slug: string;
+  votes: number;
+  lovePct: number;
+};
+
+/** Each country's lean on each subject. What colours the map when a subject
+    is picked, and what says which nation likes football least. */
+export function subjects(rows: StatRow[], topics: Map<string, TopicRow>, floor = 3): Subject[] {
+  const acc = new Map<string, { love: number; hate: number }>();
+  for (const r of rows) {
+    if (r.countryCode === UNKNOWN) continue;
+    const topic = topics.get(r.topicId);
+    if (!topic) continue;
+    const love = loveOf(r);
+    const hate = hateOf(r);
+    if (love + hate === 0) continue;
+    const key = `${r.countryCode}|${topic.categorySlug}`;
+    const at = acc.get(key) ?? { love: 0, hate: 0 };
+    at.love += love;
+    at.hate += hate;
+    acc.set(key, at);
+  }
+  return [...acc]
+    .map(([key, a]) => {
+      const [code, slug] = key.split("|") as [string, string];
+      return { code, slug, ...lean(a.love, a.hate) };
+    })
+    .filter((s) => s.votes >= floor);
 }
