@@ -7,6 +7,7 @@ import * as tg from "./lib/tgApi";
 import {
   MENU,
   ballotCaption,
+  escapeHtml,
   ballotKeyboard,
   hotMessage,
   menuKeyboard,
@@ -32,6 +33,27 @@ import type { TgCallbackQuery, TgMessage, TgUpdate } from "./lib/tgTypes";
  * Nothing in here throws. A webhook that throws makes Telegram redeliver the
  * same update on a loop, so a failure becomes a toast and the update is done.
  */
+
+/**
+ * The first thing that happens after connecting on the web.
+ *
+ * Scheduled by the redeem mutation, so by the time somebody gets back to the
+ * chat the menu is installed and a question is already waiting. Coming back to
+ * an empty chat that says nothing is how a connect flow ends in a shrug.
+ */
+export const greet = internalAction({
+  args: { chatId: v.number(), userId: v.id("users"), name: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await tg.sendMessage(
+      args.chatId,
+      `Connected. You vote here as <b>${escapeHtml(args.name)}</b> — same record, same streak.`,
+      menuKeyboard(),
+    );
+    await deal(ctx, args.chatId, args.userId);
+    return null;
+  },
+});
 
 export const handle = internalAction({
   args: { update: v.any() },
@@ -90,12 +112,27 @@ async function onMessage(ctx: ActionCtx, msg: TgMessage): Promise<void> {
       );
       return;
     default:
-      // /start re-installs the menu; anything else is taken as "deal me one".
-      if (text.startsWith("/start")) {
-        await tg.sendMessage(msg.chat.id, "Menu below. Dealing…", menuKeyboard());
-      }
-      return await deal(ctx, msg.chat.id, account.userId);
+      break;
   }
+
+  /* The slash commands do what the menu buttons do. Two doors to one room:
+     the buttons are the real interface, but a command menu is what somebody
+     types when they have forgotten there are buttons. */
+  const command = text.split(/[\s@]/)[0];
+  switch (command) {
+    case "/hot":
+      return await onMessage(ctx, { ...msg, text: MENU.hot });
+    case "/stats":
+      return await onMessage(ctx, { ...msg, text: MENU.myStats });
+    case "/votes":
+      return await onMessage(ctx, { ...msg, text: MENU.myVotes });
+    case "/signout":
+      return await onMessage(ctx, { ...msg, text: MENU.signOut });
+    case "/start":
+      await tg.sendMessage(msg.chat.id, "Menu below. Dealing…", menuKeyboard());
+      break;
+  }
+  return await deal(ctx, msg.chat.id, account.userId);
 }
 
 /** The first thing an unlinked chat ever sees. */

@@ -45,6 +45,7 @@ import type * as lib_serve from "../lib/serve.js";
 import type * as lib_slug from "../lib/slug.js";
 import type * as lib_tgApi from "../lib/tgApi.js";
 import type * as lib_tgFormat from "../lib/tgFormat.js";
+import type * as lib_tgProfile from "../lib/tgProfile.js";
 import type * as lib_tgTypes from "../lib/tgTypes.js";
 import type * as lib_tunables from "../lib/tunables.js";
 import type * as lib_voteCard from "../lib/voteCard.js";
@@ -118,6 +119,7 @@ declare const fullApi: ApiFromModules<{
   "lib/slug": typeof lib_slug;
   "lib/tgApi": typeof lib_tgApi;
   "lib/tgFormat": typeof lib_tgFormat;
+  "lib/tgProfile": typeof lib_tgProfile;
   "lib/tgTypes": typeof lib_tgTypes;
   "lib/tunables": typeof lib_tunables;
   "lib/voteCard": typeof lib_voteCard;

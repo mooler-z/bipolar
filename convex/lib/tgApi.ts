@@ -139,3 +139,26 @@ export function webhookInfo(): Promise<{
 } | null> {
   return call("getWebhookInfo", {});
 }
+
+/* ── the bot's own profile ────────────────────────────────────────────────
+   What Telegram shows before anybody talks to it. The copy lives in
+   `tgProfile.ts`; these only push it. Each returns whether it took, because a
+   rate-limited profile write fails quietly and looks exactly like success. */
+
+export async function setMyName(name: string): Promise<boolean> {
+  return (await call("setMyName", { name })) !== null;
+}
+
+export async function setMyShortDescription(short_description: string): Promise<boolean> {
+  return (await call("setMyShortDescription", { short_description })) !== null;
+}
+
+export async function setMyDescription(description: string): Promise<boolean> {
+  return (await call("setMyDescription", { description })) !== null;
+}
+
+export async function setMyCommands(
+  commands: { command: string; description: string }[],
+): Promise<boolean> {
+  return (await call("setMyCommands", { commands })) !== null;
+}

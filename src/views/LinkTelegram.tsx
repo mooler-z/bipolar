@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { CheckCircle, PaperPlaneTilt, Warning } from "@phosphor-icons/react";
+import { ArrowSquareOut, CheckCircle, PaperPlaneTilt, Warning } from "@phosphor-icons/react";
 
 import { api } from "../../convex/_generated/api";
 import { toSignIn } from "../lib/nav";
@@ -18,6 +18,12 @@ import { Button } from "../ui/Button";
  * that attached on sight would let a forwarded link silently bind somebody
  * else's Telegram account to whoever opened it. The button is the consent, and
  * it says which account it is about to use.
+ *
+ * **And it sends them straight back.** The journey started in a chat and has
+ * to end there — by the time the browser hands over, the bot has already been
+ * told to install the menu and deal a question, so the chat is not empty when
+ * they arrive. Signing in on the way is part of the same journey: the code
+ * rides through the OAuth round trip in `?next=` and lands back here.
  */
 export function LinkTelegram({ code, onDone }: { code: string; onDone: () => void }) {
   const me = useQuery(api.users.me);
@@ -25,18 +31,35 @@ export function LinkTelegram({ code, onDone }: { code: string; onDone: () => voi
   const redeem = useMutation(api.telegramLink.redeem);
   const [state, setState] = useState<"idle" | "busy" | "done">("idle");
   const [error, setError] = useState("");
+  const [handle, setHandle] = useState<string | null>(null);
+
+  const chat = handle ?? status?.botHandle ?? null;
+  const chatUrl = chat ? `https://t.me/${chat}` : null;
 
   async function connect() {
     setState("busy");
     setError("");
     try {
-      await redeem({ code });
+      const out = await redeem({ code });
+      setHandle(out.botHandle);
       setState("done");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setState("idle");
     }
   }
+
+  /* Back to the chat on its own, a beat after the confirmation lands — long
+     enough to read the word "Connected", short enough that nobody has to go
+     looking for Telegram themselves. The button stays for anyone whose browser
+     refuses to hand over to the app. */
+  useEffect(() => {
+    if (state !== "done" || !chatUrl) return;
+    const go = window.setTimeout(() => {
+      window.location.href = chatUrl;
+    }, 1200);
+    return () => window.clearTimeout(go);
+  }, [state, chatUrl]);
 
   return (
     <div className="grid min-h-[calc(100dvh-var(--bar))] place-items-center px-[clamp(1.25rem,4vw,4rem)]">
@@ -47,11 +70,19 @@ export function LinkTelegram({ code, onDone }: { code: string; onDone: () => voi
           <>
             <h1 className="text-[clamp(1.6rem,4vw,2.4rem)]">Connected.</h1>
             <p className="mt-3 text-[14px] leading-relaxed text-ink-3">
-              Go back to the chat — the bot has dealt you a question. Every vote you
-              cast there counts exactly as it does here.
+              {chatUrl
+                ? "Taking you back to the chat — there is a question waiting. Every vote you cast there counts exactly as it does here."
+                : "Go back to the chat; the bot has dealt you a question. Every vote you cast there counts exactly as it does here."}
             </p>
-            <Button variant="go" size="lg" block className="mt-6" onClick={onDone}>
-              Back to the run
+            {chatUrl ? (
+              <Button variant="go" size="lg" block className="mt-6" asChild>
+                <a href={chatUrl}>
+                  <ArrowSquareOut weight="bold" className="size-4" /> Open the chat
+                </a>
+              </Button>
+            ) : null}
+            <Button variant="ghost" size="sm" block className="mt-2" onClick={onDone}>
+              Stay here and vote on the web
             </Button>
           </>
         ) : !me ? (

@@ -4,6 +4,7 @@ import { httpAction, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { publicSite } from "./config";
 import * as tg from "./lib/tgApi";
+import { COMMANDS, DESCRIPTION, NAME, SHORT } from "./lib/tgProfile";
 
 /**
  * Where Telegram knocks.
@@ -113,3 +114,31 @@ function httpOrigin(): string {
   if (given) return given.replace(/\/$/, "");
   return publicSite().replace(/\/$/, "");
 }
+
+/**
+ * Push the bot's public copy to Telegram.
+ *
+ *   npx convex run telegram:describe '{}'
+ *
+ * Idempotent, and safe to re-run after editing `lib/tgProfile.ts` — which is
+ * the point of it being there rather than in a form somebody filled in once.
+ */
+export const describe = internalAction({
+  args: {},
+  returns: v.object({
+    name: v.boolean(),
+    short: v.boolean(),
+    description: v.boolean(),
+    commands: v.boolean(),
+  }),
+  handler: async () => {
+    if (!tg.configured()) throw new Error("TELEGRAM_BOT_TOKEN is not set.");
+    /* Sequential, not parallel: Telegram rate-limits profile writes hard, and
+       four at once is how one of them silently does not take. */
+    const name = await tg.setMyName(NAME);
+    const short = await tg.setMyShortDescription(SHORT);
+    const description = await tg.setMyDescription(DESCRIPTION);
+    const commands = await tg.setMyCommands(COMMANDS);
+    return { name, short, description, commands };
+  },
+});

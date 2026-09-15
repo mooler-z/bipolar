@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 
+import { internal } from "./_generated/api";
 import {
   internalMutation,
   internalQuery,
@@ -83,12 +84,20 @@ export const issueCode = internalMutation({
 /**
  * Redeem, from the web, as the signed-in user.
  *
- * Returns the chat to greet rather than greeting it: this is a mutation, and a
- * mutation cannot `fetch`. The caller schedules the message.
+ * A mutation cannot `fetch`, so the greeting is scheduled rather than sent:
+ * by the time somebody gets back to the chat the menu is installed and a
+ * question is already waiting. Scheduling it from inside the transaction is
+ * what makes that true — a greeting cannot go out for a link that did not
+ * commit, and a link that committed always gets one.
  */
 export const redeem = mutation({
   args: { code: v.string() },
-  returns: v.object({ chatId: v.number(), name: v.string() }),
+  returns: v.object({
+    chatId: v.number(),
+    name: v.string(),
+    /** Where to send them back to, when the deployment knows its own handle. */
+    botHandle: v.union(v.null(), v.string()),
+  }),
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
 
@@ -131,22 +140,37 @@ export const redeem = mutation({
       await ctx.db.patch("telegramAccounts", byTelegram._id, { chatId: pending.chatId });
     }
 
-    return { chatId: pending.chatId, name: user.displayName };
+    await ctx.scheduler.runAfter(0, internal.telegramBot.greet, {
+      chatId: pending.chatId,
+      userId: user._id,
+      name: user.displayName,
+    });
+
+    return {
+      chatId: pending.chatId,
+      name: user.displayName,
+      botHandle: process.env.TELEGRAM_BOT_USERNAME?.trim() ?? null,
+    };
   },
 });
 
 /** Whether this account has a Telegram attached, for the web page. */
 export const status = query({
   args: {},
-  returns: v.object({ linked: v.boolean(), username: v.union(v.null(), v.string()) }),
+  returns: v.object({
+    linked: v.boolean(),
+    username: v.union(v.null(), v.string()),
+    botHandle: v.union(v.null(), v.string()),
+  }),
   handler: async (ctx) => {
+    const botHandle = process.env.TELEGRAM_BOT_USERNAME?.trim() ?? null;
     const user = await currentUser(ctx);
-    if (!user) return { linked: false, username: null };
+    if (!user) return { linked: false, username: null, botHandle };
     const row = await ctx.db
       .query("telegramAccounts")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .unique();
-    return { linked: row !== null, username: row?.username ?? null };
+    return { linked: row !== null, username: row?.username ?? null, botHandle };
   },
 });
 

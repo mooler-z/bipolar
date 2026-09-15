@@ -95,10 +95,9 @@ describe("one Telegram account, one bipolar account", () => {
     const code = await codeFor(t, "tg-1");
     const out = await as.mutation(api.telegramLink.redeem, { code });
     expect(out.chatId).toBe(4242);
-    expect(await as.query(api.telegramLink.status, {})).toEqual({
-      linked: true,
-      username: "someone",
-    });
+    const linked = await as.query(api.telegramLink.status, {});
+    expect(linked.linked).toBe(true);
+    expect(linked.username).toBe("someone");
 
     // Single-use: the same link cannot be replayed out of a chat history.
     await expect(as.mutation(api.telegramLink.redeem, { code })).rejects.toThrow(/expired/i);
