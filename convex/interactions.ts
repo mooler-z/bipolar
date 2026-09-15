@@ -75,3 +75,23 @@ export const pull = mutation({
     return null;
   },
 });
+
+/**
+ * A topic sent somewhere else.
+ *
+ * Written when the share actually happened — the sheet reports the route it
+ * went out by — rather than when the button opened it, so closing the sheet
+ * again teaches nothing. Which channel it went to is not kept: it would be a
+ * fact about the reader's other accounts, and the ranker has no use for it.
+ */
+export const share = mutation({
+  args: { topicId: v.id("topics") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+    const topic = await ctx.db.get("topics", args.topicId);
+    if (!topic) return null;
+    await note(ctx, user._id, topic, "share");
+    return null;
+  },
+});

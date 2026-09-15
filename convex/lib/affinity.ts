@@ -20,6 +20,7 @@ export type Act =
   | "skip"
   | "undo"
   | "pull"
+  | "share"
   | "comment"
   | "reply"
   | "like"
@@ -37,6 +38,12 @@ export type Act =
  */
 export const STRENGTH: Record<Act, { signal: number; alpha: number }> = {
   pull: { signal: 1, alpha: 0.35 },
+  /**
+   * Putting your name to it in front of people you know. It costs nothing but
+   * standing, which is why it sits with the acts that cost money rather than
+   * with the taps — nobody forwards a subject they are indifferent about.
+   */
+  share: { signal: 1, alpha: 0.32 },
   comment: { signal: 1, alpha: 0.35 },
   /** Answering somebody costs a quill and takes a side. The strongest signal. */
   reply: { signal: 1, alpha: 0.38 },

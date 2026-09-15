@@ -237,6 +237,7 @@ export default defineSchema({
       v.literal("skip"),
       v.literal("undo"),
       v.literal("pull"),
+      v.literal("share"),
       v.literal("comment"),
       v.literal("reply"),
       v.literal("like"),

@@ -6,6 +6,8 @@ import { CallStep } from "../components/CallStep";
 import { Centre } from "../components/Centre";
 import { DeckHint, Pager, useDeck } from "../components/mobile/Deck";
 import { PhoneTour } from "../components/mobile/PhoneTour";
+import { ShareSheet } from "../components/share/ShareSheet";
+import { cardFor } from "../lib/shareCard";
 import { PeekOffer } from "../components/PeekOffer";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
@@ -54,6 +56,7 @@ export function Home({
   const run = useRun({ startWith: slug });
   const [tab, setTab] = useState<RoomTab>("live");
   const [composing, setComposing] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const arena = useRef<ArenaHandle>(null);
   const deck = useDeck();
   const desk = useIsDesk();
@@ -65,6 +68,7 @@ export function Home({
      lands, not on the press, so a pull that resolved to nothing teaches
      nothing. */
   const notePull = useMutation(api.interactions.pull);
+  const noteShare = useMutation(api.interactions.share);
   const landed = run.pulled && !run.resolving && run.me ? run.topic?._id : undefined;
   useEffect(() => {
     if (landed) void notePull({ topicId: landed as Id<"topics"> });
@@ -212,11 +216,7 @@ export function Home({
           }}
           onGetSparks={onAccount}
           onNext={run.next}
-          onShare={() => {
-            void navigator.clipboard?.writeText(`${window.location.origin}/t/${topic.slug}`);
-            run.setError("Link copied.");
-            window.setTimeout(() => run.setError(""), 1600);
-          }}
+          onShare={() => setSharing(true)}
         />
       </main>
 
@@ -267,6 +267,20 @@ export function Home({
       {/* A phone's own walkthrough: gestures, never keys. */}
       {!desk && phone.open ? (
         <PhoneTour cards={phone.cards} onDone={phone.finish} />
+      ) : null}
+
+      {/* The card is drawn only from a result the reader has earned; with no
+          reveal on screen there is nothing to draw and it shares the link. */}
+      {sharing ? (
+        <ShareSheet
+          url={`${window.location.origin}/t/${topic.slug}`}
+          text={topic.question}
+          card={cardFor(topic.question, run.result?.stats, window.location.host)}
+          onShared={() => {
+            if (run.me) void noteShare({ topicId: topic._id as Id<"topics"> });
+          }}
+          onClose={() => setSharing(false)}
+        />
       ) : null}
 
       {run.error ? (
