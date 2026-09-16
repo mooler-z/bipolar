@@ -33,7 +33,7 @@ export type Block =
       agreement: number | null;
       shared: number;
     }
-  | { kind: "bars"; title: string; rows: { label: string; pct: number; votes: number }[] }
+  | { kind: "bars"; title: string; rows: { label: string; pct: number; votes?: number }[] }
   | { kind: "donut"; title: string; lovePct: number; votes: number; flag: string | null }
   | {
       kind: "portrait";
@@ -206,7 +206,15 @@ function One({ block }: { block: Block }) {
           <ul className="space-y-1">
             {block.rows.map((r) => (
               <li key={r.label} className="flex items-center gap-2">
-                <span className="w-20 shrink-0 truncate text-[11.5px] font-bold text-ink capitalize">
+                {/* A category slug is one lowercase word and wants a capital;
+                    a question is already written and does not. */}
+                <span
+                  className={cn(
+                    "w-28 shrink-0 truncate text-[11.5px] font-bold text-ink",
+                    r.label.includes(" ") ? "" : "capitalize",
+                  )}
+                  title={r.label}
+                >
                   {r.label}
                 </span>
                 <span className="relative h-3 min-w-0 flex-1 overflow-hidden rounded-full bg-hate-fill">

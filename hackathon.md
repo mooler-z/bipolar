@@ -167,14 +167,25 @@ flag of the country it belongs to. A chart of countries answers "who", and witho
 reader had to hold "what" in their head while reading it — the product already had a picture
 for most questions and was not using it.
 
-**308 tests.** Three are new: one guards the verdict board against being trimmed by
+**"Who is the most hated person in the world" came back as a board about Russia and Brazil.**
+Every lens ranked *countries*; nothing ranked the questions themselves, so the most obvious
+thing anybody types at a product like this had no right answer to route to. `topic_ranking` is
+the league table of the subjects — which named things the world thinks worst or best of, with
+the winner's own face at the top of it and a category to narrow by. It is built from the
+country boards rather than from each topic's stored aggregate: a country's lean on one
+question is already public, the aggregate is what a vote or a peek buys, and this reads only
+the first. Three countries minimum per row, because one room at a hundred percent is not the
+most hated anything.
+
+**313 tests.** Three are new: one guards the verdict board against being trimmed by
 the very field it is filtered on, three hold the discovery pick — that novelty is one for a
 stranger and falls away as evidence arrives, that an exploring slot takes the least known
 question rather than the worst-scored one, and that a reader with no history at all still
 gets a mixed serve, and ten hold the reading of one named thing — what a plan is
 allowed to contain, which end of a board leads, that a single question publishes leans and
-never counts, that a near miss is not an answer, and that the thing itself leads whether or not it has a
-picture. The rest are unchanged and still green.
+never counts, that a near miss is not an answer, that the thing itself leads whether or not it has a picture, and that
+the league table crowns somebody, publishes leans rather than counts, and says what it
+averaged over. The rest are unchanged and still green.
 
 ### 14 September 2026 — a hundred arguments with faces on them
 

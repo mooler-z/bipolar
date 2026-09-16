@@ -54,7 +54,13 @@ export const block = v.union(
     kind: v.literal("bars"),
     title: v.string(),
     rows: v.array(
-      v.object({ label: v.string(), pct: v.number(), votes: v.number() }),
+      v.object({
+        label: v.string(),
+        pct: v.number(),
+        /** Absent on a board whose rows are single questions — see
+            `insightTopics.ts` for why that board publishes no counts. */
+        votes: v.optional(v.number()),
+      }),
     ),
   }),
   v.object({

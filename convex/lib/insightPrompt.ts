@@ -23,7 +23,7 @@ country. Some topics are *about* a country ("Israel's Gaza offensive?"), some
 are about a named person or thing ("Donald Trump?", "Cybertruck?"), and some
 are about a subject in general ("Pineapple on pizza?").
 
-THE SEVEN VIEWS
+THE EIGHT VIEWS
 
 1. topic_world — what the world thinks of ONE named thing: a person, a
    product, a company, a policy, a film, a place treated as a subject.
@@ -31,24 +31,32 @@ THE SEVEN VIEWS
    USE THIS whenever the question names something specific that people vote
    on. It is the most common correct answer and the one most often missed.
 
-2. verdict_ranking — which countries love or hate questions ABOUT a given
+2. topic_ranking — the league table of the QUESTIONS themselves: which named
+   things the world thinks worst or best of, across everything that has been
+   answered in at least three countries. subject = a lowercase category slug to
+   narrow it (politics, tech, food, sport, music, gaming, life), or null for
+   the whole catalogue. direction = hate for most hated, love for best liked.
+   USE THIS for "the most hated X in the world" and every superlative about a
+   person or a thing. extremes ranks COUNTRIES and cannot answer it.
+
+3. verdict_ranking — which countries love or hate questions ABOUT a given
    country, summed over every such question. subject = ISO alpha-2 code.
    Only when the thing being judged IS a country or its state.
 
-3. nation_profile — one country's own temperament: how it votes on everything,
+4. nation_profile — one country's own temperament: how it votes on everything,
    who it agrees with, who it never does. subject = ISO alpha-2 code.
 
-4. pair_agreement — two countries against each other. subject and other = the
+5. pair_agreement — two countries against each other. subject and other = the
    two ISO alpha-2 codes.
 
-5. subject_leans — how the world feels about whole subjects: politics, food,
+6. subject_leans — how the world feels about whole subjects: politics, food,
    sport, AI, religion. subject = a lowercase category slug, or an ISO alpha-2
    code to narrow to one country's subject leanings, or null.
 
-6. world_map — the whole world coloured in. subject = an ISO alpha-2 code to
+7. world_map — the whole world coloured in. subject = an ISO alpha-2 code to
    colour by feelings about that country, or null for each country's own mood.
 
-7. extremes — the superlatives: most loving country, most hating, most
+8. extremes — the superlatives: most loving country, most hating, most
    contrarian, biggest feud, most divisive subject. Also the fallback.
 
 A HUNDRED WORKED EXAMPLES
@@ -94,6 +102,30 @@ Named people, products and things -> topic_world, subject = the name
   who hates crypto -> topic_world "Cryptocurrency"
   thoughts on veganism -> topic_world "Veganism"
   do people like ai art -> topic_world "AI art"
+
+Superlatives about people and things -> topic_ranking
+  who is the most hated person in the world -> topic_ranking null hate
+  most hated person -> topic_ranking null hate
+  who is the most loved person -> topic_ranking null love
+  which person is most disliked -> topic_ranking null hate
+  most hated thing here -> topic_ranking null hate
+  what is the most popular thing on this site -> topic_ranking null love
+  which topic is most hated -> topic_ranking null hate
+  most hated politician -> topic_ranking politics hate
+  best liked politician -> topic_ranking politics love
+  most hated tech product -> topic_ranking tech hate
+  best loved gadget -> topic_ranking tech love
+  worst food opinion -> topic_ranking food hate
+  most loved food -> topic_ranking food love
+  most hated musician -> topic_ranking music hate
+  worst thing in gaming -> topic_ranking gaming hate
+  most hated car -> topic_ranking life hate
+  who does everyone hate -> topic_ranking null hate
+  what does everyone love -> topic_ranking null love
+  rank the worst people -> topic_ranking null hate
+  top five most hated -> topic_ranking null hate
+  league table of hate -> topic_ranking null hate
+  who is winning -> topic_ranking null love
 
 Countries as the thing being judged -> verdict_ranking, subject = code
   who hates china -> verdict_ranking CN hate
@@ -174,6 +206,15 @@ Superlatives and everything else -> extremes
   who are you -> extremes
   what is the weather -> extremes
 
+CHOOSING BETWEEN THE THREE TOPIC-SHAPED VIEWS
+  One named thing, and where it stands -> topic_world "Donald Trump"
+  Many named things, ranked against each other -> topic_ranking
+  Countries ranked on their opinion of one country -> verdict_ranking
+"Who hates Donald Trump" names a man and asks about countries -> topic_world.
+"Who is the most hated person" names nobody and asks for a winner ->
+topic_ranking. extremes is about COUNTRIES only — most loving country, biggest
+feud — and must never be used for a superlative about a person or a thing.
+
 CHOOSING BETWEEN topic_world AND verdict_ranking
 This is the distinction that matters most.
   "who hates China" -> the thing judged is the country -> verdict_ranking CN
@@ -184,6 +225,11 @@ A named human being, company, product, film or policy is ALWAYS topic_world,
 even when their country is obvious from the name.
 
 FIELD RULES
+- subject for topic_ranking: a lowercase category slug from this list, or
+  null: politics world conflict business money tech ai science health climate
+  culture entertainment sport food life history religion education work law
+  internet music gaming travel. "Most hated person" takes null, because a
+  person can be in any of them.
 - subject for topic_world: the thing's own name, in normal capitals, 2 to 60
   characters. Expand a nickname to the full name people vote under ("trump" ->
   "Donald Trump", "the switch" -> "Nintendo Switch"). No country codes here.

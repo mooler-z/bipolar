@@ -6,6 +6,7 @@ import { limiter } from "./limits";
 import { plan as route } from "./lib/insight";
 import { block, type Block } from "./insightBlocks";
 import { buildTopic } from "./insightTopic";
+import { buildRanked } from "./insightTopics";
 import { build } from "./insightViews";
 import { currentUser, requireUser } from "./users";
 
@@ -175,6 +176,13 @@ export const ask = action({
         };
       }
       blocks = buildTopic(chosen, found);
+    } else if (chosen.lens === "topic_ranking") {
+      const rows = await ctx.runQuery(internal.insightTopics.ranked, {
+        category: chosen.subject,
+        direction: chosen.direction,
+        limit: 10,
+      });
+      blocks = buildRanked(chosen, rows);
     } else {
       blocks = build(chosen, board);
     }

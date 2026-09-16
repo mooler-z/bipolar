@@ -1,4 +1,4 @@
-import { OPENAI, keys } from "../config";
+import { CATEGORIES, OPENAI, keys } from "../config";
 import { ROUTER_PROMPT } from "./insightPrompt";
 
 /**
@@ -17,6 +17,7 @@ import { ROUTER_PROMPT } from "./insightPrompt";
 
 export type Lens =
   | "topic_world"
+  | "topic_ranking"
   | "verdict_ranking"
   | "nation_profile"
   | "pair_agreement"
@@ -51,6 +52,7 @@ const TOOL = {
           type: "string",
           enum: [
             "topic_world",
+            "topic_ranking",
             "verdict_ranking",
             "nation_profile",
             "pair_agreement",
@@ -121,6 +123,7 @@ async function route(user: string): Promise<Plan | null> {
 export function clean(raw: Record<string, unknown>): Plan | null {
   const lenses: Lens[] = [
     "topic_world",
+    "topic_ranking",
     "verdict_ranking",
     "nation_profile",
     "pair_agreement",
@@ -136,6 +139,13 @@ export function clean(raw: Record<string, unknown>): Plan | null {
   const slug = (v: unknown): string | null => {
     const s = typeof v === "string" ? v.trim().toLowerCase() : "";
     return /^[a-z][a-z-]{1,24}$/.test(s) ? s : null;
+  };
+  /* A real category, for the boards that narrow by one. Checked against the
+     list rather than against a shape, because `slug()` lowercases and would
+     happily turn the country code US into the category "us". */
+  const category = (v: unknown): string | null => {
+    const s = typeof v === "string" ? v.trim().toLowerCase() : "";
+    return CATEGORIES.some((c) => c.slug === s) ? s : null;
   };
   /* A thing's own name, for the topic board. Wider than a slug and narrower
      than free text: what goes in here becomes a search over the questions, so
@@ -161,6 +171,8 @@ export function clean(raw: Record<string, unknown>): Plan | null {
     subject:
       lens === "topic_world"
         ? name(raw.subject)
+        : lens === "topic_ranking"
+          ? category(raw.subject)
         : lens === "subject_leans"
           ? (code(raw.subject) ?? slug(raw.subject))
           : code(raw.subject),

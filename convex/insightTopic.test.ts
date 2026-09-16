@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { clean, type Plan } from "./lib/insight";
 import { buildTopic, relevant } from "./insightTopic";
+import { buildRanked, type RankedTopic } from "./insightTopics";
 import type { Block, TopicBoard } from "./insightBlocks";
 
 /**
@@ -141,5 +142,54 @@ describe("it answers the question that was asked, or none", () => {
   test("a name with nothing long in it still matches anything", () => {
     // Nothing to compare on, so the search's own ordering is all there is.
     expect(relevant("BMW", "Cars?")).toBe(true);
+  });
+});
+
+/* ── the league table ─────────────────────────────────────────────────────
+   "Who is the most hated person in the world" is the most obvious thing
+   anybody types at a product like this, and it used to come back as a board
+   about Russia and Brazil: every lens ranked countries, and nothing ranked
+   the questions themselves. */
+
+describe("the questions, ranked against each other", () => {
+  const rows: RankedTopic[] = [
+    { slug: "mbs", question: "Mohammed bin Salman?", imageUrl: "https://x.test/mbs.jpg", about: "SA", lovePct: 4, countries: 20 },
+    { slug: "bezos", question: "Jeff Bezos?", imageUrl: null, about: "US", lovePct: 12, countries: 20 },
+    { slug: "nu-metal", question: "Nu metal?", imageUrl: null, about: null, lovePct: 18, countries: 14 },
+  ];
+  const ranking = (over: Partial<Plan> = {}) =>
+    buildRanked(plan({ lens: "topic_ranking", subject: null, direction: "hate", ...over }), rows);
+
+  test("the winner gets the picture, because a league table buries its own answer", () => {
+    const out = ranking();
+    const first = out[0] as Extract<Block, { kind: "portrait" }>;
+    expect(first.kind).toBe("portrait");
+    expect(first.title).toBe("Mohammed bin Salman?");
+    expect(first.imageUrl).toBe("https://x.test/mbs.jpg");
+  });
+
+  test("it publishes a lean per question and never a count of votes", () => {
+    /* Every figure here is the mean of country leans that are already public.
+       The stored per-topic aggregate is what a vote or a peek buys, and this
+       board does not read it — so assert the absence. */
+    const bars = ranking().find((b) => b.kind === "bars") as Extract<Block, { kind: "bars" }>;
+    expect(bars.rows).toHaveLength(3);
+    for (const r of bars.rows) expect(r.votes).toBeUndefined();
+    expect(JSON.stringify(ranking())).not.toContain("votes");
+  });
+
+  test("it says what it averaged over, because one room is not a verdict", () => {
+    expect(JSON.stringify(ranking())).toContain("not a verdict");
+  });
+
+  test("an empty board says so rather than crowning nobody", () => {
+    const out = buildRanked(plan({ lens: "topic_ranking" }), []);
+    expect(out).toHaveLength(1);
+    expect(out[0].kind).toBe("note");
+  });
+
+  test("the lens narrows on a category slug and refuses a country code", () => {
+    expect(clean({ lens: "topic_ranking", subject: "politics" })?.subject).toBe("politics");
+    expect(clean({ lens: "topic_ranking", subject: "US" })?.subject).toBeNull();
   });
 });
