@@ -40,6 +40,7 @@ export type Block =
       title: string;
       imageUrl: string | null;
       flag: string | null;
+      marks?: string[];
       note: string;
     }
   | { kind: "note"; text: string };
@@ -108,6 +109,19 @@ function One({ block }: { block: Block }) {
                 {block.title}
               </span>
             </p>
+            {/* What it is, before what the world made of it. */}
+            {block.marks && block.marks.length > 0 ? (
+              <p className="mt-1.5 flex flex-wrap gap-1">
+                {block.marks.map((m) => (
+                  <span
+                    key={m}
+                    className="rounded-[var(--r-pill)] border border-line-2 bg-surface-3 px-2 py-0.5 text-[10.5px] font-bold text-ink-3 capitalize"
+                  >
+                    {m}
+                  </span>
+                ))}
+              </p>
+            ) : null}
             {block.note ? (
               <p className="mt-1.5 text-[12.5px] leading-snug text-ink-3">{block.note}</p>
             ) : null}

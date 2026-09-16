@@ -1,4 +1,5 @@
 import { CATEGORIES, OPENAI, keys } from "../config";
+import { FACET_NAMES } from "./facets";
 import { ROUTER_PROMPT } from "./insightPrompt";
 
 /**
@@ -18,6 +19,7 @@ import { ROUTER_PROMPT } from "./insightPrompt";
 export type Lens =
   | "topic_world"
   | "topic_ranking"
+  | "facet_split"
   | "verdict_ranking"
   | "nation_profile"
   | "pair_agreement"
@@ -53,6 +55,7 @@ const TOOL = {
           enum: [
             "topic_world",
             "topic_ranking",
+            "facet_split",
             "verdict_ranking",
             "nation_profile",
             "pair_agreement",
@@ -124,6 +127,7 @@ export function clean(raw: Record<string, unknown>): Plan | null {
   const lenses: Lens[] = [
     "topic_world",
     "topic_ranking",
+    "facet_split",
     "verdict_ranking",
     "nation_profile",
     "pair_agreement",
@@ -152,6 +156,24 @@ export function clean(raw: Record<string, unknown>): Plan | null {
     if (s === "product" || s === "products") return "product";
     return CATEGORIES.some((c) => c.slug === s) ? s : null;
   };
+  /* An attribute and one of its values, as `lean:right`. It narrows the
+     league table, so a wrong half is worse than no half: either both survive
+     or neither does. */
+  const pair = (v: unknown): string | null => {
+    const s = typeof v === "string" ? v.trim() : "";
+    const [key, ...rest] = s.split(":");
+    const value = rest.join(":").trim();
+    const found = FACET_NAMES.find((f) => f.toLowerCase() === key.trim().toLowerCase());
+    if (!found || value.length < 1 || value.length > 24) return null;
+    return `${found}:${value.toLowerCase()}`;
+  };
+  /* One of the attributes a question carries. Checked against the list for
+     the same reason a category is: an invented facet is a board of nothing. */
+  const facet = (v: unknown): string | null => {
+    const s = typeof v === "string" ? v.trim() : "";
+    const found = FACET_NAMES.find((f) => f.toLowerCase() === s.toLowerCase());
+    return found ?? null;
+  };
   /* A thing's own name, for the topic board. Wider than a slug and narrower
      than free text: what goes in here becomes a search over the questions, so
      it has to be a name somebody could have typed and not a sentence, a URL
@@ -176,12 +198,14 @@ export function clean(raw: Record<string, unknown>): Plan | null {
     subject:
       lens === "topic_world"
         ? name(raw.subject)
+        : lens === "facet_split"
+          ? facet(raw.subject)
         : lens === "topic_ranking"
           ? category(raw.subject)
         : lens === "subject_leans"
           ? (code(raw.subject) ?? slug(raw.subject))
           : code(raw.subject),
-    other: code(raw.other),
+    other: lens === "topic_ranking" ? pair(raw.other) : code(raw.other),
     direction: raw.direction === "love" ? "love" : "hate",
     title: text(raw.title, 60, "What the numbers say"),
     note: text(raw.note, 180, ""),

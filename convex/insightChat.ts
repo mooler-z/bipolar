@@ -6,6 +6,7 @@ import { limiter } from "./limits";
 import { plan as route } from "./lib/insight";
 import { block, type Block } from "./insightBlocks";
 import { buildTopic } from "./insightTopic";
+import { buildFacets } from "./insightFacets";
 import { buildRanked } from "./insightTopics";
 import { build } from "./insightViews";
 import { currentUser, requireUser } from "./users";
@@ -176,6 +177,12 @@ export const ask = action({
         };
       }
       blocks = buildTopic(chosen, found);
+    } else if (chosen.lens === "facet_split" && chosen.subject) {
+      const groups = await ctx.runQuery(internal.insightFacets.split, {
+        facet: chosen.subject,
+        direction: chosen.direction,
+      });
+      blocks = buildFacets(chosen, groups);
     } else if (chosen.lens === "topic_ranking") {
       /* `person` and `product` are kinds of question, not categories of one,
          so they go to the other filter. Everything else is a category. */
@@ -183,9 +190,12 @@ export const ask = action({
         chosen.subject === "person" || chosen.subject === "product"
           ? chosen.subject
           : null;
+      const [facet, value] = (chosen.other ?? "").split(":");
       const rows = await ctx.runQuery(internal.insightTopics.ranked, {
         category: kind ? null : chosen.subject,
         tag: kind,
+        facet: facet || null,
+        value: value || null,
         direction: chosen.direction,
         limit: 10,
       });

@@ -80,6 +80,9 @@ export const block = v.union(
     imageUrl: v.union(v.null(), v.string()),
     /** The country the thing belongs to, when it belongs to one. */
     flag: v.union(v.null(), v.string()),
+    /** What it is, in a few words: `head of state`, `right`, `75-plus`. The
+        facets, said rather than listed. */
+    marks: v.optional(v.array(v.string())),
     note: v.string(),
   }),
   v.object({ kind: v.literal("note"), text: v.string() }),
@@ -95,6 +98,8 @@ export type TopicBoard = {
   about: string | null;
   /** The topic's own picture, where discovery found one. */
   imageUrl: string | null;
+  /** What it is: the facets worth saying out loud, already worded. */
+  marks: string[];
   rows: { code: string; lovePct: number; sample: string }[];
 };
 

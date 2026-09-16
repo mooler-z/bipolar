@@ -3,6 +3,8 @@ import { v } from "convex/values";
 import { internalQuery } from "./_generated/server";
 import type { Plan } from "./lib/insight";
 import { strength, tone, word, type Block } from "./insightBlocks";
+import { FACET_NAMES, type Facets } from "./lib/facets";
+import { marksOf } from "./insightTopic";
 
 /**
  * The league table of the questions themselves.
@@ -37,6 +39,7 @@ const row = v.object({
   question: v.string(),
   imageUrl: v.union(v.null(), v.string()),
   about: v.union(v.null(), v.string()),
+  marks: v.array(v.string()),
   /** Mean of the published country leans. 0 is unanimous hate, 100 love. */
   lovePct: v.number(),
   countries: v.number(),
@@ -48,6 +51,11 @@ export const ranked = internalQuery({
     category: v.optional(v.union(v.null(), v.string())),
     /** A kind of thing — `person`, `product` — stamped by `backfill.markKinds`. */
     tag: v.optional(v.union(v.null(), v.string())),
+    /** One attribute and one of its values: `lean` and `right`, `gender` and
+        `female`. This is what makes "the most hated right-wing figure" a
+        question the board can answer rather than one it has to round off. */
+    facet: v.optional(v.union(v.null(), v.string())),
+    value: v.optional(v.union(v.null(), v.string())),
     direction: v.union(v.literal("love"), v.literal("hate")),
     limit: v.optional(v.number()),
   },
@@ -82,6 +90,11 @@ export const ranked = internalQuery({
 
     const wantedCategory = args.category ?? null;
     const wantedTag = args.tag ?? null;
+    const wantedFacet =
+      args.facet && FACET_NAMES.includes(args.facet as (typeof FACET_NAMES)[number])
+        ? (args.facet as (typeof FACET_NAMES)[number])
+        : null;
+    const wantedValue = args.value?.trim().toLowerCase() || null;
     const categories = new Map<string, string>();
     const out = [];
     for (const item of shortlist) {
@@ -92,6 +105,11 @@ export const ranked = internalQuery({
       /* The kind first, because it is the cheap one and it is the one that
          decides whether the answer is about the thing that was asked. */
       if (wantedTag && !(topic.tagSlugs ?? []).includes(wantedTag)) continue;
+
+      if (wantedFacet && wantedValue) {
+        const has = (topic.facets as Facets | undefined)?.[wantedFacet];
+        if (has === undefined || String(has).toLowerCase() !== wantedValue) continue;
+      }
 
       if (wantedCategory) {
         if (!categories.has(topic.categoryId)) {
@@ -109,6 +127,7 @@ export const ranked = internalQuery({
             ? await ctx.storage.getUrl(topic.imageId)
             : (topic.externalImageUrl ?? null),
         about: topic.scopeCountry ?? null,
+        marks: marksOf(topic.facets as Facets | undefined),
         lovePct: item.lovePct,
         countries: item.countries,
       });
@@ -141,6 +160,7 @@ export function buildRanked(plan: Plan, rows: RankedTopic[]): Block[] {
     title: top.question,
     imageUrl: top.imageUrl,
     flag: top.about,
+    marks: top.marks,
     note: plan.note,
   });
 

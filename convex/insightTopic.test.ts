@@ -30,6 +30,7 @@ const board: TopicBoard = {
   question: "Donald Trump?",
   about: "US",
   imageUrl: "https://example.test/trump.jpg",
+  marks: ["head of state", "75 plus", "right wing"],
   rows: [
     { code: "ET", lovePct: 8, sample: "some" },
     { code: "FR", lovePct: 22, sample: "some" },
@@ -153,9 +154,9 @@ describe("it answers the question that was asked, or none", () => {
 
 describe("the questions, ranked against each other", () => {
   const rows: RankedTopic[] = [
-    { slug: "mbs", question: "Mohammed bin Salman?", imageUrl: "https://x.test/mbs.jpg", about: "SA", lovePct: 4, countries: 20 },
-    { slug: "bezos", question: "Jeff Bezos?", imageUrl: null, about: "US", lovePct: 12, countries: 20 },
-    { slug: "nu-metal", question: "Nu metal?", imageUrl: null, about: null, lovePct: 18, countries: 14 },
+    { slug: "mbs", question: "Mohammed bin Salman?", imageUrl: "https://x.test/mbs.jpg", about: "SA", marks: ["head of state"], lovePct: 4, countries: 20 },
+    { slug: "bezos", question: "Jeff Bezos?", imageUrl: null, about: "US", marks: ["founder"], lovePct: 12, countries: 20 },
+    { slug: "nu-metal", question: "Nu metal?", imageUrl: null, about: null, marks: [], lovePct: 18, countries: 14 },
   ];
   const ranking = (over: Partial<Plan> = {}) =>
     buildRanked(plan({ lens: "topic_ranking", subject: null, direction: "hate", ...over }), rows);

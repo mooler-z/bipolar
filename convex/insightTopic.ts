@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { internalQuery } from "./_generated/server";
 import type { Plan } from "./lib/insight";
 import { strength, tone, word, type Block, type TopicBoard } from "./insightBlocks";
+import { type Facets } from "./lib/facets";
 
 /**
  * One question, and what each country made of it.
@@ -25,6 +26,41 @@ import { strength, tone, word, type Block, type TopicBoard } from "./insightBloc
  * share a real word with what was asked before it is allowed to stand in, and
  * where nothing does the honest answer is that nobody has voted on it.
  */
+
+/**
+ * What a thing is, in the few words worth saying.
+ *
+ * Not the whole facet object: a list of twenty-two attributes above a chart is
+ * a schema dump. Five at most, in the order a person would say them, and only
+ * the ones that are actually about the subject rather than about the shelf it
+ * sits on.
+ */
+const SPOKEN_AGE: Record<string, string> = {
+  "under-30": "under 30",
+  "30s-40s": "30s or 40s",
+  "45-59": "45 to 59",
+  "60s-70s": "60s or 70s",
+  "75-plus": "75 and over",
+};
+
+export function marksOf(facets: Facets | undefined): string[] {
+  if (!facets) return [];
+  const out = [
+    facets.role?.replace(/-/g, " "),
+    facets.ageBand ? (SPOKEN_AGE[facets.ageBand] ?? facets.ageBand) : undefined,
+    // "left wing" and "right wing" are things people say. "centre wing" is not.
+    facets.lean === "left" || facets.lean === "right"
+      ? `${facets.lean} wing`
+      : facets.lean === "centre"
+        ? "centrist"
+        : undefined,
+    facets.form,
+    facets.priceBand,
+    facets.brand,
+    facets.era,
+  ].filter((s): s is string => typeof s === "string" && s.length > 0);
+  return out.slice(0, 5);
+}
 
 /** Words worth matching on: `on`, `the` and `a` match everything. */
 function meaningful(text: string): string[] {
@@ -64,6 +100,7 @@ export const board = internalQuery({
       question: v.string(),
       about: v.union(v.null(), v.string()),
       imageUrl: v.union(v.null(), v.string()),
+      marks: v.array(v.string()),
       rows: v.array(row),
     }),
   ),
@@ -119,6 +156,7 @@ export const board = internalQuery({
           question: topic.question,
           about: topic.scopeCountry ?? null,
           imageUrl,
+          marks: marksOf(topic.facets as Facets | undefined),
           rows,
         };
       }
@@ -147,6 +185,7 @@ export function buildTopic(plan: Plan, board: TopicBoard): Block[] {
     title: board.question,
     imageUrl: board.imageUrl,
     flag: board.about,
+    marks: board.marks,
     note: plan.note,
   });
 
