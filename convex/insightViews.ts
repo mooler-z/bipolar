@@ -1,5 +1,6 @@
 import type { Plan } from "./lib/insight";
 import { strength, tone, word, type Block, type Board } from "./insightBlocks";
+import { buildExtremes } from "./insightExtremes";
 
 /**
  * Turning a chosen lens into blocks of real numbers.
@@ -10,6 +11,9 @@ import { strength, tone, word, type Block, type Board } from "./insightBlocks";
  * language model. The blocks themselves, and the board's shape, live in
  * `insightBlocks.ts`.
  */
+
+/** The least a subject needs behind it before its percentage means anything. */
+const SUBJECT_FLOOR = 25;
 
 export function build(plan: Plan, board: Board): Block[] {
   const out: Block[] = [];
@@ -186,9 +190,17 @@ export function build(plan: Plan, board: Board): Block[] {
             .filter((s) => s.code === code)
             .map((s) => ({ label: s.slug, pct: s.lovePct, votes: s.votes }))
         : board.categories.map((c) => ({ label: c.slug, pct: c.lovePct, votes: c.votes }));
-      const sorted = [...rows].sort((a, b) => a.pct - b.pct);
+      /* A subject nobody has answered is not a subject the room dislikes. This
+         board was topping out at "travel, 100%" off a handful of votes and
+         printing it in the same type as a category with a thousand behind it,
+         which is the chart lying about its own confidence. */
+      const enough = rows.filter((r) => r.votes >= SUBJECT_FLOOR);
+      const sorted = [...enough].sort((a, b) => a.pct - b.pct);
       if (sorted.length === 0) {
-        out.push({ kind: "note", text: "No subject has enough votes yet." });
+        out.push({
+          kind: "note",
+          text: `No subject has ${SUBJECT_FLOOR} votes behind it yet, which is the least it takes to say anything about one.`,
+        });
         break;
       }
       const worst = sorted[0]!;
@@ -234,63 +246,10 @@ export function build(plan: Plan, board: Board): Block[] {
       break;
     }
 
-    default: {
-      const ranked = board.countries.filter((c) => c.votes >= 6);
-      const by = <T,>(rows: T[], f: (x: T) => number) =>
-        rows.length === 0 ? null : rows.reduce((x, y) => (f(y) > f(x) ? y : x));
-      const loving = by(ranked, (c) => c.lovePct);
-      const hating = by(ranked, (c) => 100 - c.lovePct);
-      const contrary = by(ranked, (c) => c.contrary);
-      if (loving) {
-        out.push({
-          kind: "headline",
-          label: "Most loving",
-          value: `${loving.lovePct}%`,
-          word: `${loving.code} ${word(loving.lovePct)} what it sees`,
-          tone: "love",
-          flag: loving.code,
-        });
-      }
-      if (hating) {
-        out.push({
-          kind: "headline",
-          label: "Most hating",
-          value: `${100 - hating.lovePct}%`,
-          word: `${hating.code} ${word(hating.lovePct)} it`,
-          tone: "hate",
-          flag: hating.code,
-        });
-      }
-      if (contrary && contrary.contrary > 0) {
-        out.push({
-          kind: "headline",
-          label: "Most contrarian",
-          value: `${contrary.contrary}%`,
-          word: `${contrary.code} goes its own way`,
-          tone: "neutral",
-          flag: contrary.code,
-        });
-      }
-      const feud = [...board.pairs].sort((a, b) => a.agreement - b.agreement)[0];
-      if (feud) {
-        out.push({
-          kind: "versus",
-          a: { code: feud.a, pct: board.countries.find((c) => c.code === feud.a)?.lovePct ?? 50 },
-          b: { code: feud.b, pct: board.countries.find((c) => c.code === feud.b)?.lovePct ?? 50 },
-          agreement: feud.agreement,
-          shared: feud.shared,
-        });
-      }
-      out.push({
-        kind: "bars",
-        title: "Every subject, worst first",
-        rows: [...board.categories]
-          .sort((a, b) => a.lovePct - b.lovePct)
-          .slice(0, 10)
-          .map((c) => ({ label: c.slug, pct: c.lovePct, votes: c.votes })),
-      });
-      break;
-    }
+    default:
+      /* Countries, not subjects — see `insightExtremes.ts`. The note is
+         already on the front of that list, so it is not repeated here. */
+      return [...out.filter((b) => b.kind !== "note"), ...buildExtremes(plan, board)];
   }
 
   return out;

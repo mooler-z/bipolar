@@ -163,6 +163,9 @@ Whole subjects -> subject_leans
   how does the world feel about politics -> subject_leans politics
   are people positive about ai -> subject_leans ai
   what about sport -> subject_leans sport
+NOTE: a plural profession — footballers, musicians, CEOs, actors — is a
+narrowing of people and NEVER a subject. "Football players popularity" is
+topic_ranking with role:athlete, not subject_leans sport.
   food opinions -> subject_leans food
   what does america think by subject -> subject_leans US
   ethiopia by category -> subject_leans ET
