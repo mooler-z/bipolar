@@ -39,23 +39,47 @@ import { perform } from "./simulateActs";
 
 const KEY = "simulate.live";
 
-/** Acts per beat, and a beat is a second. */
-const DEFAULT_RATE = 5;
+/**
+ * Acts per beat, and a beat is a second.
+ *
+ * A pace rather than a number: a room where exactly five things happen every
+ * second is a metronome, and it reads as one. The beat rolls somewhere in this
+ * range each time instead, so the rail arrives in ones and threes the way a
+ * real afternoon does. Setting both ends to the same number pins it.
+ */
+const DEFAULT_LEAST = 1;
+const DEFAULT_MOST = 3;
+/** Nobody needs a hundred acts a second, and the transaction would not take it. */
+const CEILING = 20;
+
+const clamp = (n: number, low: number, high: number) =>
+  Math.max(low, Math.min(Math.round(n), high));
 
 /** A chain is dead if its last beat is older than this. */
 const STALL_MS = 8_000;
 
-type Sim = { on: boolean; rate: number; token: string; lastBeatAt: number };
+type Sim = {
+  on: boolean;
+  least: number;
+  most: number;
+  token: string;
+  lastBeatAt: number;
+};
 
 async function read(ctx: QueryCtx | MutationCtx): Promise<Sim> {
   const row = await ctx.db
     .query("settings")
     .withIndex("by_key", (q) => q.eq("key", KEY))
     .unique();
-  const value = (row?.value ?? null) as Partial<Sim> | null;
+  const value = (row?.value ?? null) as (Partial<Sim> & { rate?: number }) | null;
+  /* `rate` is what this setting used to be, when a beat did the same number of
+     acts every time. A row written then still means something: a pace pinned
+     to one number. */
+  const least = clamp(value?.least ?? value?.rate ?? DEFAULT_LEAST, 1, CEILING);
   return {
     on: value?.on === true,
-    rate: Math.max(1, Math.min(value?.rate ?? DEFAULT_RATE, 20)),
+    least,
+    most: clamp(value?.most ?? value?.rate ?? DEFAULT_MOST, least, CEILING),
     token: typeof value?.token === "string" ? value.token : "",
     lastBeatAt: typeof value?.lastBeatAt === "number" ? value.lastBeatAt : 0,
   };
@@ -74,7 +98,9 @@ export const state = query({
   args: {},
   returns: v.object({
     on: v.boolean(),
-    rate: v.number(),
+    /** The pace, as a range. Equal ends mean a fixed number of acts a beat. */
+    least: v.number(),
+    most: v.number(),
     voices: v.number(),
     /** Whether a beat has landed recently, so the panel can say "running"
         rather than merely "switched on". */
@@ -88,7 +114,8 @@ export const state = query({
     ).length;
     return {
       on: sim.on,
-      rate: sim.rate,
+      least: sim.least,
+      most: sim.most,
       voices,
       beating: sim.on && Date.now() - sim.lastBeatAt < STALL_MS,
     };
@@ -96,7 +123,11 @@ export const state = query({
 });
 
 export const set = mutation({
-  args: { on: v.boolean(), rate: v.optional(v.number()) },
+  args: {
+    on: v.boolean(),
+    least: v.optional(v.number()),
+    most: v.optional(v.number()),
+  },
   returns: v.null(),
   handler: async (ctx, args) => {
     const me = await requirePermission(ctx, "settings:manage");
@@ -104,9 +135,12 @@ export const set = mutation({
     /* A fresh token on every change, which is what orphans any chain already
        running — including the one this switch started a moment ago. */
     const token = crypto.randomUUID();
+    const least = clamp(args.least ?? now.least, 1, CEILING);
     const next: Sim = {
       on: args.on,
-      rate: Math.max(1, Math.min(args.rate ?? now.rate, 20)),
+      least,
+      // A range given upside down is a slip, not an instruction to do nothing.
+      most: clamp(args.most ?? Math.max(now.most, least), least, CEILING),
       token,
       lastBeatAt: 0,
     };
@@ -117,7 +151,8 @@ export const set = mutation({
        somebody should be able to ask "who did this, and when" about. */
     await audit(ctx, me._id, args.on ? "simulate.on" : "simulate.off", "settings", KEY, {
       on: next.on,
-      rate: next.rate,
+      least: next.least,
+      most: next.most,
     });
     return null;
   },
@@ -133,17 +168,28 @@ export const set = mutation({
  */
 export const beat = internalMutation({
   args: { token: v.string() },
-  returns: v.object({ votes: v.number(), comments: v.number(), likes: v.number() }),
+  returns: v.object({
+    /** How many acts this beat set out to do, before anything refused. */
+    acts: v.number(),
+    votes: v.number(),
+    comments: v.number(),
+    likes: v.number(),
+  }),
   handler: async (ctx, args) => {
     const sim = await read(ctx);
-    const quiet = { votes: 0, comments: 0, likes: 0 };
+    const quiet = { acts: 0, votes: 0, comments: 0, likes: 0 };
     // Switched off, or this chain has been replaced by a newer one.
     if (!sim.on || sim.token !== args.token) return quiet;
 
-    const done = await perform(ctx, sim.rate);
+    /* The roll is the whole point of a range, and it has to be a fresh one
+       every beat: a seed taken from the stored row would give every beat in a
+       second the same answer. */
+    const acts =
+      sim.least + Math.floor(Math.random() * (sim.most - sim.least + 1));
+    const done = await perform(ctx, acts);
     await write(ctx, { ...sim, lastBeatAt: Date.now() });
     await ctx.scheduler.runAfter(1000, internal.simulate.beat, { token: args.token });
-    return { votes: done.votes, comments: done.comments, likes: done.likes };
+    return { acts, votes: done.votes, comments: done.comments, likes: done.likes };
   },
 });
 

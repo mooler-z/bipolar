@@ -59,10 +59,13 @@ async function room(t: ReturnType<typeof harness>) {
   });
 }
 
-async function switchTo(
-  t: ReturnType<typeof harness>,
-  value: { on: boolean; rate: number; token: string; lastBeatAt: number },
-) {
+type Row = { on: boolean; token: string; lastBeatAt: number } & (
+  | { least: number; most: number }
+  /** What this setting looked like before a pace was a range. */
+  | { rate: number }
+);
+
+async function switchTo(t: ReturnType<typeof harness>, value: Row) {
   await t.run(async (ctx) => {
     const row = await ctx.db.query("settings").withIndex("by_key", (q) => q.eq("key", KEY)).unique();
     if (row) await ctx.db.patch("settings", row._id, { value });
@@ -95,7 +98,7 @@ describe("the heartbeat", () => {
   test("a beat acts, records that it beat, and books the next one", async () => {
     const t = harness();
     await room(t);
-    await switchTo(t, { on: true, rate: 6, token: "alpha", lastBeatAt: 0 });
+    await switchTo(t, { on: true, least: 6, most: 6, token: "alpha", lastBeatAt: 0 });
 
     const out = await t.mutation(internal.simulate.beat, { token: "alpha" });
     expect(out.votes + out.comments + out.likes).toBeGreaterThan(0);
@@ -116,12 +119,12 @@ describe("the heartbeat", () => {
   test("a beat from a replaced chain does nothing and books nothing", async () => {
     const t = harness();
     await room(t);
-    await switchTo(t, { on: true, rate: 6, token: "beta", lastBeatAt: 0 });
+    await switchTo(t, { on: true, least: 6, most: 6, token: "beta", lastBeatAt: 0 });
 
     /* This is what stops a double rate for ever: the old chain's beat has to
        die on its own, because there is nothing to cancel it with. */
     const out = await t.mutation(internal.simulate.beat, { token: "alpha" });
-    expect(out).toEqual({ votes: 0, comments: 0, likes: 0 });
+    expect(out).toEqual({ acts: 0, votes: 0, comments: 0, likes: 0 });
     expect(await pending(t)).toHaveLength(0);
 
     const votes = await t.run(async (ctx) => await ctx.db.query("votes").collect());
@@ -131,10 +134,10 @@ describe("the heartbeat", () => {
   test("switching off stops the chain at the next beat", async () => {
     const t = harness();
     await room(t);
-    await switchTo(t, { on: false, rate: 6, token: "alpha", lastBeatAt: Date.now() });
+    await switchTo(t, { on: false, least: 6, most: 6, token: "alpha", lastBeatAt: Date.now() });
 
     const out = await t.mutation(internal.simulate.beat, { token: "alpha" });
-    expect(out).toEqual({ votes: 0, comments: 0, likes: 0 });
+    expect(out).toEqual({ acts: 0, votes: 0, comments: 0, likes: 0 });
     expect(await pending(t)).toHaveLength(0);
   });
 });
@@ -143,7 +146,7 @@ describe("the supervisor", () => {
   test("it leaves a living chain alone", async () => {
     const t = harness();
     await room(t);
-    await switchTo(t, { on: true, rate: 6, token: "alpha", lastBeatAt: Date.now() });
+    await switchTo(t, { on: true, least: 6, most: 6, token: "alpha", lastBeatAt: Date.now() });
 
     // Restarting a chain that is merely between beats is how the rate doubles.
     expect(await t.mutation(internal.simulate.supervise, {})).toEqual({ restarted: false });
@@ -153,7 +156,7 @@ describe("the supervisor", () => {
   test("it restarts a stalled one, with a token that orphans the old", async () => {
     const t = harness();
     await room(t);
-    await switchTo(t, { on: true, rate: 6, token: "alpha", lastBeatAt: Date.now() - 60_000 });
+    await switchTo(t, { on: true, least: 6, most: 6, token: "alpha", lastBeatAt: Date.now() - 60_000 });
 
     expect(await t.mutation(internal.simulate.supervise, {})).toEqual({ restarted: true });
     expect((await pending(t)).filter((f) => f.name.includes("beat"))).toHaveLength(1);
@@ -169,9 +172,54 @@ describe("the supervisor", () => {
   test("it does nothing at all when the switch is off", async () => {
     const t = harness();
     await room(t);
-    await switchTo(t, { on: false, rate: 6, token: "alpha", lastBeatAt: 0 });
+    await switchTo(t, { on: false, least: 6, most: 6, token: "alpha", lastBeatAt: 0 });
     expect(await t.mutation(internal.simulate.supervise, {})).toEqual({ restarted: false });
     expect(await pending(t)).toHaveLength(0);
+  });
+});
+
+describe("the pace", () => {
+  test("a beat rolls somewhere in the range, and not always the same place", async () => {
+    /* The whole point of a range. A beat that did the same number of acts
+       every second would be a metronome, and the rail would read as one. */
+    const t = harness();
+    await room(t);
+    await switchTo(t, { on: true, least: 1, most: 3, token: "alpha", lastBeatAt: 0 });
+
+    const rolled = new Set<number>();
+    for (let i = 0; i < 40; i++) {
+      const out = await t.mutation(internal.simulate.beat, { token: "alpha" });
+      expect(out.acts).toBeGreaterThanOrEqual(1);
+      expect(out.acts).toBeLessThanOrEqual(3);
+      rolled.add(out.acts);
+      await quiet(t);
+    }
+    expect(rolled.size).toBeGreaterThan(1);
+  });
+
+  test("both ends the same pins it, which is what the old setting meant", async () => {
+    const t = harness();
+    await room(t);
+    await switchTo(t, { on: true, least: 4, most: 4, token: "alpha", lastBeatAt: 0 });
+
+    for (let i = 0; i < 6; i++) {
+      const out = await t.mutation(internal.simulate.beat, { token: "alpha" });
+      expect(out.acts).toBe(4);
+      await quiet(t);
+    }
+  });
+
+  test("a row written before the range existed still means something", async () => {
+    /* `rate: 7` was a real setting for as long as a beat did the same number
+       of acts every time. Reading it as a pace pinned to seven is the only
+       reading that does not silently change what an operator asked for. */
+    const t = harness();
+    await room(t);
+    await switchTo(t, { on: true, rate: 7, token: "alpha", lastBeatAt: 0 });
+
+    const out = await t.mutation(internal.simulate.beat, { token: "alpha" });
+    expect(out.acts).toBe(7);
+    await quiet(t);
   });
 });
 
@@ -179,7 +227,7 @@ describe("what a beat writes", () => {
   test("its votes are real votes, counted once", async () => {
     const t = harness();
     await room(t);
-    await switchTo(t, { on: true, rate: 12, token: "alpha", lastBeatAt: 0 });
+    await switchTo(t, { on: true, least: 12, most: 12, token: "alpha", lastBeatAt: 0 });
     await t.mutation(internal.simulate.beat, { token: "alpha" });
 
     const votes = await t.run(async (ctx) => await ctx.db.query("votes").collect());
@@ -197,7 +245,7 @@ describe("what a beat writes", () => {
   test("nothing it writes comes from a real account", async () => {
     const t = harness();
     await room(t);
-    await switchTo(t, { on: true, rate: 12, token: "alpha", lastBeatAt: 0 });
+    await switchTo(t, { on: true, least: 12, most: 12, token: "alpha", lastBeatAt: 0 });
     await t.mutation(internal.simulate.beat, { token: "alpha" });
 
     const acted = await t.run(async (ctx) => {

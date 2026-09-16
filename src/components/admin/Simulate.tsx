@@ -25,6 +25,22 @@ import { Button } from "../../ui/Button";
  * line in the record. A demo mode that is easy to forget about is a demo
  * mode somebody eventually shows a judge without meaning to.
  */
+/**
+ * The paces on offer.
+ *
+ * The first is the one to leave running: a room where the same number of
+ * things happens every single second reads as a metronome rather than as
+ * people, and the range is what fixes that. The rest pin it, for when the
+ * point is to watch one act land rather than to fill a rail.
+ */
+const PACES = [
+  { label: "1–3/sec", least: 1, most: 3 },
+  { label: "1/sec", least: 1, most: 1 },
+  { label: "3/sec", least: 3, most: 3 },
+  { label: "5/sec", least: 5, most: 5 },
+  { label: "10/sec", least: 10, most: 10 },
+];
+
 export function Simulate({ permissions }: { permissions: string[] }) {
   const sim = useQuery(api.simulate.state);
   const set = useMutation(api.simulate.set);
@@ -33,11 +49,11 @@ export function Simulate({ permissions }: { permissions: string[] }) {
 
   if (!permissions.includes("settings:manage") || sim === undefined) return null;
 
-  async function change(on: boolean, rate?: number) {
+  async function change(on: boolean, pace?: { least: number; most: number }) {
     setBusy(true);
     setError("");
     try {
-      await set({ on, rate });
+      await set({ on, ...pace });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -68,7 +84,10 @@ export function Simulate({ permissions }: { permissions: string[] }) {
           <span className="block text-[12px] text-mute">
             {sim.on ? (
               <>
-                {sim.beating ? "Running" : "Starting…"} — <span className="num font-bold text-coin">{sim.rate}</span>{" "}
+                {sim.beating ? "Running" : "Starting…"} —{" "}
+                <span className="num font-bold text-coin">
+                  {sim.least === sim.most ? sim.least : `${sim.least}–${sim.most}`}
+                </span>{" "}
                 acts a second from <span className="num font-bold">{fmtInt(sim.voices)}</span> demo
                 accounts.
               </>
@@ -93,17 +112,19 @@ export function Simulate({ permissions }: { permissions: string[] }) {
 
       {sim.on ? (
         <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-coin-fill/25 pt-3">
-          <span className="label mr-1">Rate</span>
-          {[1, 3, 5, 10].map((n) => (
+          <span className="label mr-1">Pace</span>
+          {PACES.map((pace) => (
             <Button
-              key={n}
+              key={pace.label}
               size="sm"
-              variant={sim.rate === n ? "coin" : "steel"}
+              variant={
+                sim.least === pace.least && sim.most === pace.most ? "coin" : "steel"
+              }
               disabled={busy}
-              onClick={() => void change(true, n)}
+              onClick={() => void change(true, pace)}
               className="!min-h-8 !px-2.5 !text-[11.5px]"
             >
-              {n}/sec
+              {pace.label}
             </Button>
           ))}
         </div>
