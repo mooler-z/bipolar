@@ -104,7 +104,19 @@ export const people = internalMutation({
  * budget, and twenty countries times five hundred questions is not one.
  */
 export const wave = internalMutation({
-  args: { cursor: v.number(), take: v.number() },
+  args: {
+    cursor: v.number(),
+    take: v.number(),
+    /**
+     * Only questions with fewer than this many votes on them.
+     *
+     * Not "none": a question the crawler minted last week may have picked up
+     * two votes from a passer-by, which leaves it just as unreadable as one
+     * with none and no longer empty. The point of a seeded room is that every
+     * board has something to say about every question.
+     */
+    under: v.optional(v.number()),
+  },
   returns: v.object({ cast: v.number(), next: v.number(), done: v.boolean() }),
   handler: async (ctx, args) => {
     const topics = await ctx.db
@@ -112,8 +124,29 @@ export const wave = internalMutation({
       .withIndex("by_status", (q) => q.eq("status", "active"))
       .order("desc")
       .take(args.cursor + args.take);
-    const slice = topics.slice(args.cursor);
-    if (slice.length === 0) return { cast: 0, next: args.cursor, done: true };
+    const found = topics.slice(args.cursor);
+    if (found.length === 0) return { cast: 0, next: args.cursor, done: true };
+
+    /* Re-running the whole feed casts a hundred thousand votes that are all
+       refused as duplicates, which works and takes an afternoon. Asking for
+       the empty ones only is the same seed pointed at what is missing. */
+    const slice = [];
+    for (const topic of found) {
+      if (args.under !== undefined) {
+        const totals = await ctx.db
+          .query("topicStats")
+          .withIndex("by_topic", (q) => q.eq("topicId", topic._id))
+          .unique();
+        const has =
+          (totals?.freeLove ?? 0) + (totals?.freeHate ?? 0) +
+          (totals?.paidLove ?? 0) + (totals?.paidHate ?? 0);
+        if (has >= args.under) continue;
+      }
+      slice.push(topic);
+    }
+    if (slice.length === 0) {
+      return { cast: 0, next: args.cursor + found.length, done: found.length < args.take };
+    }
 
     const people = (await ctx.db.query("users").take(600)).filter((u) =>
       u.authId.startsWith(MARK),
@@ -155,7 +188,7 @@ export const wave = internalMutation({
         // Already answered, or closed. Either way there is nothing to add.
       }
     }
-    return { cast, next: args.cursor + slice.length, done: slice.length < args.take };
+    return { cast, next: args.cursor + found.length, done: found.length < args.take };
   },
 });
 
@@ -163,7 +196,13 @@ export const wave = internalMutation({
  * Fill the room.
  *
  * An action, because it walks the feed in waves and each wave is its own
- * transaction. `perCountry` is the ceiling on questions each country answers
+ * transaction. **It is bounded by what one action can do**: asked to walk the
+ * whole catalogue it runs out of its own budget part way and returns an error,
+ * having done real work first. The resumable unit is `wave` above, which takes
+ * a cursor and hands the next one back, so a walk longer than a few hundred
+ * questions is driven from outside rather than from here.
+ *
+ * `perCountry` is the ceiling on questions each country answers
  * — the default is enough to make every board dense without every country
  * having an opinion about every single thing, which is its own kind of
  * unconvincing.
@@ -173,6 +212,8 @@ export const run = internalAction({
     perCountry: v.optional(v.number()),
     batch: v.optional(v.number()),
     voices: v.optional(v.number()),
+    /** Leave the rooms that already have this many votes alone. */
+    under: v.optional(v.number()),
   },
   returns: v.object({ voters: v.number(), votes: v.number() }),
   handler: async (ctx, args) => {
@@ -192,7 +233,11 @@ export const run = internalAction({
     while (cursor < cap) {
       const out: { cast: number; next: number; done: boolean } = await ctx.runMutation(
         internal.seedWorld.wave,
-        { cursor, take: Math.min(batch, cap - cursor) },
+        {
+          cursor,
+          take: Math.min(batch, cap - cursor),
+          under: args.under,
+        },
       );
       total += out.cast;
       cursor = out.next;
