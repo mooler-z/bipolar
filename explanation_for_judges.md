@@ -34,10 +34,10 @@ watching it updates. The crawler can be watched happening from the console
 because the session writes its story into a table from inside its loop and the
 console subscribes to it (`convex/ingestRuns.ts`, `convex/adminQueue.ts`).
 
-**Transactions are where the rules live.** Postgres used to enforce one free
-and one paid vote per person per topic with a unique constraint. Convex has no
-unique constraint, so the guarantee moved into a mutation that reads the index
-before it writes — and into a test that hammers it. The vote write is one
+**Transactions are where the rules live.** One free and one paid vote per
+person per topic is the rule the whole product rests on, and Convex has no
+unique index to enforce it with. So the guarantee lives in a mutation that
+reads the index before it writes — and in a test that hammers it. The vote write is one
 mutation: the vote row, the wallet decrement, the ledger row, the topic
 counters and the country counters land together or not at all. The retraction
 that undoes a vote reverses every one of them in one transaction, leaves the

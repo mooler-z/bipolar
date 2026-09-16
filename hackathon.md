@@ -4,7 +4,7 @@
 - **Event:** Convex All Gas Hackathon
 - **What it does:** Vote LOVE or HATE on polarizing topics, and see what the people who paid to be counted actually think.
 - **Live app:** https://vivid-greyhound-473.convex.site
-- **Repo:** none
+- **Repo:** https://github.com/mooler-z/bipolar
 - **Frontend:** Vite + React 19, served from this deployment in development
 - **Convex deployment:** `vivid-greyhound-473` (dev)
 - **Sponsor tools:** OpenAI, Firecrawl, AgentMail
@@ -15,7 +15,7 @@
 - **AI models:** OpenAI `gpt-5-mini`
 - **Installable:** no
 - **Started:** 13 September 2026
-- **Last updated:** 15 September 2026
+- **Last updated:** 16 September 2026
 
 ## Log
 
@@ -329,8 +329,8 @@ runs so far: 8 found / 2 minted, then 8 found / 3 minted.
 `convex/lib/openai.ts`, `convex/crons.ts`.
 
 **The vote is one transaction.** The rule of the product — one free and one paid vote per
-person per topic — was a Postgres unique constraint and is now an index read inside a
-mutation, because Convex has no unique index. The vote, the wallet decrement, the ledger
+person per topic — is an index read inside a mutation, because Convex has no unique
+index to enforce it with. The vote, the wallet decrement, the ledger
 row and both sets of counters commit together or not at all. `convex/votes.ts`.
 
 **The result stays hidden until you have earned it.** A reader who has neither voted nor
@@ -392,7 +392,7 @@ reader who has not already earned that topic's result. A feed that announced the
 would hand over the gated aggregate one row at a time to somebody who had paid nothing.
 `convex/leaderboards.ts`, `src/components/Rails.tsx`.
 
-**The theme is the original's:** OKLCH tokens in light and dark, every corner flattened to
+**The theme:** OKLCH tokens in light and dark, every corner flattened to
 zero app-wide, Inter and Source Serif 4, questions set in heavy serif italic. Three columns
 above `lg`; below it the boards and the argument stack under the arena rather than
 disappearing, because a feature that only exists on a desktop is one half the audience

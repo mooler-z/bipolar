@@ -14,12 +14,12 @@ import { castVote, choice, voteType } from "./voteWrite";
  * The vote. Everything else in bipolar exists to get somebody to this
  * mutation and to show them what happened after.
  *
- * Postgres enforced the product's central rule with
- * `UNIQUE(user_id, topic_id, vote_type)`. Convex has no unique index, so the
- * rule is the index read at step 3 below. A Convex mutation is a serializable
- * transaction, so two simultaneous casts cannot both find nothing and both
- * write — but the guarantee is code now, and code without a test is a rumour.
- * `votes.test.ts` hammers it.
+ * The product's central rule — one free and one paid vote per person per
+ * topic — has nothing in the database enforcing it, because Convex has no
+ * unique index. It is the index read at step 3 below. A mutation is a
+ * serializable transaction, so two simultaneous casts cannot both find
+ * nothing and both write — but the guarantee is code, and code without a test
+ * is a rumour. `votes.test.ts` hammers it.
  *
  * All seven steps are one mutation: the vote, the money, the ledger row, and
  * both sets of counters commit together or not at all. There is no arrangement
@@ -63,7 +63,7 @@ export const cast = mutation({
  * Pay to see without deciding.
  *
  * Permanent, and not a vote: the user's vote rows are untouched, and voting
- * later does not refund it. Two independent acts, as in the original.
+ * later does not refund it. Two independent acts.
  */
 export const peek = mutation({
   args: { topicId: v.id("topics") },

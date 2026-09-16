@@ -4,29 +4,28 @@ import { v } from "convex/values";
 import { facets } from "./lib/facets";
 
 /**
- * Translated from an earlier schema.
+ * The shape of everything.
  *
- * Three rules survive the move and shape everything below:
+ * Three rules run through all of it:
  *
  * - **Money is integer cents.** `walletBalanceCents`, `amountCents`, pack
  *   prices. Never a float, never a decimal string. One spark is 50.
  * - **Times are epoch milliseconds**, because that is what Convex stores and
- *   compares. Postgres `timestamptz` becomes `v.number()`.
+ *   compares. No date type, anywhere.
  * - **Counters are stored running totals.** Nothing counts rows on read.
  *
- * What did *not* survive is the unique constraint. Postgres enforced the
- * product's central rule — one free and one paid vote per person per topic —
- * with `UNIQUE(user_id, topic_id, vote_type)`. Convex has no unique index, so
- * that guarantee now lives in `votes.cast`, which reads `by_user_topic_type`
- * before it writes. A Convex mutation is a serializable transaction, so the
- * check cannot race; but it is code now, and code needs a test. That test is
- * the first one written, not the last.
+ * The product's central rule — one free and one paid vote per person per
+ * topic — has nothing in the database enforcing it, because Convex has no
+ * unique index. It lives in `votes.cast`, which reads `by_user_topic_type`
+ * before it writes. A mutation is a serializable transaction, so the check
+ * cannot race; but it is code now, and code needs a test. That test is the
+ * first one written, not the last.
  */
 export default defineSchema({
   /**
    * Identity, wallet and role. Better Auth owns sessions, email verification
-   * and OAuth identities, so the three tables that held them in Postgres are
-   * gone rather than ported.
+   * and OAuth identities, so none of those are here — this table holds only
+   * what the product itself needs to know about a person.
    */
   users: defineTable({
     /** Better Auth's subject, the join back to the auth component. */

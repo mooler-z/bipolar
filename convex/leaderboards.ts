@@ -106,9 +106,9 @@ export const backers = query({
  * Votes and comments interleaved, because a rail of votes alone is a rail of
  * dots — the comments are what make it read as a room with people in it.
  *
- * **A vote's side is withheld unless the reader has earned that topic.** The
- * original showed it; ported straight across that would hand over the gated
- * aggregate one row at a time, for free, to somebody who had paid nothing.
+ * **A vote's side is withheld unless the reader has earned that topic.**
+ * Showing it would hand over the gated aggregate one row at a time, for free,
+ * to somebody who had paid nothing.
  * What is withheld is said so plainly rather than shown as a blank, because a
  * grey dot that means "you have not voted here" looks exactly like a bug.
  *

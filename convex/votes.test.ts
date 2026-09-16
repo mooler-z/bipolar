@@ -11,11 +11,11 @@ import schema from "./schema";
 /**
  * The rules this product cannot be wrong about.
  *
- * Postgres enforced one free and one paid vote per person per topic with a
- * unique constraint. Convex has no unique index, so that guarantee is now an
- * index read inside `votes.cast` — application logic, and application logic is
- * exactly the kind of thing that quietly stops being true. This file is what
- * keeps it true.
+ * One free and one paid vote per person per topic. Nothing in the database
+ * enforces that — Convex has no unique index — so the guarantee is an index
+ * read inside `votes.cast`, which is application logic, and application logic
+ * is exactly the kind of thing that quietly stops being true. This file is
+ * what keeps it true.
  *
  * Every test here was watched failing before it was kept.
  */
