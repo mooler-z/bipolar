@@ -216,6 +216,27 @@ averages. The league table takes the same attributes as a narrowing, so "the mos
 and "the most hated luxury thing" are questions now, and an answer about one named thing wears
 its own facets as chips above the charts.
 
+**And then the other six hundred.** The facets landed on two hundred and ten topics written by
+hand and four derived fields on the rest, which is not what "every topic" means. The crawled
+questions — "Cream in carbonara?", "Syria's fuel price protests?" — say nothing about whether
+they are an event, an idea or a thing, and writing six hundred of those by hand does not
+scale past one afternoon. So the model reads each question and names the attributes, and
+**every value is checked against the closed vocabulary before it is stored**: the same
+arrangement as the router, where the model picks from a list it is shown and the server
+decides whether the pick is on the list. What was written by hand outranks it, and the
+arithmetic — an era from a year, an age band from a birth year — runs last and wins, because
+a model's opinion about arithmetic is worth nothing. All seven hundred and ninety-four active
+topics carry a reading now: two hundred and seven ideas, a hundred and eighty-seven people, a
+hundred and twenty-six products, a hundred and one events, and the rest orgs, media and
+places.
+
+**A subject nobody answered is not a subject the room dislikes.** The subject board was
+topping out at "travel, a hundred percent" off a handful of votes and printing it in the same
+type as a category with a thousand behind it, which is a chart lying about its own confidence.
+Twenty-five votes is the floor now, and it says so when nothing clears it. Sixteen more
+routing examples cover the plural professions — footballers, musicians, chief executives — each
+of which is a narrowing of people and never a subject of its own.
+
 **328 tests.** Three are new: one guards the verdict board against being trimmed by
 the very field it is filtered on, three hold the discovery pick — that novelty is one for a
 stranger and falls away as evidence arrives, that an exploring slot takes the least known
