@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { internalMutation } from "./_generated/server";
 import { ingest } from "./importTopics";
 import { PEOPLE_TOPICS } from "./seedPeopleTopics";
+import { PRODUCT_TOPICS } from "./seedProductTopics";
 import { WORLD_TOPICS } from "./seedWorldTopics";
 
 /**
@@ -18,6 +19,7 @@ import { WORLD_TOPICS } from "./seedWorldTopics";
  * anything already here.
  *
  *   npx convex run seedBatches:people '{}'
+ *   npx convex run seedBatches:products '{}'
  */
 
 /**
@@ -94,5 +96,43 @@ export const people = internalMutation({
     const result = await ingest(ctx, rows);
     const next = from + size;
     return { ...result, nextFrom: next < PEOPLE_TOPICS.length ? next : null };
+  },
+});
+
+/**
+ * The hundred things, through the same door.
+ *
+ * `seedProductTopics.ts` exists because the other three batches had drifted
+ * into one: three quarters of the live catalogue was a name and a question
+ * mark, and a feed cannot be interesting about anything it does not have. It
+ * gets no shortcut either — every rule the model is held to runs against it.
+ *
+ * Sliced and re-runnable, for the same reasons as the two above.
+ */
+export const products = internalMutation({
+  args: { from: v.optional(v.number()), size: v.optional(v.number()) },
+  returns: v.object({
+    added: v.number(),
+    skipped: v.number(),
+    rejected: v.array(v.object({ q: v.string(), why: v.string() })),
+    nextFrom: v.union(v.number(), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    const from = Math.max(0, args.from ?? 0);
+    const size = Math.min(args.size ?? 25, 40);
+    const slice = PRODUCT_TOPICS.slice(from, from + size);
+
+    const rows = slice.map((row) => ({
+      q: row.q,
+      category: row.c,
+      country: row.k,
+      description: row.d,
+      tags: [...row.t],
+      wikipediaTitle: row.w,
+    }));
+
+    const result = await ingest(ctx, rows);
+    const next = from + size;
+    return { ...result, nextFrom: next < PRODUCT_TOPICS.length ? next : null };
   },
 });

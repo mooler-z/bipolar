@@ -133,6 +133,17 @@ own evidence as the tie-break. Serving one question tagged `leader` drops every 
 `leader` to a third of its strangeness, so the next discovery slot goes elsewhere. That works
 on the first visit and on the thousandth.
 
+**A hundred things people own.** Three quarters of the catalogue was a name and a question
+mark, and a feed cannot be interesting about anything it does not have — so `seedProductTopics.ts`
+adds phones, laptops, cars, headphones, consoles, cameras, kitchens, shoes, aircraft and the
+rest, through `ingest` like every other batch. Objects rather than their makers: "Cybertruck"
+is a thing somebody can picture and has an opinion about, where "Tesla" is a share price and
+an argument about one man. Each row carries a country where it has one — a room that loves
+the Corolla and hates the Cybertruck is a room saying something about Japan and America — and
+every Wikipedia title was checked against the live API for a lead image before the file was
+committed. Ninety-eight landed; two were already here under the same slug, and the importer's
+eight-character floor caught seven questions that were a noun somebody forgot to finish.
+
 **296 tests.** Three are new: one guards the verdict board against being trimmed by
 the very field it is filtered on, and three hold the discovery pick — that novelty is one for a
 stranger and falls away as evidence arrives, that an exploring slot takes the least known

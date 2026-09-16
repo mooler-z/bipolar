@@ -70,6 +70,7 @@ import type * as search from "../search.js";
 import type * as seed from "../seed.js";
 import type * as seedBatches from "../seedBatches.js";
 import type * as seedPeopleTopics from "../seedPeopleTopics.js";
+import type * as seedProductTopics from "../seedProductTopics.js";
 import type * as seedTopics from "../seedTopics.js";
 import type * as seedWipe from "../seedWipe.js";
 import type * as seedWorld from "../seedWorld.js";
@@ -161,6 +162,7 @@ declare const fullApi: ApiFromModules<{
   seed: typeof seed;
   seedBatches: typeof seedBatches;
   seedPeopleTopics: typeof seedPeopleTopics;
+  seedProductTopics: typeof seedProductTopics;
   seedTopics: typeof seedTopics;
   seedWipe: typeof seedWipe;
   seedWorld: typeof seedWorld;
