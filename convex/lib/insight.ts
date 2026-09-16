@@ -77,15 +77,127 @@ const TOOL = {
 };
 
 /** What the board holds, so the model does not name a country nobody voted in. */
-export function plan(question: string, known: string[]): Promise<Plan | null> {
-  return route(
+export async function plan(question: string, known: string[]): Promise<Plan | null> {
+  const chosen = await route(
     `Countries with votes: ${known.join(", ") || "none yet"}\n\nQuestion: ${question}`,
   );
+  return chosen ? steer(chosen, question) : null;
 }
 
+/** Words that mean a human being is the subject. */
+const HUMAN =
+  /\b(who|whom|person|people|persons|man|men|woman|women|celebrity|celebrities|figure|figures|politician|politicians|leader|leaders|human)\b/i;
+/** Words that mean the question wants a winner rather than a description. */
+const SUPERLATIVE = /\b(most|least|worst|best|top|biggest|greatest)\b/i;
+
+/**
+ * The countries people name in a sentence, and the codes they stand for.
+ *
+ * Only the ones that actually turn up after "in" in a superlative — this is a
+ * net under a model that already knows every code, not a gazetteer. A name
+ * that is not here leaves the plan alone.
+ */
+const NAMED: Record<string, string> = {
+  america: "US", american: "US", americans: "US", usa: "US", us: "US",
+  britain: "GB", british: "GB", uk: "GB", england: "GB", english: "GB",
+  france: "FR", french: "FR", germany: "DE", german: "DE",
+  italy: "IT", italian: "IT", spain: "ES", spanish: "ES",
+  russia: "RU", russian: "RU", china: "CN", chinese: "CN",
+  india: "IN", indian: "IN", japan: "JP", japanese: "JP",
+  korea: "KR", korean: "KR", israel: "IL", israeli: "IL",
+  palestine: "PS", palestinian: "PS", turkey: "TR", turkish: "TR",
+  brazil: "BR", brazilian: "BR", argentina: "AR", argentine: "AR",
+  ethiopia: "ET", ethiopian: "ET", canada: "CA", canadian: "CA",
+  australia: "AU", australian: "AU", pakistan: "PK", pakistani: "PK",
+  iran: "IR", iranian: "IR", ukraine: "UA", ukrainian: "UA",
+  greece: "GR", greek: "GR", egypt: "EG", egyptian: "EG",
+  taiwan: "TW", nigeria: "NG", mexico: "MX", sweden: "SE",
+};
+
+/** The country a question names after "in" or "from", if it names one. */
+function namedCountry(question: string): string | null {
+  const words = question.toLowerCase().match(/[a-z]+/g) ?? [];
+  for (let i = 0; i < words.length; i += 1) {
+    if (words[i] !== "in" && words[i] !== "from") continue;
+    // "in the us" and "in america" both land on the word after the article.
+    const next = words[i + 1] === "the" ? words[i + 2] : words[i + 1];
+    const code = next ? NAMED[next] : undefined;
+    if (code) return code;
+  }
+  return null;
+}
+
+/**
+ * Two corrections the words can make and the model keeps getting wrong.
+ *
+ * Asked "who is the most loved person in the US" it answers correctly about
+ * half the time and otherwise either drops the word "person" — which ranks the
+ * whole catalogue and crowns a pop song — or reaches for the country profile,
+ * which describes how America votes and names nobody. Both are decidable from
+ * the question itself, without a model and without a guess, so they are
+ * decided here rather than asked for more politely in the prompt.
+ *
+ * Narrow on purpose. It only ever *adds* the kind the question already said
+ * out loud, and only ever turns a profile into a ranking when the question
+ * asked for a superlative about a person. Everything else the model chose is
+ * left exactly as it chose it.
+ */
+export function steer(chosen: Plan, question: string): Plan {
+  const human = HUMAN.test(question);
+  const superlative = SUPERLATIVE.test(question);
+
+  // "Who is the most loved person in the US" is a league table narrowed to
+  // Americans, not a portrait of how America votes.
+  if (chosen.lens === "nation_profile" && human && superlative) {
+    return {
+      ...chosen,
+      lens: "topic_ranking",
+      subject: "person",
+      other: chosen.subject ? `nationality:${chosen.subject.toLowerCase()}` : chosen.other,
+    };
+  }
+
+  // The question said "person". The plan forgot to.
+  const named =
+    chosen.lens === "topic_ranking" && !chosen.other ? namedCountry(question) : null;
+  if (chosen.lens === "topic_ranking" && (!chosen.subject || named) && (human || named)) {
+    return {
+      ...chosen,
+      subject: chosen.subject ?? (human ? "person" : null),
+      other: chosen.other ?? (named ? `nationality:${named.toLowerCase()}` : null),
+    };
+  }
+
+  return chosen;
+}
+
+/**
+ * How long the router is given, and how many goes it gets.
+ *
+ * Thirty seconds was the shared default and it was the bug the reader saw as
+ * "the model did not answer": routing usually takes a few seconds, the
+ * instructions are long, and once in a while the call runs past thirty and is
+ * aborted. A router that fails outright on its slowest day is a router that
+ * fails in front of somebody. Twice the budget, and one more attempt, because
+ * the second is nearly always instant.
+ */
+const ROUTE_TIMEOUT_MS = 60_000;
+const ROUTE_TRIES = 2;
+
 async function route(user: string): Promise<Plan | null> {
+  for (let attempt = 1; attempt <= ROUTE_TRIES; attempt += 1) {
+    const out = await attemptRoute(user, attempt);
+    if (out) return out;
+  }
+  return null;
+}
+
+async function attemptRoute(user: string, attempt: number): Promise<Plan | null> {
   const key = keys.openai();
-  if (!key) return null;
+  if (!key) {
+    console.error("insight: no OPENAI_API_KEY on this deployment");
+    return null;
+  }
 
   try {
     const res = await fetch(OPENAI.endpoint, {
@@ -100,17 +212,30 @@ async function route(user: string): Promise<Plan | null> {
         tools: [TOOL],
         tool_choice: { type: "function", function: { name: "choose_view" } },
       }),
-      signal: AbortSignal.timeout(OPENAI.timeoutMs),
+      signal: AbortSignal.timeout(ROUTE_TIMEOUT_MS),
     });
-    if (!res.ok) return null;
+    /* Say why. A silent catch here reaches the reader as "the model did not
+       answer", which is true and useless: a missing key, a rate limit and a
+       malformed reply all look identical from the panel, and only the logs
+       can tell them apart. */
+    if (!res.ok) {
+      console.error(`insight: model returned ${res.status} ${await res.text().catch(() => "")}`.slice(0, 400));
+      return null;
+    }
 
     const body = (await res.json()) as {
       choices?: { message?: { tool_calls?: { function?: { arguments?: string } }[] } }[];
     };
     const raw = body.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
-    if (!raw) return null;
+    if (!raw) {
+      console.error(`insight: no tool call in reply ${JSON.stringify(body).slice(0, 300)}`);
+      return null;
+    }
     return clean(JSON.parse(raw) as Record<string, unknown>);
-  } catch {
+  } catch (e) {
+    console.error(
+      `insight: attempt ${attempt} ${e instanceof Error ? e.message : String(e)}`,
+    );
     return null;
   }
 }

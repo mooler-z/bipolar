@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { clean, type Plan } from "./lib/insight";
+import { clean, steer, type Plan } from "./lib/insight";
 import { buildTopic, relevant } from "./insightTopic";
 import { buildRanked, type RankedTopic } from "./insightTopics";
 import type { Block, TopicBoard } from "./insightBlocks";
@@ -203,5 +203,60 @@ describe("the questions, ranked against each other", () => {
     expect(clean({ lens: "topic_ranking", subject: "person" })?.subject).toBe("person");
     expect(clean({ lens: "topic_ranking", subject: "People" })?.subject).toBe("person");
     expect(clean({ lens: "topic_ranking", subject: "products" })?.subject).toBe("product");
+  });
+});
+
+/* ── what the words decide, and the model keeps getting wrong ──────────────
+   "Who is the most loved person in the US" came back three different ways
+   across four asks: the right one, one that dropped the word "person" and
+   ranked the whole catalogue, and one that reached for the country profile —
+   which describes how America votes and names nobody. All three are decidable
+   from the question itself, so they are decided rather than asked for more
+   politely in the prompt. */
+
+describe("the plan is steered by what the question actually said", () => {
+  const p = (over: Partial<Plan>): Plan => ({
+    lens: "topic_ranking", subject: null, other: null, direction: "love",
+    title: "", note: "", ...over,
+  });
+
+  test("a superlative about a person is a ranking, never a country profile", () => {
+    const out = steer(
+      p({ lens: "nation_profile", subject: "US" }),
+      "who is the most loved person in the US",
+    );
+    expect(out.lens).toBe("topic_ranking");
+    expect(out.subject).toBe("person");
+    expect(out.other).toBe("nationality:us");
+  });
+
+  test("a profile that was asked for as a profile is left alone", () => {
+    const out = steer(p({ lens: "nation_profile", subject: "US" }), "what is america like");
+    expect(out.lens).toBe("nation_profile");
+    expect(out.subject).toBe("US");
+  });
+
+  test("the kind the question said out loud is put back", () => {
+    expect(steer(p({}), "who do people hate the most").subject).toBe("person");
+    expect(steer(p({}), "most hated woman").subject).toBe("person");
+    // Nothing human in it, so nothing is added.
+    expect(steer(p({}), "most hated thing here").subject).toBeNull();
+  });
+
+  test("the country the question named is put back", () => {
+    expect(steer(p({ subject: "person" }), "most loved person in america").other)
+      .toBe("nationality:us");
+    expect(steer(p({ subject: "person" }), "most hated person in France").other)
+      .toBe("nationality:fr");
+    // A narrowing the model already made is never overwritten.
+    expect(steer(p({ subject: "person", other: "lean:right" }), "most hated person in the US").other)
+      .toBe("lean:right");
+  });
+
+  test("everything else the model chose is left as it chose it", () => {
+    const world = p({ lens: "topic_world", subject: "Donald Trump" });
+    expect(steer(world, "who hates donald trump")).toEqual(world);
+    const facet = p({ lens: "facet_split", subject: "gender" });
+    expect(steer(facet, "are women judged more harshly than men")).toEqual(facet);
   });
 });

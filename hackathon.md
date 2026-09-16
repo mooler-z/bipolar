@@ -237,7 +237,25 @@ Twenty-five votes is the floor now, and it says so when nothing clears it. Sixte
 routing examples cover the plural professions — footballers, musicians, chief executives — each
 of which is a narrowing of people and never a subject of its own.
 
-**328 tests.** Three are new: one guards the verdict board against being trimmed by
+**"The model did not answer" was a thirty-second stopwatch.** The router's fetch carried the
+shared default timeout, and the instructions had grown long enough that the call sometimes ran
+past it and was aborted — which reached the reader as a flat refusal indistinguishable from a
+missing key or a rate limit, because the failure was caught and thrown away with no signal at
+all. It says why now, in the logs, for each of the four ways it can fail; it gets sixty seconds
+and a second attempt; and `insightChat:probe` asks the router the same question the panel asks
+with no session in the way, which is how the cause was found in one command rather than
+guessed at.
+
+**And what the question plainly said is no longer left to the model.** Asked "who is the most
+loved person in the US" four times, it answered three different ways: correctly; once dropping
+the word "person", which ranks the whole catalogue and crowns a pop song; and once reaching for
+the country profile, which describes how America votes and names nobody. More rules in the
+prompt took it to two in four. So the words decide instead — a superlative about a person is a
+ranking and never a profile, the kind the question said out loud is put back, and so is the
+country it named after "in". Narrow on purpose: it only ever adds what was already said, never
+overwrites a narrowing the model made, and leaves every other lens as chosen.
+
+**333 tests.** Three are new: one guards the verdict board against being trimmed by
 the very field it is filtered on, three hold the discovery pick — that novelty is one for a
 stranger and falls away as evidence arrives, that an exploring slot takes the least known
 question rather than the worst-scored one, and that a reader with no history at all still

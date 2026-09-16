@@ -1,9 +1,9 @@
 import { v } from "convex/values";
 
 import { api, internal } from "./_generated/api";
-import { action, internalMutation, mutation, query } from "./_generated/server";
+import { action, internalAction, internalMutation, mutation, query } from "./_generated/server";
 import { limiter } from "./limits";
-import { plan as route } from "./lib/insight";
+import { plan as route, type Plan } from "./lib/insight";
 import { block, type Block } from "./insightBlocks";
 import { buildTopic } from "./insightTopic";
 import { buildFacets } from "./insightFacets";
@@ -112,6 +112,31 @@ export const spend = internalMutation({
   handler: async (ctx, args) => {
     const out = await limiter.limit(ctx, "insight", { key: args.userId });
     return out.ok;
+  },
+});
+
+/**
+ * Is the router alive, and if not, why?
+ *
+ * The panel can only ever say "the model did not answer", which is true and
+ * useless — a missing key, a rate limit and a malformed reply look identical
+ * from there. This asks the same question the panel asks, with no session and
+ * no rate limit in the way, and hands back what came out. Internal: it spends
+ * a model call, so it is for whoever is holding the deploy key.
+ */
+export const probe = internalAction({
+  args: { question: v.string() },
+  returns: v.union(v.null(), v.object({
+    lens: v.string(),
+    subject: v.union(v.null(), v.string()),
+    other: v.union(v.null(), v.string()),
+    direction: v.string(),
+    title: v.string(),
+    note: v.string(),
+  })),
+  handler: async (ctx, args): Promise<Plan | null> => {
+    const board = await ctx.runQuery(api.world.board, {});
+    return await route(args.question, board.countries.map((c) => c.code));
   },
 });
 
