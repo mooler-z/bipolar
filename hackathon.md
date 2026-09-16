@@ -255,6 +255,15 @@ ranking and never a profile, the kind the question said out loud is put back, an
 country it named after "in". Narrow on purpose: it only ever adds what was already said, never
 overwrites a narrowing the model made, and leaves every other lens as chosen.
 
+**The link preview names itself twice now.** A pasted topic link came back on X as bare blue
+text, and the page turned out to be right all along: the crawler is served the app's own shell
+with the live tags spliced into its head, and a fetch as Twitterbot returns the question, the
+description, the canonical address and an eight-hundred-pixel card at
+`/card/<slug>.png` — two hundred, `image/png`, three tenths of a second. What was missing was
+the other half of the vocabulary. X reads its own `twitter:*` tags first and only falls back to
+Open Graph, so the title, the description and the alt text are stated in both, which costs four
+lines and removes a whole class of "the card is blank on one network and fine on the others".
+
 **333 tests.** Three are new: one guards the verdict board against being trimmed by
 the very field it is filtered on, three hold the discovery pick — that novelty is one for a
 stranger and falls away as evidence arrives, that an exploring slot takes the least known

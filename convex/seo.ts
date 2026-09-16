@@ -108,7 +108,8 @@ export const topicPage = httpAction(async (ctx, request) => {
     `\n<meta property="og:image:width" content="800">` +
     `\n<meta property="og:image:height" content="418">` +
     `\n<meta property="og:image:alt" content="${title} — how the room voted">` +
-    `\n<meta name="twitter:image" content="${image}">`;
+    `\n<meta name="twitter:image" content="${image}">` +
+    `\n<meta name="twitter:image:alt" content="${title} — how the room voted">`;
 
   const head =
     `<meta name="description" content="${description}">` +
@@ -117,7 +118,13 @@ export const topicPage = httpAction(async (ctx, request) => {
     `<meta property="og:title" content="${title}">` +
     `<meta property="og:description" content="${description}">` +
     `<meta property="og:url" content="${site}/t/${escape(topic.slug)}">` +
+    `<meta property="og:site_name" content="bipolar">` +
     `<meta name="twitter:card" content="summary_large_image">` +
+    /* X reads its own tags first and only falls back to Open Graph. Both sets
+       say the same thing here, which costs four lines and removes a whole
+       class of "the card is blank on one network and fine on the others". */
+    `<meta name="twitter:title" content="${title}">` +
+    `<meta name="twitter:description" content="${description}">` +
     imageTags;
 
   /* What a machine reads, and what a person sees for the half second before
