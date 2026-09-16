@@ -294,6 +294,7 @@ export function Home({
         <ShareSheet
           url={`${window.location.origin}/t/${topic.slug}`}
           text={topic.question}
+          tags={topic.tags}
           card={cardFor(topic.question, run.result?.stats, window.location.host)}
           onShared={() => {
             if (run.me) void noteShare({ topicId: topic._id as Id<"topics"> });

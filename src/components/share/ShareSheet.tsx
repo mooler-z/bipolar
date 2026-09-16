@@ -43,12 +43,15 @@ const CHANNELS: { id: Channel; label: string; Mark: typeof XLogo }[] = [
 export function ShareSheet({
   url,
   text,
+  tags,
   card,
   onShared,
   onClose,
 }: {
   url: string;
   text: string;
+  /** The topic's own tags. They become the hashtags on the post. */
+  tags?: string[];
   /** The picture to attach, when there is a result worth drawing. */
   card?: Card | null;
   /** Fired once, on whichever route actually sent it. */
@@ -106,7 +109,7 @@ export function ShareSheet({
   }
 
   function sendTo(id: Channel) {
-    window.open(intentUrl(id, { url, text }), "_blank", "noopener,noreferrer");
+    window.open(intentUrl(id, { url, text, tags }), "_blank", "noopener,noreferrer");
     onShared?.(id);
   }
 
