@@ -264,7 +264,21 @@ the other half of the vocabulary. X reads its own `twitter:*` tags first and onl
 Open Graph, so the title, the description and the alt text are stated in both, which costs four
 lines and removes a whole class of "the card is blank on one network and fine on the others".
 
-**333 tests.** Three are new: one guards the verdict board against being trimmed by
+**The card is eighteen kilobytes now, and was three hundred and thirty-five.** `lib/png.ts`
+wrote its zlib stream as stored blocks — legal, needs no compressor, and costs a byte a pixel
+for a picture that is two rectangles and a sentence. It has one move now: fixed Huffman codes
+and matches only ever at distance one, which is all a row of eight hundred identical pixels
+needs and turns the file into a twentieth of itself. The card tests already inflated the stream
+with the platform's own zlib and compared it pixel for pixel, so the proof that every decoder
+in the world still reads it came for free.
+
+**And a shared post carries its tags.** X has three fields — text, url, hashtags — and the
+share was jamming all of it into the first one, which makes the link text rather than a card.
+Each goes in its own field now, with up to three of the topic's own tags and the two house
+ones. A hashtag ends at the first character that is not a letter or a digit, so `far-right`
+becomes `#FarRight` rather than `#far` with five characters of litter after it.
+
+**335 tests.** Three are new: one guards the verdict board against being trimmed by
 the very field it is filtered on, three hold the discovery pick — that novelty is one for a
 stranger and falls away as evidence arrives, that an exploring slot takes the least known
 question rather than the worst-scored one, and that a reader with no history at all still

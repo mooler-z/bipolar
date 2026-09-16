@@ -9,12 +9,14 @@
  * because the picture it has to make is small: flat blocks of colour on a
  * fixed palette, which is exactly what indexed PNG is for.
  *
- * **Deflate is skipped, not implemented.** A deflate stream is allowed to
- * carry "stored" blocks — literal bytes with a length in front — so a valid
- * zlib stream can be written with no compressor at all. It costs size, which
- * is why the card is 800px rather than the usual 1200: an indexed 800×418 card
- * lands around 340KB, well inside what every unfurler accepts, and no reader
- * ever waits on it because the crawler is the one fetching.
+ * **Deflate is one trick, not a library.** The picture is seven flat colours
+ * and almost every row is one of them eight hundred times over, so the encoder
+ * below knows exactly one move: fixed Huffman codes, and matches only ever at
+ * distance one — "the next two hundred and fifty-eight bytes are the same as
+ * the last". It began as stored blocks, which is legal and needs no compressor
+ * at all, and produced a byte a pixel: a third of a megabyte for a card that
+ * is two rectangles and a sentence. Every unfurler accepts that and not all of
+ * them like it.
  *
  * Every number here is from the PNG and zlib specifications rather than from
  * a library, so the two checksums are spelled out: CRC-32 over each chunk,
@@ -60,25 +62,106 @@ function chunk(type: string, data: number[] | Uint8Array): number[] {
   return [...be32(data.length), ...body, ...be32(crc32(Uint8Array.from(body)))];
 }
 
-/**
- * Wrap raw bytes as a zlib stream of stored deflate blocks.
- *
- * `0x78 0x01` is the zlib header for the lowest compression setting, which is
- * the honest thing to claim here. Each block carries its length and that
- * length's one's complement, both little-endian, and the last one sets the
- * final bit.
- */
-function stored(raw: Uint8Array): number[] {
-  const out: number[] = [0x78, 0x01];
-  const MOST = 65535;
-  for (let at = 0; at < raw.length || at === 0; at += MOST) {
-    const part = raw.subarray(at, at + MOST);
-    const last = at + MOST >= raw.length ? 1 : 0;
-    out.push(last, part.length & 0xff, (part.length >>> 8) & 0xff);
-    out.push(~part.length & 0xff, (~part.length >>> 8) & 0xff);
-    for (const b of part) out.push(b);
+/* ── a deflate that only knows how to repeat itself ───────────────────────
+   The card is seven flat colours. Almost every row is one colour repeated
+   eight hundred times, and a compressor that can say "the next two hundred
+   and fifty-eight bytes are the same as the last one" turns three hundred
+   kilobytes into a few. That is the whole trick: fixed Huffman codes, and
+   matches only ever at distance one.
+
+   A real LZ77 with a hash table would do a little better on the type. It is
+   not worth the hundred lines: the type is a thousandth of the picture.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/** Bits go into bytes low end first; a Huffman code goes in high end first. */
+class Bits {
+  readonly out: number[] = [];
+  private bit = 0;
+  private cur = 0;
+
+  /** `n` raw bits of `value`, low bit first — lengths, distances, headers. */
+  raw(value: number, n: number): void {
+    for (let i = 0; i < n; i += 1) this.one((value >>> i) & 1);
   }
-  return out.concat(be32(adler32(raw)));
+
+  /** A Huffman code of `n` bits, high bit first. */
+  code(value: number, n: number): void {
+    for (let i = n - 1; i >= 0; i -= 1) this.one((value >>> i) & 1);
+  }
+
+  private one(b: number): void {
+    this.cur |= b << this.bit;
+    this.bit += 1;
+    if (this.bit === 8) {
+      this.out.push(this.cur);
+      this.cur = 0;
+      this.bit = 0;
+    }
+  }
+
+  done(): number[] {
+    if (this.bit > 0) this.out.push(this.cur);
+    return this.out;
+  }
+}
+
+/** The fixed literal/length alphabet, as the deflate spec lays it out. */
+function literal(bits: Bits, sym: number): void {
+  if (sym <= 143) bits.code(0x30 + sym, 8);
+  else if (sym <= 255) bits.code(0x190 + sym - 144, 9);
+  else if (sym <= 279) bits.code(sym - 256, 7);
+  else bits.code(0xc0 + sym - 280, 8);
+}
+
+/** Length 3..258 as its code, plus however many extra bits it carries. */
+const LENGTH_BASE = [
+  3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67,
+  83, 99, 115, 131, 163, 195, 227, 258,
+];
+const LENGTH_EXTRA = [
+  0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5,
+  5, 5, 0,
+];
+
+function match(bits: Bits, length: number): void {
+  let i = LENGTH_BASE.length - 1;
+  while (i > 0 && LENGTH_BASE[i] > length) i -= 1;
+  literal(bits, 257 + i);
+  bits.raw(length - LENGTH_BASE[i], LENGTH_EXTRA[i]);
+  // Distance one: code 0, no extra bits. The only distance this encoder uses.
+  bits.code(0, 5);
+}
+
+/**
+ * Wrap raw bytes as a zlib stream of one fixed-Huffman block.
+ *
+ * Runs of four or more become a literal and then matches at distance one,
+ * which is how a row of eight hundred identical pixels becomes four bytes.
+ */
+function squashed(raw: Uint8Array): number[] {
+  const bits = new Bits();
+  bits.raw(1, 1); // final block
+  bits.raw(1, 2); // fixed Huffman
+
+  let i = 0;
+  while (i < raw.length) {
+    let run = 1;
+    while (i + run < raw.length && raw[i + run] === raw[i] && run < 100_000) run += 1;
+
+    literal(bits, raw[i]);
+    let left = run - 1;
+    // A match needs three bytes to be worth a code, and tops out at 258.
+    while (left >= 3) {
+      const take = Math.min(258, left);
+      match(bits, take);
+      left -= take;
+    }
+    for (let k = 0; k < left; k += 1) literal(bits, raw[i]);
+    i += run;
+  }
+
+  literal(bits, 256); // end of block
+  return [0x78, 0x01, ...bits.done(), ...be32(adler32(raw))];
 }
 
 /** A colour as three bytes. */
@@ -118,7 +201,7 @@ export function encodePng(
     ...SIGNATURE,
     ...chunk("IHDR", ihdr),
     ...chunk("PLTE", plte),
-    ...chunk("IDAT", stored(raw)),
+    ...chunk("IDAT", squashed(raw)),
     ...chunk("IEND", []),
   ]);
 }
