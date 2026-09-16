@@ -53,7 +53,9 @@ export function Simulate({ permissions }: { permissions: string[] }) {
     setBusy(true);
     setError("");
     try {
-      await set({ on, ...pace });
+      /* Field by field, never a spread: the preset carries a label for the
+         button, and a validator refuses an argument it did not ask for. */
+      await set(pace ? { on, least: pace.least, most: pace.most } : { on });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
