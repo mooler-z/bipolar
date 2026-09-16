@@ -187,15 +187,46 @@ The board now answers with people when it is asked about people, and the router 
 and `product` as narrowings beside the categories — a person can be in any category, and the
 question is about the kind.
 
-**314 tests.** Three are new: one guards the verdict board against being trimmed by
+**Twenty-two things a question now knows about itself.** The boards could say who loved a
+thing and never what kind of thing it was, so every reading had to be about one name at a
+time. Topics carry facets now — kind, region, nationality, era, year, origin, gender, birth
+year, age band, role, living, political lean, office, years in public, price band, brand,
+maker, form, platform, what the argument is about, how far it reaches, who it is for — every
+one optional and most of them a closed vocabulary, because a free-text facet is a facet nobody
+can group by. Written by hand where nothing can derive it (a person's birth year, a product's
+price band), computed where it follows (an age band from a birth year, a region from a
+country), and read from the votes where only the votes can say it (how far the argument
+actually reached). All eight hundred and one topics stamped.
+
+Race and ethnicity are deliberately absent, and the reasoning is written at the top of
+`lib/facets.ts` rather than left as a gap: a catalogue of named people tagged by race, with a
+board ranking how hated each group is, is a machine for ranking hatred of ethnic groups, and
+it would be the most shareable page on the site. Nationality is there, because a question
+about Netanyahu genuinely is a question about Israel and the atlas is built on that. Gender is
+there, because "are women judged more harshly" is a real question asked about people who are
+public figures by choice.
+
+**A ninth lens for the cut those make possible.** `facet_split` compares the groups against
+each other rather than naming a winner: head of state is the worst-thought-of job on the site
+at thirty-five percent over eighteen questions and athlete the best at sixty-one; right sits
+at forty and left at fifty; the middle east at thirty-four and south america at fifty-one.
+Every bar carries how many questions are behind it, a group of fewer than three is never
+published, and the note says to read the gaps rather than the digits — these are averages of
+averages. The league table takes the same attributes as a narrowing, so "the most hated woman"
+and "the most hated luxury thing" are questions now, and an answer about one named thing wears
+its own facets as chips above the charts.
+
+**328 tests.** Three are new: one guards the verdict board against being trimmed by
 the very field it is filtered on, three hold the discovery pick — that novelty is one for a
 stranger and falls away as evidence arrives, that an exploring slot takes the least known
 question rather than the worst-scored one, and that a reader with no history at all still
 gets a mixed serve, and ten hold the reading of one named thing — what a plan is
 allowed to contain, which end of a board leads, that a single question publishes leans and
 never counts, that a near miss is not an answer, that the thing itself leads whether or not it has a picture, and that
-the league table crowns somebody, publishes leans rather than counts, says what it averaged over, and knows a kind of thing from a category of
-one. The rest are unchanged and still green.
+the league table crowns somebody, publishes leans rather than counts, says what it averaged over, knows a kind of thing from a category of one, and — fourteen more —
+that the derivations are arithmetic, that the hand-written facets never say a word the
+vocabulary lacks, that a group of one is not a comparison, and that the router names an
+attribute rather than a value of one. The rest are unchanged and still green.
 
 ### 14 September 2026 — a hundred arguments with faces on them
 

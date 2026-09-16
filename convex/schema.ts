@@ -1,6 +1,8 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
+import { facets } from "./lib/facets";
+
 /**
  * Translated from an earlier schema.
  *
@@ -202,6 +204,15 @@ export default defineSchema({
      * reads to learn what one field can carry.
      */
     tagSlugs: v.optional(v.array(v.string())),
+    /**
+     * What the question is *about*, past its words: twenty-two attributes,
+     * every one optional and most of them a closed vocabulary. See
+     * `lib/facets.ts` — including what is deliberately absent from it.
+     *
+     * Optional because it arrived after the rows did; `seedFacets.markFacets`
+     * fills it in for everything already here.
+     */
+    facets: v.optional(facets),
     /**
      * The crawling session that minted this, when a crawler did.
      *
