@@ -3,6 +3,9 @@ import { v } from "convex/values";
 import { internalMutation } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { keysOf, step } from "./lib/affinity";
+import { PEOPLE_TOPICS } from "./seedPeopleTopics";
+import { PRODUCT_TOPICS } from "./seedProductTopics";
+import { slugify } from "./lib/slug";
 
 /**
  * Writing down what happened before it was written down.
@@ -167,3 +170,64 @@ export const rebuildAffinity = internalMutation({
   },
 });
 
+
+/**
+ * Say what a question *is*, so a league table can be about one kind of thing.
+ *
+ * "Who is the most hated person in the world" ranked every question in the
+ * catalogue and crowned "Buying fame?" — a fine answer to a question nobody
+ * asked. The catalogue knew it held people and products, in two files written
+ * by hand, and the rows in the database knew nothing: a person's tags are
+ * `israel, leader` and a phone's are `phones, apple`, with nothing in common
+ * to filter on.
+ *
+ * So the fact moves into the data, where it can be indexed and where the
+ * crawler can set it too. One tag, `person` or `product`, added beside
+ * whatever the topic already carried.
+ *
+ * Idempotent and sliced: a topic that already has the tag is left alone, and
+ * a slug that is not here — two were skipped at import as duplicates — is
+ * counted rather than swallowed.
+ */
+export const markKinds = internalMutation({
+  args: { from: v.optional(v.number()), size: v.optional(v.number()) },
+  returns: v.object({
+    tagged: v.number(),
+    already: v.number(),
+    missing: v.number(),
+    nextFrom: v.union(v.number(), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    const all: { slug: string; tag: string }[] = [
+      ...PEOPLE_TOPICS.map((r) => ({ slug: slugify(r.q), tag: "person" })),
+      ...PRODUCT_TOPICS.map((r) => ({ slug: slugify(r.q), tag: "product" })),
+    ];
+    const from = Math.max(0, args.from ?? 0);
+    const size = Math.min(args.size ?? 60, 100);
+    const slice = all.slice(from, from + size);
+
+    let tagged = 0;
+    let already = 0;
+    let missing = 0;
+    for (const want of slice) {
+      const topic = await ctx.db
+        .query("topics")
+        .withIndex("by_slug", (q) => q.eq("slug", want.slug))
+        .unique();
+      if (!topic) {
+        missing += 1;
+        continue;
+      }
+      const tags = topic.tagSlugs ?? [];
+      if (tags.includes(want.tag)) {
+        already += 1;
+        continue;
+      }
+      await ctx.db.patch("topics", topic._id, { tagSlugs: [...tags, want.tag] });
+      tagged += 1;
+    }
+
+    const next = from + size;
+    return { tagged, already, missing, nextFrom: next < all.length ? next : null };
+  },
+});

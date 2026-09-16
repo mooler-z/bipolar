@@ -177,8 +177,15 @@ export const ask = action({
       }
       blocks = buildTopic(chosen, found);
     } else if (chosen.lens === "topic_ranking") {
+      /* `person` and `product` are kinds of question, not categories of one,
+         so they go to the other filter. Everything else is a category. */
+      const kind =
+        chosen.subject === "person" || chosen.subject === "product"
+          ? chosen.subject
+          : null;
       const rows = await ctx.runQuery(internal.insightTopics.ranked, {
-        category: chosen.subject,
+        category: kind ? null : chosen.subject,
+        tag: kind,
         direction: chosen.direction,
         limit: 10,
       });

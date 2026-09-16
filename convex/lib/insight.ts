@@ -145,6 +145,11 @@ export function clean(raw: Record<string, unknown>): Plan | null {
      happily turn the country code US into the category "us". */
   const category = (v: unknown): string | null => {
     const s = typeof v === "string" ? v.trim().toLowerCase() : "";
+    // `person` and `product` are kinds rather than categories, and they are
+    // the two narrowings the league table is asked for most.
+
+    if (s === "person" || s === "people") return "person";
+    if (s === "product" || s === "products") return "product";
     return CATEGORIES.some((c) => c.slug === s) ? s : null;
   };
   /* A thing's own name, for the topic board. Wider than a slug and narrower

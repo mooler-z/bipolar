@@ -22,6 +22,11 @@ import { strength, tone, word, type Block } from "./insightBlocks";
  *
  * Thresholds are the whole quality of this board. One country at 100% is not
  * the most hated anything; it is one room with six people in it.
+ *
+ * `tag` is what makes "the most hated *person*" mean people. Ranking the whole
+ * catalogue for that question crowned "Buying fame?", which is a fine answer
+ * to a question nobody asked — the kind of a question is a fact about the
+ * data, and it lives on the row now. See `backfill.markKinds`.
  */
 
 const MIN_COUNTRIES = 3;
@@ -41,6 +46,8 @@ export const ranked = internalQuery({
   args: {
     /** A category slug to narrow to, or nothing for the whole catalogue. */
     category: v.optional(v.union(v.null(), v.string())),
+    /** A kind of thing — `person`, `product` — stamped by `backfill.markKinds`. */
+    tag: v.optional(v.union(v.null(), v.string())),
     direction: v.union(v.literal("love"), v.literal("hate")),
     limit: v.optional(v.number()),
   },
@@ -74,12 +81,17 @@ export const ranked = internalQuery({
       );
 
     const wantedCategory = args.category ?? null;
+    const wantedTag = args.tag ?? null;
     const categories = new Map<string, string>();
     const out = [];
     for (const item of shortlist) {
       if (out.length >= want) break;
       const topic = await ctx.db.get("topics", item.topicId as never);
       if (!topic || topic.status !== "active") continue;
+
+      /* The kind first, because it is the cheap one and it is the one that
+         decides whether the answer is about the thing that was asked. */
+      if (wantedTag && !(topic.tagSlugs ?? []).includes(wantedTag)) continue;
 
       if (wantedCategory) {
         if (!categories.has(topic.categoryId)) {

@@ -104,17 +104,23 @@ Named people, products and things -> topic_world, subject = the name
   do people like ai art -> topic_world "AI art"
 
 Superlatives about people and things -> topic_ranking
-  who is the most hated person in the world -> topic_ranking null hate
-  most hated person -> topic_ranking null hate
-  who is the most loved person -> topic_ranking null love
-  which person is most disliked -> topic_ranking null hate
+  who is the most hated person in the world -> topic_ranking person hate
+  most hated person -> topic_ranking person hate
+  who is the most loved person -> topic_ranking person love
+  which person is most disliked -> topic_ranking person hate
+  who do people hate the most -> topic_ranking person hate
+  most hated man alive -> topic_ranking person hate
+  best liked celebrity -> topic_ranking person love
+  rank people by how hated they are -> topic_ranking person hate
   most hated thing here -> topic_ranking null hate
   what is the most popular thing on this site -> topic_ranking null love
   which topic is most hated -> topic_ranking null hate
+  most hated product -> topic_ranking product hate
+  best loved gadget -> topic_ranking product love
+  worst thing you can buy -> topic_ranking product hate
   most hated politician -> topic_ranking politics hate
   best liked politician -> topic_ranking politics love
-  most hated tech product -> topic_ranking tech hate
-  best loved gadget -> topic_ranking tech love
+  most hated tech product -> topic_ranking product hate
   worst food opinion -> topic_ranking food hate
   most loved food -> topic_ranking food love
   most hated musician -> topic_ranking music hate

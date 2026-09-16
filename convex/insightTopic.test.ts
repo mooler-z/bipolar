@@ -191,5 +191,16 @@ describe("the questions, ranked against each other", () => {
   test("the lens narrows on a category slug and refuses a country code", () => {
     expect(clean({ lens: "topic_ranking", subject: "politics" })?.subject).toBe("politics");
     expect(clean({ lens: "topic_ranking", subject: "US" })?.subject).toBeNull();
+    expect(clean({ lens: "topic_ranking", subject: "nonsense" })?.subject).toBeNull();
+  });
+
+  test("a kind of thing is a narrowing too, and the plural is the same word", () => {
+    /* The failure this fixes: "the most hated person" ranked the whole
+       catalogue and crowned "Buying fame?" — a fine answer to a question
+       nobody asked. A person is a kind, not a category; a person can be in
+       any category, and the question is about the kind. */
+    expect(clean({ lens: "topic_ranking", subject: "person" })?.subject).toBe("person");
+    expect(clean({ lens: "topic_ranking", subject: "People" })?.subject).toBe("person");
+    expect(clean({ lens: "topic_ranking", subject: "products" })?.subject).toBe("product");
   });
 });

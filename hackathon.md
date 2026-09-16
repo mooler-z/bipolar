@@ -177,15 +177,25 @@ question is already public, the aggregate is what a vote or a peek buys, and thi
 the first. Three countries minimum per row, because one room at a hundred percent is not the
 most hated anything.
 
-**313 tests.** Three are new: one guards the verdict board against being trimmed by
+**And then it crowned "Buying fame?".** The league table ranked every question in the
+catalogue, which is a fine answer to a question nobody asked — because the database did not
+know what a question *was*. The two hand-written files knew they held people and products; the
+rows knew only that Mohammed bin Salman is tagged `saudi, leader` and an iPhone `phones,
+apple`, with nothing in common to filter on. `backfill.markKinds` moves the fact onto the row
+as a `person` or `product` tag, where it can be indexed and where the crawler can set it too.
+The board now answers with people when it is asked about people, and the router takes `person`
+and `product` as narrowings beside the categories — a person can be in any category, and the
+question is about the kind.
+
+**314 tests.** Three are new: one guards the verdict board against being trimmed by
 the very field it is filtered on, three hold the discovery pick — that novelty is one for a
 stranger and falls away as evidence arrives, that an exploring slot takes the least known
 question rather than the worst-scored one, and that a reader with no history at all still
 gets a mixed serve, and ten hold the reading of one named thing — what a plan is
 allowed to contain, which end of a board leads, that a single question publishes leans and
 never counts, that a near miss is not an answer, that the thing itself leads whether or not it has a picture, and that
-the league table crowns somebody, publishes leans rather than counts, and says what it
-averaged over. The rest are unchanged and still green.
+the league table crowns somebody, publishes leans rather than counts, says what it averaged over, and knows a kind of thing from a category of
+one. The rest are unchanged and still green.
 
 ### 14 September 2026 — a hundred arguments with faces on them
 
