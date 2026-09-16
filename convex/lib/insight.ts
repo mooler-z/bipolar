@@ -1,4 +1,5 @@
 import { OPENAI, keys } from "../config";
+import { ROUTER_PROMPT } from "./insightPrompt";
 
 /**
  * Turning a typed question into a view of the boards.
@@ -15,6 +16,7 @@ import { OPENAI, keys } from "../config";
  */
 
 export type Lens =
+  | "topic_world"
   | "verdict_ranking"
   | "nation_profile"
   | "pair_agreement"
@@ -24,7 +26,10 @@ export type Lens =
 
 export type Plan = {
   lens: Lens;
-  /** A country code or a subject slug, depending on the lens. */
+  /**
+   * What the lens is about: a country code, a category slug, or — for
+   * `topic_world` — the name of the thing itself, as the reader would say it.
+   */
   subject: string | null;
   /** The second country, for a head-to-head. */
   other: string | null;
@@ -33,39 +38,6 @@ export type Plan = {
   title: string;
   note: string;
 };
-
-const PROMPT = `You route questions about a live voting leaderboard to one of six
-views. The product is bipolar: people vote LOVE or HATE on polarizing topics,
-and topics are often *about* a particular country.
-
-Pick the ONE view that best answers the question:
-
-- verdict_ranking — which countries love or hate questions about a given
-  country. Use for "who hates China", "who likes America most". Set subject to
-  that country's ISO 3166-1 alpha-2 code, and direction to love or hate.
-- nation_profile — one country's own temperament, its friends and enemies.
-  Use for "what is Brazil like", "tell me about Japan". subject = its code.
-- pair_agreement — two countries against each other. Use for "India vs
-  Pakistan". subject and other = the two codes.
-- subject_leans — how the world feels about subjects (politics, food, sport).
-  Use for "what does the world hate most", "which topics are divisive".
-  subject may be a country code to narrow it to that country, or null.
-- world_map — the whole world coloured. Use for "show me the map", or any
-  question best answered by geography. subject may be a country code to colour
-  by feelings *about* that country, or null for each country's own mood.
-- extremes — the superlatives: most loving, most hating, most divided, biggest
-  feud. Use for "what is the most interesting thing here", "surprise me".
-
-Rules:
-- Countries are always ISO 3166-1 alpha-2, uppercase. China is CN, America is
-  US, Britain is GB, UAE is AE. If a country is named that is not in the data
-  you are shown, still return its code.
-- title: at most 6 words, naming what is being shown. No punctuation at the end.
-- note: ONE sentence of at most 20 words saying what to look for. Never state a
-  figure — you do not have the numbers and must not guess at them.
-- If the question is not about this data at all, use extremes and say so in the
-  note.
-- British spelling. No emoji.`;
 
 const TOOL = {
   type: "function" as const,
@@ -78,6 +50,7 @@ const TOOL = {
         lens: {
           type: "string",
           enum: [
+            "topic_world",
             "verdict_ranking",
             "nation_profile",
             "pair_agreement",
@@ -116,7 +89,7 @@ async function route(user: string): Promise<Plan | null> {
       body: JSON.stringify({
         model: OPENAI.model(),
         messages: [
-          { role: "system", content: PROMPT },
+          { role: "system", content: ROUTER_PROMPT },
           { role: "user", content: user.slice(0, 2_000) },
         ],
         tools: [TOOL],
@@ -137,10 +110,17 @@ async function route(user: string): Promise<Plan | null> {
   }
 }
 
-/** Trust nothing the model said about shape. A code is two letters or it is
-    not a code, and a title that runs on is a title that breaks the layout. */
-function clean(raw: Record<string, unknown>): Plan | null {
+/**
+ * Trust nothing the model said about shape. A code is two letters or it is not
+ * a code, and a title that runs on is a title that breaks the layout.
+ *
+ * Exported for its tests. Everything else about this module needs a network,
+ * and the part worth holding still is the part that decides what a plan is
+ * allowed to contain.
+ */
+export function clean(raw: Record<string, unknown>): Plan | null {
   const lenses: Lens[] = [
+    "topic_world",
     "verdict_ranking",
     "nation_profile",
     "pair_agreement",
@@ -157,6 +137,18 @@ function clean(raw: Record<string, unknown>): Plan | null {
     const s = typeof v === "string" ? v.trim().toLowerCase() : "";
     return /^[a-z][a-z-]{1,24}$/.test(s) ? s : null;
   };
+  /* A thing's own name, for the topic board. Wider than a slug and narrower
+     than free text: what goes in here becomes a search over the questions, so
+     it has to be a name somebody could have typed and not a sentence, a URL
+     or an instruction. */
+  const name = (v: unknown): string | null => {
+    const s = typeof v === "string" ? v.trim().replace(/\s+/g, " ") : "";
+    if (s.length < 2 || s.length > 60) return null;
+    // A slash is in AC/DC and in every URL ever written, so the slash stays
+    // and the two together do not.
+    if (s.includes("//")) return null;
+    return /^[\p{L}\p{N} .,'’&+/-]+$/u.test(s) ? s : null;
+  };
   const text = (v: unknown, max: number, fallback: string): string => {
     const s = typeof v === "string" ? v.trim() : "";
     return s.length > 0 && s.length <= max ? s : fallback;
@@ -166,7 +158,12 @@ function clean(raw: Record<string, unknown>): Plan | null {
     lens,
     // A subject is a country everywhere except the subject board, where it may
     // also be a category slug.
-    subject: lens === "subject_leans" ? (code(raw.subject) ?? slug(raw.subject)) : code(raw.subject),
+    subject:
+      lens === "topic_world"
+        ? name(raw.subject)
+        : lens === "subject_leans"
+          ? (code(raw.subject) ?? slug(raw.subject))
+          : code(raw.subject),
     other: code(raw.other),
     direction: raw.direction === "love" ? "love" : "hate",
     title: text(raw.title, 60, "What the numbers say"),

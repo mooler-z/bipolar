@@ -144,11 +144,31 @@ every Wikipedia title was checked against the live API for a lead image before t
 committed. Ninety-eight landed; two were already here under the same slug, and the importer's
 eight-character floor caught seven questions that were a noun somebody forgot to finish.
 
-**296 tests.** Three are new: one guards the verdict board against being trimmed by
-the very field it is filtered on, and three hold the discovery pick — that novelty is one for a
+**A question about a person is not a question about a country.** "Which country hates Donald
+Trump" was being routed to the board that answers what the world makes of American *subjects*,
+summed across every such question — a real board that never mentioned the man. There was no
+lens for a named thing at all. There is now: `topic_world` takes the name as the reader typed
+it, finds the question through the search index, and shows what each country made of that one
+question. It draws the line the topic page has always drawn — a country's lean on one question
+is public, and the counts behind it are what a vote or a peek buys — so its rows carry "few",
+"some" or "many" where the world board carries a count, and a test asserts the absence of the
+count rather than the presence of the lean.
+
+The router's instructions moved into `lib/insightPrompt.ts`, because they are now longer than
+the code that sends them, and they carry a hundred and seven worked examples in the form
+`question -> lens subject`, grouped by the mistake each group prevents. Building it turned up
+a second fault: walking the search results for one with votes on it answered a *different*
+question — "pineapple on pizza" came back as "Marmite on toast?", which shares the word "on"
+and had votes where pineapple had none. A candidate now has to share a real word with what was
+asked, and where nothing does, the honest answer is that nobody has voted on it.
+
+**306 tests.** Three are new: one guards the verdict board against being trimmed by
+the very field it is filtered on, three hold the discovery pick — that novelty is one for a
 stranger and falls away as evidence arrives, that an exploring slot takes the least known
 question rather than the worst-scored one, and that a reader with no history at all still
-gets a mixed serve. The rest are unchanged and still green.
+gets a mixed serve, and ten hold the reading of one named thing — what a plan is
+allowed to contain, which end of a board leads, that a single question publishes leans and
+never counts, and that a near miss is not an answer. The rest are unchanged and still green.
 
 ### 14 September 2026 — a hundred arguments with faces on them
 

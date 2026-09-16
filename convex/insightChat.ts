@@ -5,6 +5,7 @@ import { action, internalMutation, mutation, query } from "./_generated/server";
 import { limiter } from "./limits";
 import { plan as route } from "./lib/insight";
 import { block, type Block } from "./insightBlocks";
+import { buildTopic } from "./insightTopic";
 import { build } from "./insightViews";
 import { currentUser, requireUser } from "./users";
 
@@ -157,7 +158,26 @@ export const ask = action({
       return { ...empty, why: "The model did not answer. Try again in a moment." };
     }
 
-    const blocks = build(chosen, board);
+    /* One question or the whole board. `topic_world` is the lens for a named
+       thing — a person, a product, a policy — and it reads a different board:
+       leans per country on that one question, which is what the topic page
+       publishes, rather than sums across many. Everything else reads the
+       world board. */
+    let blocks: Block[];
+    if (chosen.lens === "topic_world" && chosen.subject) {
+      const found = await ctx.runQuery(internal.insightTopic.board, {
+        name: chosen.subject,
+      });
+      if (!found) {
+        return {
+          ...empty,
+          why: `Nothing here is about ${chosen.subject} yet, or nobody has voted on it.`,
+        };
+      }
+      blocks = buildTopic(chosen, found);
+    } else {
+      blocks = build(chosen, board);
+    }
     await ctx.runMutation(internal.insightChat.remember, {
       userId: me._id,
       question,

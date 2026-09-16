@@ -25,7 +25,16 @@ export const block = v.union(
     kind: v.literal("ranking"),
     title: v.string(),
     rows: v.array(
-      v.object({ code: v.string(), pct: v.number(), votes: v.number() }),
+      v.object({
+        code: v.string(),
+        pct: v.number(),
+        /* One or the other. A board summed over many questions publishes the
+           count; a board about a single question publishes how much there is
+           to trust and not how many people said it, which is the same line the
+           topic page has always drawn. */
+        votes: v.optional(v.number()),
+        sample: v.optional(v.string()),
+      }),
     ),
   }),
   v.object({
@@ -59,6 +68,15 @@ export const block = v.union(
 );
 
 export type Block = typeof block.type;
+
+/** One question, as the public may see it: leans per country, never counts. */
+export type TopicBoard = {
+  slug: string;
+  question: string;
+  /** The country the question is *about*, when it is about one. */
+  about: string | null;
+  rows: { code: string; lovePct: number; sample: string }[];
+};
 
 export type Board = {
   totals: { countries: number; votes: number; lovePct: number; topics: number };

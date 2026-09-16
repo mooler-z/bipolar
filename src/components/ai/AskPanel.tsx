@@ -30,8 +30,9 @@ import { ConvexLoader } from "./ConvexMark";
  */
 
 const OPENERS = [
+  "Which country hates Donald Trump?",
   "Who hates China?",
-  "Who loves America most?",
+  "What does the world think of the iPhone?",
   "India vs Pakistan",
   "What does the world hate most?",
   "Surprise me",

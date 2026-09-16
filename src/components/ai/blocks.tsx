@@ -20,7 +20,11 @@ import { WorldMap, leanFill, nameOf } from "../world/WorldMap";
 
 export type Block =
   | { kind: "headline"; label: string; value: string; word: string; tone: string; flag: string | null }
-  | { kind: "ranking"; title: string; rows: { code: string; pct: number; votes: number }[] }
+  | {
+      kind: "ranking";
+      title: string;
+      rows: { code: string; pct: number; votes?: number; sample?: string }[];
+    }
   | { kind: "map"; title: string; focus: string | null; cells: { code: string; pct: number }[] }
   | {
       kind: "versus";
@@ -94,8 +98,11 @@ function One({ block }: { block: Block }) {
                   >
                     {strengthOf(r.pct)}%
                   </span>
-                  <span className="num w-7 shrink-0 text-right text-[10px] text-mute">
-                    {fmtInt(r.votes)}
+                  {/* A count where there is one, and how much there is to
+                      trust where a single question's counts are not ours to
+                      publish. */}
+                  <span className="num w-9 shrink-0 text-right text-[10px] text-mute">
+                    {r.votes !== undefined ? fmtInt(r.votes) : (r.sample ?? "")}
                   </span>
                 </li>
               );
