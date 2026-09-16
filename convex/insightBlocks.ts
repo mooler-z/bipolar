@@ -64,6 +64,18 @@ export const block = v.union(
     votes: v.number(),
     flag: v.union(v.null(), v.string()),
   }),
+  /* The thing itself, at the top of an answer about it. A chart of countries
+     is an answer to "who", and the reader still has to hold "what" in their
+     head while they read it — a picture does that for free, and the product
+     already has one for most questions. */
+  v.object({
+    kind: v.literal("portrait"),
+    title: v.string(),
+    imageUrl: v.union(v.null(), v.string()),
+    /** The country the thing belongs to, when it belongs to one. */
+    flag: v.union(v.null(), v.string()),
+    note: v.string(),
+  }),
   v.object({ kind: v.literal("note"), text: v.string() }),
 );
 
@@ -75,6 +87,8 @@ export type TopicBoard = {
   question: string;
   /** The country the question is *about*, when it is about one. */
   about: string | null;
+  /** The topic's own picture, where discovery found one. */
+  imageUrl: string | null;
   rows: { code: string; lovePct: number; sample: string }[];
 };
 

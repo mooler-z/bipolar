@@ -35,6 +35,13 @@ export type Block =
     }
   | { kind: "bars"; title: string; rows: { label: string; pct: number; votes: number }[] }
   | { kind: "donut"; title: string; lovePct: number; votes: number; flag: string | null }
+  | {
+      kind: "portrait";
+      title: string;
+      imageUrl: string | null;
+      flag: string | null;
+      note: string;
+    }
   | { kind: "note"; text: string };
 
 const toneClass = (tone: string) =>
@@ -73,6 +80,41 @@ function One({ block }: { block: Block }) {
 
     /* A ranking: flags down the side, bars across. The thing somebody asked
        for when they typed "who hates China" — an order, not a paragraph. */
+    case "portrait":
+      return (
+        <section className="overflow-hidden rounded-[var(--r-card)] border border-line bg-surface-2">
+          {/* The picture is the answer's subject, not its decoration, so it
+              takes the full width and the question sits on it. `cover` at a
+              fixed ratio: these come from a dozen sources at a dozen shapes,
+              and a row of charts under a ragged edge reads as broken. */}
+          {block.imageUrl ? (
+            <span className="relative block aspect-[16/7] w-full border-b border-line">
+              <img
+                src={block.imageUrl}
+                alt=""
+                loading="lazy"
+                className="absolute inset-0 size-full object-cover object-[50%_30%]"
+              />
+            </span>
+          ) : null}
+          {/* The question under the picture rather than over it. A scrim to
+              keep type legible on a photograph is a gradient on a surface, and
+              the house has exactly one of those — the ground behind the
+              question — which this is not. */}
+          <div className="px-3 py-3">
+            <p className="flex items-center gap-2">
+              {block.flag ? <Flag code={block.flag} /> : null}
+              <span className="text-[14px] leading-snug font-extrabold text-ink">
+                {block.title}
+              </span>
+            </p>
+            {block.note ? (
+              <p className="mt-1.5 text-[12.5px] leading-snug text-ink-3">{block.note}</p>
+            ) : null}
+          </div>
+        </section>
+      );
+
     case "ranking":
       return (
         <section>

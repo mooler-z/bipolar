@@ -162,13 +162,19 @@ question — "pineapple on pizza" came back as "Marmite on toast?", which shares
 and had votes where pineapple had none. A candidate now has to share a real word with what was
 asked, and where nothing does, the honest answer is that nobody has voted on it.
 
-**306 tests.** Three are new: one guards the verdict board against being trimmed by
+An answer about a named thing now opens with the thing: its own picture, the question, and the
+flag of the country it belongs to. A chart of countries answers "who", and without this the
+reader had to hold "what" in their head while reading it — the product already had a picture
+for most questions and was not using it.
+
+**308 tests.** Three are new: one guards the verdict board against being trimmed by
 the very field it is filtered on, three hold the discovery pick — that novelty is one for a
 stranger and falls away as evidence arrives, that an exploring slot takes the least known
 question rather than the worst-scored one, and that a reader with no history at all still
 gets a mixed serve, and ten hold the reading of one named thing — what a plan is
 allowed to contain, which end of a board leads, that a single question publishes leans and
-never counts, and that a near miss is not an answer. The rest are unchanged and still green.
+never counts, that a near miss is not an answer, and that the thing itself leads whether or not it has a
+picture. The rest are unchanged and still green.
 
 ### 14 September 2026 — a hundred arguments with faces on them
 

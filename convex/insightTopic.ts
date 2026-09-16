@@ -63,6 +63,7 @@ export const board = internalQuery({
       slug: v.string(),
       question: v.string(),
       about: v.union(v.null(), v.string()),
+      imageUrl: v.union(v.null(), v.string()),
       rows: v.array(row),
     }),
   ),
@@ -106,10 +107,18 @@ export const board = internalQuery({
         .map(({ total: _total, ...rest }) => rest);
 
       if (rows.length > 0) {
+        /* Storage first, then whatever discovery found — the same order the
+           topic card uses, so the picture in an answer is the picture on the
+           question it is about. */
+        const imageUrl =
+          topic.imageId !== undefined
+            ? await ctx.storage.getUrl(topic.imageId)
+            : (topic.externalImageUrl ?? null);
         return {
           slug: topic.slug,
           question: topic.question,
           about: topic.scopeCountry ?? null,
+          imageUrl,
           rows,
         };
       }
@@ -129,7 +138,17 @@ export const board = internalQuery({
  */
 export function buildTopic(plan: Plan, board: TopicBoard): Block[] {
   const out: Block[] = [];
-  if (plan.note) out.push({ kind: "note", text: plan.note });
+
+  /* The thing, before the verdict on it. The note rides on the picture rather
+     than above it as a line of its own: two sentences and a headline stacked
+     before the first chart is a preamble, and this panel is meant to answer. */
+  out.push({
+    kind: "portrait",
+    title: board.question,
+    imageUrl: board.imageUrl,
+    flag: board.about,
+    note: plan.note,
+  });
 
   const harshest = board.rows[0]!;
   const warmest = board.rows[board.rows.length - 1]!;

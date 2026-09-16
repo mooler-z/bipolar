@@ -28,6 +28,7 @@ const board: TopicBoard = {
   slug: "donald-trump",
   question: "Donald Trump?",
   about: "US",
+  imageUrl: "https://example.test/trump.jpg",
   rows: [
     { code: "ET", lovePct: 8, sample: "some" },
     { code: "FR", lovePct: 22, sample: "some" },
@@ -93,6 +94,22 @@ describe("one question, and what each country made of it", () => {
     for (const leaked of ["votes", "freeLove", "paidLove", "total"]) {
       expect(drawn).not.toContain(leaked);
     }
+  });
+
+  test("the thing itself leads, with its picture where there is one", () => {
+    const out = buildTopic(plan(), board);
+    expect(out[0].kind).toBe("portrait");
+    const first = out[0] as Extract<Block, { kind: "portrait" }>;
+    expect(first.imageUrl).toBe("https://example.test/trump.jpg");
+    expect(first.title).toBe("Donald Trump?");
+    expect(first.flag).toBe("US");
+  });
+
+  test("a question with no picture still leads with the question", () => {
+    const out = buildTopic(plan(), { ...board, imageUrl: null });
+    const first = out[0] as Extract<Block, { kind: "portrait" }>;
+    expect(first.kind).toBe("portrait");
+    expect(first.imageUrl).toBeNull();
   });
 
   test("a board with almost nobody on it says so", () => {
